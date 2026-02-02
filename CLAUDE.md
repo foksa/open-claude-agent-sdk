@@ -1,106 +1,121 @@
+# Lite Claude Agent SDK
 
-Default to using Bun instead of Node.js.
+A lightweight wrapper around Claude CLI - we're building a thin SDK that re-uses the local Claude binary instead of embedding it.
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Use `bunx <package> <command>` instead of `npx <package> <command>`
-- Bun automatically loads .env, so don't use dotenv.
+## What This Project Is
 
-## APIs
+**Goal:** 65x smaller alternative to `@anthropic-ai/claude-agent-sdk` (200KB vs 13MB).
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+**Strategy:** Thin wrapper that spawns Claude CLI as subprocess and manages stdin/stdout communication via NDJSON protocol. We re-export types from official SDK for 100% type compatibility.
 
-## Testing
+**Not:** A reimplementation of Claude CLI tools or protocol - we let CLI handle that.
 
-Use `bun test` to run tests.
+## Project Structure
 
-```ts#index.test.ts
-import { test, expect } from "bun:test";
+```
+src/
+  ├── api/
+  │   ├── query.ts           # Main query() function
+  │   └── QueryImpl.ts       # AsyncGenerator + control protocol
+  ├── core/
+  │   ├── detection.ts       # Find Claude CLI binary
+  │   ├── spawn.ts           # Build args, spawn subprocess
+  │   └── control.ts         # Handle canUseTool, hooks
+  └── types/
+      ├── index.ts           # Re-exports from official SDK
+      └── control.ts         # Control protocol types
 
-test("hello world", () => {
-  expect(1).toBe(1);
-});
+tests/
+  ├── integration/           # Real tests (run with: bun test)
+  ├── scratch/              # Development experiments (not tests)
+  └── snapshots/            # NDJSON expected outputs
+
+docs/
+  ├── planning/             # ROADMAP, FEATURES, strategy docs
+  ├── guides/               # IMPLEMENTATION_GUIDE, MIGRATION
+  └── research/             # Protocol research, findings
 ```
 
-## Frontend
+## How to Work Here
 
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
+### Running Code
 
-Server:
+```bash
+# Run tests (our primary verification)
+bun test tests/integration/
 
-```ts#index.ts
-import index from "./index.html"
+# Run example
+bun examples/comparison-demo/server.ts
 
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
+# Type check
+bun run typecheck
 ```
 
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
+### Making Changes
 
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
+1. **Read before writing:** Always read the file you're about to modify
+2. **Use existing patterns:** Follow the code style already in the codebase
+3. **Integration tests:** Add test in `tests/integration/` for new features
+4. **Update docs:** If adding features, update `docs/planning/FEATURES.md` status
 
-With the following `frontend.tsx`:
+### Testing Philosophy
 
-```tsx#frontend.tsx
-import React from "react";
-import { createRoot } from "react-dom/client";
+- **Integration tests are primary** - We test the full subprocess communication
+- **No mocking** - Tests spawn actual Claude CLI to verify real behavior
+- **Snapshots for regression** - NDJSON files in `tests/snapshots/`
 
-// import .css files directly and it works
-import './index.css';
+### What NOT to Do
 
-const root = createRoot(document.body);
+- ❌ Don't implement tools (Read, Write, etc.) - CLI handles those
+- ❌ Don't reimplement protocol - we're a thin wrapper
+- ❌ Don't add features without updating `docs/planning/FEATURES.md`
+- ❌ Don't mark features ✅ complete without integration tests
 
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
+## Key Constraints
 
-root.render(<Frontend />);
-```
+**Bundle size:** Must stay < 500KB. This is our #1 differentiator.
 
-Then, run index.ts
+**Type compatibility:** Must re-export official SDK types identically.
 
-```sh
-bun --hot ./index.ts
-```
+**CLI dependency:** We assume Claude CLI is installed. Don't embed it.
 
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+## Code Conventions
+
+**Already handled by Biome** - we run `biome check` in CI. Don't repeat style rules here.
+
+**File references:** When referencing code, use `file:line` format:
+- Example: "The control protocol is handled in src/core/control.ts:24"
+
+## Current Status (Read First!)
+
+**Implemented:** Baby Steps 1-5 complete
+- ✅ One-shot queries
+- ✅ Multi-turn (AsyncIterable + streamInput)
+- ✅ Control protocol (stdin/stdout)
+- ⚠️ canUseTool & hooks (code exists, needs tests - see docs/CORRECTIONS.md)
+
+**Next:** Phase 0.5 (Validation) then Phase 1 (4 features)
+- See `docs/planning/ROADMAP.md` for timeline
+- See `docs/planning/FEATURES.md` for status matrix
+
+## Tech Stack
+
+**Runtime:** Bun (not Node.js)
+- Use `bun test` not `jest`
+- Use `bun <file>` not `node <file>`
+- Bun auto-loads .env
+
+**Types:** TypeScript
+- Re-export from `@anthropic-ai/claude-agent-sdk` for compatibility
+- Run `bun run typecheck` to verify
+
+**Process spawning:** node:child_process (for cross-runtime compatibility)
+
+## Documentation
+
+When documenting features:
+- Update `docs/planning/FEATURES.md` status (✅ ⚠️ ❌)
+- Follow existing format in docs/guides/
+- Don't create new docs without asking - we have a structure
+
+For more context, see `docs/README.md` (documentation hub).

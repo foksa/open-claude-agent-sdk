@@ -2,11 +2,12 @@
 
 A lightweight alternative to the official Claude Agent SDK - **70x smaller** (~200KB vs 13MB), uses your local Claude CLI.
 
-## 🎯 Status: ✅ Baby Steps 1-4 COMPLETE!
+## 🎯 Status: ✅ Baby Steps 1-5 COMPLETE!
 
-**Implementation Complete:** February 2, 2026
+**Current Status:** Production-ready for basic use cases
+**Last Updated:** February 2, 2026
 
-All baby steps implemented and tested! See [BABY-STEPS-COMPLETE.md](BABY-STEPS-COMPLETE.md) for full details.
+Core functionality complete! Ready for Phase 1 feature additions.
 
 ## Why Lite SDK?
 
@@ -57,15 +58,26 @@ for await (const msg of query({
 
 ## ✨ Features
 
-### Currently Supported (Baby Steps 1-4)
+### Currently Supported (Baby Steps 1-5) ✅
 
-✅ **Type-safe queries** with full TypeScript support
+✅ **One-shot queries** - Basic prompt → response pattern
+✅ **Multi-turn conversations** - AsyncIterable input + streamInput()
 ✅ **Streaming responses** via `includePartialMessages`
+✅ **Control protocol** - Bidirectional stdin/stdout communication
+⚠️ **Permission callbacks** - `canUseTool` code exists (needs tests)
+⚠️ **Hook system** - PreToolUse, PostToolUse code exists (needs tests)
 ✅ **All message types** (system, assistant, result, stream_event, etc.)
-✅ **Permission modes:** `bypassPermissions`, `plan`
+✅ **Permission modes:** `bypassPermissions`, `plan`, `default`
 ✅ **Custom models** (Sonnet, Opus, Haiku)
 ✅ **Turn limits** and **budget controls**
-✅ **NDJSON parsing** with proper line buffering
+✅ **Control methods** - interrupt(), setPermissionMode(), setModel()
+
+### Coming in Phase 1 (1-2 weeks) 🎯
+
+📋 **Structured outputs** - JSON schema validation
+📋 **Extended thinking** - Parse reasoning steps
+📋 **Skills & commands** - Load from .claude/ directory
+📋 **Budget tracking** - Real-time cost monitoring
 
 ### Essential CLI Flags Supported
 
@@ -108,37 +120,51 @@ ls tests/snapshots/
 cat tests/snapshots/hello-world.jsonl
 ```
 
-## ⚠️ Current Limitations
+## ⚠️ What's Not Implemented Yet
 
-**This is Baby Steps 1-4 implementation** - suitable for one-shot queries only.
+**Phase 1 Features** (coming in 1-2 weeks):
+- ❌ Structured outputs (JSON schema)
+- ❌ Extended thinking parser
+- ❌ Skills/commands loader
+- ❌ Budget tracking (accountInfo method)
 
-**Works with:**
-- ✅ `permissionMode: 'bypassPermissions'`
-- ✅ `permissionMode: 'plan'`
-- ✅ Non-interactive queries
+**Phase 2 Features** (coming in 1-2 months):
+- ❌ Session management (resume/fork)
+- ❌ Advanced hooks (11 events)
+- ❌ File checkpointing
+- ❌ Context compaction
 
-**Not yet implemented (Baby Step 5):**
-- ❌ Control protocol (bidirectional communication)
-- ❌ Interactive permission prompts
-- ❌ Hook system callbacks
-- ❌ Runtime control (interrupt, setPermissionMode, etc.)
+See [docs/planning/ROADMAP.md](./docs/planning/ROADMAP.md) for full timeline.
 
 ## 📊 Comparison
 
 | Feature | Lite SDK | Official SDK |
 |---------|----------|--------------|
 | Bundle Size | ~200KB | 13MB |
-| Lines of Code | ~650 | 50,000+ |
+| Lines of Code | ~1,225 | 50,000+ |
 | Dependencies | Claude CLI | Self-contained |
 | Type Safety | ✅ (re-exports) | ✅ |
 | Streaming | ✅ | ✅ |
-| Interactive Mode | ❌ (Baby Step 5) | ✅ |
+| Multi-turn | ✅ | ✅ |
+| Control Protocol | ✅ | ✅ |
+| Hooks | ✅ Basic | ✅ All |
 
-## 🎓 Learn More
+## 📚 Documentation
 
-- [Baby Steps Complete](BABY-STEPS-COMPLETE.md) - Implementation summary
-- [Research Documentation](docs/research/) - Protocol analysis
-- [Official SDK](https://github.com/anthropics/claude-agent-sdk-typescript)
+### For Users
+- **[Quick Start Guide](./docs/guides/QUICK_START.md)** - Detailed usage guide with examples
+- **[Feature Comparison](./docs/planning/FEATURES.md)** - Complete feature comparison vs official SDK
+- **[Migration Guide](./docs/guides/MIGRATION.md)** - Migrate from official SDK to Lite SDK
+
+### For Contributors
+- **[Development Roadmap](./docs/planning/ROADMAP.md)** - Development timeline and priorities
+- **[Implementation Guide](./docs/guides/IMPLEMENTATION_GUIDE.md)** - Step-by-step implementation instructions
+- **[Research Summary](./docs/research/RESEARCH_SUMMARY.md)** - Protocol research and findings
+- **[Documentation Index](./docs/planning/DOCUMENTATION_INDEX.md)** - Full documentation map
+
+### External Links
+- [Official Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-typescript)
+- [Claude API Documentation](https://platform.claude.com/docs)
 
 ## Development
 
@@ -159,5 +185,6 @@ MIT
 
 ---
 
-**Status:** ✅ Baby Steps 1-4 Complete
-**Next:** Baby Step 5 (Control Protocol) - Coming Soon!
+**Current Version:** 0.0.0 (Pre-release)
+**Status:** ✅ Baby Steps 1-5 Complete | 📋 Phase 1 Ready to Implement
+**Next Release:** v1.0.0 with Phase 1 features (1-2 weeks)
