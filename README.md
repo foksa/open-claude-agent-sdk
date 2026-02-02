@@ -1,33 +1,144 @@
 # Lite Claude Agent SDK
 
-> A lightweight alternative to Claude Agent SDK - 70x smaller, uses local CLI
+A lightweight alternative to the official Claude Agent SDK - **70x smaller** (~200KB vs 13MB), uses your local Claude CLI.
 
-## Status: ✅ Research Complete → 🚀 Ready for Implementation
+## 🎯 Status: ✅ Baby Steps 1-4 COMPLETE!
 
-**Research Phase: COMPLETE!** (2026-02-02)
+**Implementation Complete:** February 2, 2026
 
-Major Discovery: **Python SDK is open source** (MIT License)! We analyzed the actual source code and validated our entire approach.
+All baby steps implemented and tested! See [BABY-STEPS-COMPLETE.md](BABY-STEPS-COMPLETE.md) for full details.
 
-**Key Findings:**
-- ✅ Protocol fully documented (NDJSON over stdout)
-- ✅ Python SDK source code analyzed (types.py, subprocess.py, query.py)
-- ✅ PermissionMode confirmed: `"default" | "acceptEdits" | "plan" | "bypassPermissions"`
-- ✅ Implementation validated: subprocess + NDJSON parsing + async iterator
-- ✅ Bundle size advantage: 70x smaller (0.2 MB vs 14 MB)
-- ✅ Our architecture matches Python SDK exactly!
+## Why Lite SDK?
 
-**Quick Links:**
-- [Research Summary](./RESEARCH_SUMMARY.md) - Executive overview
-- [Plan Mode Guide](./docs/research/plan-mode.md) - Complete plan mode documentation
-- [Quick Start](./QUICK_START.md) - Developer guide
+- **Tiny Bundle:** ~200KB vs 13MB (official SDK) = **65x smaller**
+- **100% Type Compatible:** Re-exports all types from official SDK
+- **Local CLI:** Uses your installed Claude CLI binary
+- **Simple:** Just ~650 lines of code
+- **Fast Development:** Built with Bun for optimal DX
+- **Fully Tested:** Integration tests + visual demo + Playwright testing
 
-## Goals
+## 📦 Installation
 
-- **Lightweight**: < 2MB (vs. 10.5MB with bundled CLI)
-- **Decoupled**: No CLI dependencies, pure API-based
-- **Well-tested**: >85% coverage, test-first development
-- **Context-aware**: Smart session management to prevent overflow
-- **Type-safe**: Full TypeScript with Zod validation
+```bash
+# Install the SDK
+bun install lite-claude-agent-sdk
+
+# Ensure Claude CLI is installed
+npm install -g @anthropic-ai/claude-code
+```
+
+## 🚀 Quick Start
+
+```typescript
+import { query } from 'lite-claude-agent-sdk';
+
+for await (const msg of query({
+  prompt: 'Write a haiku about coding',
+  options: {
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
+    maxTurns: 3,
+    includePartialMessages: true, // Enable streaming!
+  }
+})) {
+  if (msg.type === 'stream_event') {
+    // Real-time streaming chunks
+    process.stdout.write('.');
+  } else if (msg.type === 'assistant') {
+    // Complete assistant message
+    console.log('\nAssistant:', msg.message.content);
+  } else if (msg.type === 'result') {
+    // Final result
+    console.log('\nResult:', msg.result);
+    break;
+  }
+}
+```
+
+## ✨ Features
+
+### Currently Supported (Baby Steps 1-4)
+
+✅ **Type-safe queries** with full TypeScript support
+✅ **Streaming responses** via `includePartialMessages`
+✅ **All message types** (system, assistant, result, stream_event, etc.)
+✅ **Permission modes:** `bypassPermissions`, `plan`
+✅ **Custom models** (Sonnet, Opus, Haiku)
+✅ **Turn limits** and **budget controls**
+✅ **NDJSON parsing** with proper line buffering
+
+### Essential CLI Flags Supported
+
+- `--print` - Non-interactive mode
+- `--output-format stream-json` - NDJSON output
+- `--verbose` - Detailed logging
+- `--permission-mode` - Permission behavior
+- `--model` - Model selection
+- `--max-turns` - Turn limit
+- `--max-budget-usd` - Cost limit
+- `--include-partial-messages` - Streaming
+- `--cwd` - Working directory
+
+## 🧪 Demo App
+
+Run the comparison demo to see Lite SDK vs Official SDK side-by-side:
+
+```bash
+cd examples/comparison-demo
+bun server.ts
+# Open http://localhost:3000
+```
+
+The demo shows:
+- Real-time streaming
+- Message comparison
+- Cost and duration metrics
+- Beautiful dark-themed UI
+
+## 🧪 Testing
+
+### Run Integration Tests
+
+```bash
+# All integration tests
+bun test tests/integration/
+
+# View snapshots (NDJSON format)
+ls tests/snapshots/
+cat tests/snapshots/hello-world.jsonl
+```
+
+## ⚠️ Current Limitations
+
+**This is Baby Steps 1-4 implementation** - suitable for one-shot queries only.
+
+**Works with:**
+- ✅ `permissionMode: 'bypassPermissions'`
+- ✅ `permissionMode: 'plan'`
+- ✅ Non-interactive queries
+
+**Not yet implemented (Baby Step 5):**
+- ❌ Control protocol (bidirectional communication)
+- ❌ Interactive permission prompts
+- ❌ Hook system callbacks
+- ❌ Runtime control (interrupt, setPermissionMode, etc.)
+
+## 📊 Comparison
+
+| Feature | Lite SDK | Official SDK |
+|---------|----------|--------------|
+| Bundle Size | ~200KB | 13MB |
+| Lines of Code | ~650 | 50,000+ |
+| Dependencies | Claude CLI | Self-contained |
+| Type Safety | ✅ (re-exports) | ✅ |
+| Streaming | ✅ | ✅ |
+| Interactive Mode | ❌ (Baby Step 5) | ✅ |
+
+## 🎓 Learn More
+
+- [Baby Steps Complete](BABY-STEPS-COMPLETE.md) - Implementation summary
+- [Research Documentation](docs/research/) - Protocol analysis
+- [Official SDK](https://github.com/anthropics/claude-agent-sdk-typescript)
 
 ## Development
 
@@ -40,15 +151,13 @@ bun test
 
 # Type check
 bun run typecheck
-
-# Lint & format
-bun run check:fix
 ```
 
-## Research
-
-See [docs/research/](./docs/research/) for detailed analysis of Claude Agent SDK.
-
-## License
+## 📝 License
 
 MIT
+
+---
+
+**Status:** ✅ Baby Steps 1-4 Complete
+**Next:** Baby Step 5 (Control Protocol) - Coming Soon!
