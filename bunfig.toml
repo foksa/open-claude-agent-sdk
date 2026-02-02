@@ -1,0 +1,9 @@
+[install]
+backend = "clonefile_each_dir"
+auto = "fallback"
+
+[test]
+preload = ["./tests/setup.ts"]
+
+[run]
+shell = "system"
