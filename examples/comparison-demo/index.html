@@ -180,6 +180,26 @@
       cursor: not-allowed;
     }
 
+    #continue-btn {
+      padding: 12px 24px;
+      background: #10b981;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    #continue-btn:hover {
+      background: #059669;
+    }
+
+    #continue-btn:disabled {
+      background: #444;
+      cursor: not-allowed;
+    }
+
     .status {
       font-size: 12px;
       color: #888;
@@ -214,7 +234,7 @@
 <body>
   <header>
     <h1>🧪 SDK Comparison Demo</h1>
-    <p class="subtitle">Compare Lite Claude Agent SDK vs Official SDK side-by-side</p>
+    <p class="subtitle">Compare Lite Claude Agent SDK vs Official SDK side-by-side • Now with Multi-Turn Support!</p>
     <div class="status" id="status">Connecting...</div>
   </header>
 
@@ -246,6 +266,7 @@
       disabled
     >
     <button id="send" disabled>Send to Both</button>
+    <button id="continue-btn" disabled style="background: #10b981;">Continue Conversation</button>
   </div>
 
   <script type="module" src="/client.js"></script>

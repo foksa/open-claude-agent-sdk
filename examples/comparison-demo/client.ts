@@ -8,8 +8,13 @@ let ws: WebSocket | null = null;
 const statusEl = document.getElementById('status') as HTMLDivElement;
 const promptInput = document.getElementById('prompt') as HTMLInputElement;
 const sendBtn = document.getElementById('send') as HTMLButtonElement;
+const continueBtn = document.getElementById('continue-btn') as HTMLButtonElement;
 const officialOutput = document.getElementById('official-output') as HTMLDivElement;
 const liteOutput = document.getElementById('lite-output') as HTMLDivElement;
+
+// Track session IDs for multi-turn
+let liteSessionId: string | null = null;
+let officialSessionId: string | null = null;
 
 // Connect to WebSocket
 function connect() {
@@ -67,6 +72,20 @@ function handleMessage(data: { sdk: 'official' | 'lite'; message: any; error?: s
 
   if (data.message) {
     appendMessage(outputDiv, data.message);
+
+    // Track session IDs for multi-turn
+    if (data.message.type === 'system' && data.message.session_id) {
+      if (data.sdk === 'lite') {
+        liteSessionId = data.message.session_id;
+      } else {
+        officialSessionId = data.message.session_id;
+      }
+    }
+
+    // Enable continue button after first result
+    if (data.message.type === 'result') {
+      continueBtn.disabled = false;
+    }
   }
 }
 
@@ -186,14 +205,64 @@ function sendPrompt() {
   console.log('Sent prompt to both SDKs:', prompt);
 }
 
+// Continue conversation
+function continueConversation() {
+  const prompt = promptInput.value.trim();
+  if (!prompt || !ws || ws.readyState !== WebSocket.OPEN) {
+    return;
+  }
+
+  // Clear input
+  promptInput.value = '';
+
+  // Disable buttons temporarily
+  sendBtn.disabled = true;
+  continueBtn.disabled = true;
+  setTimeout(() => {
+    sendBtn.disabled = false;
+    promptInput.focus();
+  }, 500);
+
+  // Send continuation to both SDKs
+  if (liteSessionId) {
+    ws.send(JSON.stringify({
+      prompt,
+      sdk: 'lite',
+      continue: true,
+      sessionId: liteSessionId
+    }));
+  }
+
+  if (officialSessionId) {
+    ws.send(JSON.stringify({
+      prompt,
+      sdk: 'official',
+      continue: true,
+      sessionId: officialSessionId
+    }));
+  }
+
+  console.log('Continuing conversation with prompt:', prompt);
+}
+
 // Clear output for a specific SDK
 (window as any).clearOutput = (sdk: 'official' | 'lite') => {
   const container = sdk === 'official' ? officialOutput : liteOutput;
   container.innerHTML = '';
+
+  // Reset session IDs
+  if (sdk === 'lite') {
+    liteSessionId = null;
+  } else {
+    officialSessionId = null;
+  }
+
+  continueBtn.disabled = true;
 };
 
 // Event listeners
 sendBtn.addEventListener('click', sendPrompt);
+continueBtn.addEventListener('click', continueConversation);
 promptInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     sendPrompt();

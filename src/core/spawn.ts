@@ -19,17 +19,18 @@ import type { Options } from '../types/index.ts';
  *
  * Reference: https://gist.github.com/SamSaffron/603648958a8c18ceae34939a8951d417
  *
- * For Baby Steps 1-4, we implement essential flags only.
- * Control protocol support (bidirectional communication) will be added in Baby Step 5.
+ * Baby Step 5: Includes --input-format stream-json for bidirectional communication
+ * Prompt is optional - when using AsyncIterable input, prompt comes via stdin only
  *
- * @param options Query options (including prompt)
+ * @param options Query options (prompt is optional for AsyncIterable input)
  * @returns Array of CLI arguments
  */
-export function buildCliArgs(options: Options & { prompt: string }): string[] {
+export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   // Required flags (per gist spec)
   const args = [
     '--print',                      // Non-interactive mode
     '--output-format', 'stream-json', // NDJSON output
+    '--input-format', 'stream-json',  // Baby Step 5: Bidirectional communication
     '--verbose'                     // Required for stream-json format
   ];
 
@@ -65,16 +66,32 @@ export function buildCliArgs(options: Options & { prompt: string }): string[] {
     args.push('--cwd', options.cwd);
   }
 
-  // TODO: Add in future steps (Baby Step 5+):
+  // Output format (structured outputs)
+  if (options.outputFormat) {
+    if (options.outputFormat.type === 'json_schema') {
+      args.push('--json-schema', JSON.stringify(options.outputFormat.schema));
+    }
+  }
+
+  // Setting sources (for skills/commands)
+  if (options.settingSources) {
+    args.push('--setting-sources', options.settingSources.join(','));
+  }
+
+  // TODO: Add in future steps (Baby Step 6+):
   // - --system-prompt
   // - --allowed-tools
-  // - --include-partial-messages
   // - --mcp-config
   // - --resume
-  // - --input-format stream-json (for bidirectional mode)
 
-  // Prompt must be last after --
-  args.push('--', options.prompt);
+  // Baby Step 5: With --input-format stream-json, prompt is sent via stdin
+  // NOT as CLI argument. The prompt will be sent as first user message on stdin.
+  // No '-- prompt' argument needed!
+
+  // Test support: Allow injecting extra CLI args for testing
+  if ((options as any)._testCliArgs) {
+    args.push(...(options as any)._testCliArgs);
+  }
 
   return args;
 }

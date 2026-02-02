@@ -42,6 +42,8 @@ export type {
  */
 export type {
   Query,
+  OutputFormat,
+  JsonSchemaOutputFormat,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================
