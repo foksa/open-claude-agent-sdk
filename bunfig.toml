@@ -6,6 +6,8 @@ auto = "fallback"
 preload = ["./tests/setup.ts"]
 # Run test files in parallel (each file spawns Claude processes)
 concurrency = 4
+# Only run actual test files, exclude e2e (Playwright runs separately)
+root = "./tests"
 
 [test.reporter]
 junit = "tests/output/junit.xml"
