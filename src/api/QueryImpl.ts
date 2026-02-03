@@ -368,7 +368,15 @@ export class QueryImpl implements Query {
       request_id: requestId,
       request: {
         subtype: 'initialize',
-        systemPrompt: ''  // Official SDK always sends this
+        // Match official SDK behavior:
+        // - String systemPrompt: include in init request
+        // - Object/preset systemPrompt: don't include (handled differently)
+        // - No systemPrompt: send empty string for cache token optimization
+        systemPrompt: typeof options.systemPrompt === 'string'
+          ? options.systemPrompt
+          : options.systemPrompt === undefined
+            ? ''
+            : undefined
       }
     };
 

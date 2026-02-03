@@ -393,5 +393,7 @@ describe('stdin message compatibility', () => {
     expect(liteSystemPrompt).toEqual(officialSystemPrompt);
 
     console.log('   systemPrompt preset type test passed');
+    console.log('   Lite:', liteSystemPrompt);
+    console.log('   Official:', officialSystemPrompt);
   }, { timeout: 15000 });
 });
