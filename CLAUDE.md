@@ -64,6 +64,28 @@ bun run typecheck
 - **No mocking** - Tests spawn actual Claude CLI to verify real behavior
 - **Snapshots for regression** - NDJSON files in `tests/snapshots/`
 
+### Debugging Protocol Issues
+
+**Proxy CLI technique** - When behavior differs from Official SDK:
+
+1. Use the proxy CLI in `tests/utils/proxy-cli.js` to intercept messages
+2. Run both SDKs through proxy: `pathToClaudeCodeExecutable: './tests/utils/proxy-cli.js'`
+3. Compare logs in `tests/research/logs/` to see exact differences
+4. See `docs/guides/REVERSE_ENGINEERING.md` for full guide
+
+**Example:** This technique discovered the missing `systemPrompt: ""` field that caused 73% higher costs.
+
+```bash
+# Quick comparison
+bun tests/research/compare-with-proxy.ts
+```
+
+**Research Directory Structure:**
+- `tests/utils/proxy-cli.js` - The proxy interceptor (permanent tool)
+- `tests/research/` - Active comparison tests
+- `tests/research/archived/` - Historical one-off investigations
+- `tests/research/performance/` - Performance research scripts
+
 ### What NOT to Do
 
 - ❌ Don't implement tools (Read, Write, etc.) - CLI handles those

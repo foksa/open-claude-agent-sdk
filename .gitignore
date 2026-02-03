@@ -43,3 +43,6 @@ logs/
 # Helper scripts (temporary)
 rewrite-history.sh
 update-all-refs.sh
+
+# Test output files
+tests/output/*.xml
