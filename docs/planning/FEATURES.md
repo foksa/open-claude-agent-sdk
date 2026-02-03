@@ -193,7 +193,7 @@ for await (const event of session.stream()) {
 | `resume` | ❌ | ✅ | `--resume` | MEDIUM |
 | `forkSession` | ❌ | ✅ | `--fork` | MEDIUM |
 | `sandbox` | ❌ | ✅ | `--sandbox-*` | MEDIUM |
-| `systemPrompt` | ❌ | ✅ | `--system-prompt` | HIGH 🎯 Next |
+| `systemPrompt` | ✅ | ✅ | stdin init message | - | Complete |
 | `allowedTools` | ❌ | ✅ | `--allowed-tools` | MEDIUM |
 | `disallowedTools` | ❌ | ✅ | `--disallowed-tools` | MEDIUM |
 | `mcpServers` | ❌ | ✅ | `--mcp-config` | LOW |
