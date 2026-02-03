@@ -1,0 +1,15 @@
+{
+  "name": "hello-world",
+  "description": "Hello World demo using lite-claude-agent-sdk (ported from official SDK demos)",
+  "dependencies": {
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "start": "tsx hello-world.ts"
+  }
+}
