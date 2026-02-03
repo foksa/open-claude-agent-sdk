@@ -1,6 +1,6 @@
-// Using lite-claude-agent-sdk instead of official SDK
-import { query } from '../../src/index.ts';
-import type { HookJSONOutput } from "../../src/types/index.ts";
+// Using official @anthropic-ai/claude-agent-sdk
+import { query } from '@anthropic-ai/claude-agent-sdk';
+import type { HookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import * as path from "path";
 
 async function main() {

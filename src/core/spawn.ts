@@ -13,6 +13,11 @@
 
 import { spawn, type ChildProcess } from 'node:child_process';
 import type { Options } from '../types/index.ts';
+import {
+  DEFAULT_PERMISSION_MODE,
+  DEFAULT_SETTING_SOURCES,
+  REQUIRED_CLI_FLAGS,
+} from './defaults.ts';
 
 /**
  * Build CLI arguments from Options
@@ -26,20 +31,12 @@ import type { Options } from '../types/index.ts';
  * @returns Array of CLI arguments
  */
 export function buildCliArgs(options: Options & { prompt?: string }): string[] {
-  // Required flags (per gist spec)
-  const args = [
-    '--print',                      // Non-interactive mode
-    '--output-format', 'stream-json', // NDJSON output
-    '--input-format', 'stream-json',  // Baby Step 5: Bidirectional communication
-    '--verbose'                     // Required for stream-json format
-  ];
+  // Required flags for stream-json protocol (from defaults.ts)
+  const args = [...REQUIRED_CLI_FLAGS];
 
-  // Optional flags (implement subset for baby steps)
-
-  // Permission mode
-  if (options.permissionMode && options.permissionMode !== 'default') {
-    args.push('--permission-mode', options.permissionMode);
-  }
+  // Permission mode - always pass explicitly (official SDK behavior)
+  const permissionMode = options.permissionMode ?? DEFAULT_PERMISSION_MODE;
+  args.push('--permission-mode', permissionMode);
 
   // Allow dangerously skip permissions (for bypassPermissions mode)
   if (options.allowDangerouslySkipPermissions) {
@@ -66,10 +63,8 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--include-partial-messages');
   }
 
-  // CWD
-  if (options.cwd) {
-    args.push('--cwd', options.cwd);
-  }
+  // Note: cwd is NOT a CLI argument. It's passed to spawn() as a process option.
+  // The CLI doesn't support --cwd flag.
 
   // Enable control protocol for permissions only (not hooks)
   // Hooks use control protocol but don't need --permission-prompt-tool stdio
@@ -84,16 +79,19 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
   }
 
+  // Allowed tools - pass to CLI if specified (official SDK behavior)
+  if (options.allowedTools && options.allowedTools.length > 0) {
+    args.push('--allowedTools', options.allowedTools.join(','));
+  }
+
   // Setting sources (for skills/commands)
   // Official SDK default: [] (empty array) = no settings loaded
   // CLI default when flag omitted: loads all settings (user+project+local)
   // So we must explicitly pass empty string to match official SDK behavior
-  const settingSources = options.settingSources ?? []; // Default to empty like official SDK
+  const settingSources = options.settingSources ?? DEFAULT_SETTING_SOURCES;
   args.push('--setting-sources', settingSources.join(','));
 
-  // TODO: Add in future steps (Baby Step 6+):
-  // - --system-prompt
-  // - --allowed-tools
+  // TODO: Add in future steps:
   // - --mcp-config
   // - --resume
 
@@ -127,11 +125,13 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
  *
  * @param binary Path to claude binary
  * @param args CLI arguments
+ * @param options Spawn options (cwd, env, etc.)
  * @returns ChildProcess instance
  */
-export function spawnClaude(binary: string, args: string[]): ChildProcess {
+export function spawnClaude(binary: string, args: string[], options?: { cwd?: string }): ChildProcess {
   return spawn(binary, args, {
     stdio: ['pipe', 'pipe', 'pipe'],  // stdin, stdout, stderr per gist spec
     shell: false,  // Don't use shell (security + performance)
+    cwd: options?.cwd,  // Working directory for the process
   });
 }

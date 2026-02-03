@@ -24,9 +24,13 @@ export class QueryImpl implements Query {
   private resolveQueue: Array<(value: IteratorResult<SDKMessage>) => void> = [];
   private done = false;
   private error: Error | null = null;
+  private isSingleUserTurn: boolean;  // Track if single-turn (string prompt) vs multi-turn (AsyncIterable)
 
   constructor(params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options }) {
     const { prompt, options = {} } = params;
+
+    // Determine if single-turn or multi-turn (matches official SDK behavior)
+    this.isSingleUserTurn = typeof prompt === 'string';
 
     // 1. Detect binary (pass options for pathToClaudeCodeExecutable support)
     const binary = detectClaudeBinary(options);
@@ -34,8 +38,8 @@ export class QueryImpl implements Query {
     // 2. Build args with --input-format stream-json (NO prompt on CLI)
     const args = buildCliArgs({ ...options, prompt: '' });
 
-    // 3. Spawn process
-    this.process = spawnClaude(binary, args);
+    // 3. Spawn process (cwd is a process option, not a CLI argument)
+    this.process = spawnClaude(binary, args, { cwd: options.cwd });
 
     // 4. DON'T close stdin! Keep it open for control responses and multi-turn
     // Baby Steps 1-4: process.stdin.end(); ❌
@@ -129,6 +133,14 @@ export class QueryImpl implements Query {
           } else {
             // Regular message - add to queue and notify waiters
             this.messageQueue.push(msg as SDKMessage);
+
+            // For single-turn queries, close stdin on result to signal CLI to exit
+            // Note: Due to Bun's async behavior, streamInput() calls after this
+            // can still work if called quickly (same as official SDK behavior)
+            if (msg.type === 'result' && this.isSingleUserTurn) {
+              this.process.stdin?.end();
+            }
+
             this.notifyWaiters();
           }
         } catch (parseError) {

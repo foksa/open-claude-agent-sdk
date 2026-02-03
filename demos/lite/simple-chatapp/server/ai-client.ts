@@ -1,5 +1,5 @@
 // Using lite-claude-agent-sdk instead of official SDK
-import { query } from "../../../src/index.ts";
+import { query } from "../../../../src/index.ts";
 
 const SYSTEM_PROMPT = `You are a helpful AI assistant. You can help users with a wide variety of tasks including:
 - Answering questions
