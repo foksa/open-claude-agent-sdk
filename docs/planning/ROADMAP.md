@@ -1,7 +1,7 @@
 # Lite Claude Agent SDK - Development Roadmap
 
-**Last Updated:** 2026-02-02
-**Current Status:** Baby Steps 1-5 Complete ✅
+**Last Updated:** 2026-02-03
+**Current Status:** Baby Steps 1-5 Complete ✅ | Phase 0.5 (Validation) Complete ✅
 **Next Phase:** Phase 1 (Production Features)
 
 ---
@@ -26,8 +26,8 @@
 - **Multi-turn conversations** - AsyncIterable input + streamInput()
 - **Streaming output** - `includePartialMessages` with stream_event messages
 - **Control protocol** - Bidirectional stdin/stdout communication
-- **Permission callbacks** - `canUseTool` callback support
-- **Hook callbacks** - Basic hook system for PreToolUse, PostToolUse, etc.
+- **Permission callbacks** - `canUseTool` callback support ✅ Tested
+- **Hook callbacks** - Hook system for PreToolUse, PostToolUse, etc. ✅ Tested
 - **Type re-exports** - 80+ types from official SDK
 - **CLI integration** - Binary detection, argument building, process spawning
 
@@ -622,7 +622,7 @@ src/
 ## Next Steps
 
 1. ✅ Clean up documentation (delete obsolete files)
-2. 📝 Review and approve this roadmap
+2. ✅ Phase 0.5: Validation complete (canUseTool & hooks tested)
 3. 🚀 Begin Phase 1 implementation
 4. 📦 Ship v1.0.0 with production features
 

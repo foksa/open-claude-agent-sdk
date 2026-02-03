@@ -66,8 +66,8 @@
 | SessionEnd | ❌ | ✅ | LOW | 1 day |
 | Notification | ❌ | ✅ | LOW | 1 day |
 | **Callbacks** |
-| canUseTool | ⚠️ Code exists, untested | ✅ | MEDIUM | Needs tests |
-| hooks | ⚠️ Code exists, untested | ✅ | MEDIUM | Needs tests |
+| canUseTool | ✅ Tested | ✅ | - | Complete |
+| hooks | ✅ Tested | ✅ | - | Complete |
 | **Size & Performance** |
 | Bundle size | 200KB | 13MB | - | 65x smaller |
 | Installation time | < 1s | ~30s | - | Faster |

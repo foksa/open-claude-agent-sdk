@@ -11,12 +11,17 @@ Complete documentation for the Lite Claude Agent SDK.
 ```
 docs/
 ├── README.md              ← You are here
+├── KNOWN_LIMITATIONS.md   ← Current known limitations
 │
-├── ROADMAP.md             ← Development timeline & priorities
-├── FEATURES.md            ← Feature matrix & status
+├── planning/              ← Project planning
+│   ├── ROADMAP.md         - Development timeline & priorities
+│   └── FEATURES.md        - Feature matrix & status
 │
-├── QUICK_START.md         ← Getting started guide
-├── MIGRATION.md           ← Migration from official SDK
+├── guides/                ← User guides
+│   ├── QUICK_START.md     - Getting started guide
+│   ├── MIGRATION.md       - Migration from official SDK
+│   ├── IMPLEMENTATION_GUIDE.md - Implementation details
+│   └── REVERSE_ENGINEERING.md - Proxy CLI debugging technique
 │
 ├── research/              ← Technical research
 │   ├── README.md          - Research summary
@@ -24,7 +29,9 @@ docs/
 │   ├── official-sdk.md    - Official SDK analysis
 │   ├── performance.md     - Performance optimization
 │   ├── architecture.md    - Architecture decisions
-│   └── alternatives.md    - Community implementations
+│   ├── alternatives.md    - Community implementations
+│   ├── cache-token-investigation.md - Cache token parity fix
+│   └── PROXY_CLI_SUCCESS.md - Proxy CLI technique discovery
 │
 ├── examples/              ← Code examples
 │   └── README.md          - Examples index
@@ -40,30 +47,32 @@ docs/
 
 ### New to the Project?
 1. [../README.md](../README.md) - Project overview
-2. [QUICK_START.md](./QUICK_START.md) - Usage examples
-3. [FEATURES.md](./FEATURES.md) - What's implemented
+2. [guides/QUICK_START.md](./guides/QUICK_START.md) - Usage examples
+3. [planning/FEATURES.md](./planning/FEATURES.md) - What's implemented
+4. [KNOWN_LIMITATIONS.md](./KNOWN_LIMITATIONS.md) - Current limitations
 
 ### Want to Contribute?
-1. [ROADMAP.md](./ROADMAP.md) - What needs to be done
+1. [planning/ROADMAP.md](./planning/ROADMAP.md) - What needs to be done
 2. [research/README.md](./research/README.md) - Technical background
+3. [guides/REVERSE_ENGINEERING.md](./guides/REVERSE_ENGINEERING.md) - Debugging with proxy CLI
 
 ### Migrating from Official SDK?
-1. [MIGRATION.md](./MIGRATION.md) - Migration guide
+1. [guides/MIGRATION.md](./guides/MIGRATION.md) - Migration guide
 2. [research/official-sdk.md](./research/official-sdk.md) - Compatibility analysis
 
 ---
 
 ## 📚 Core Documents
 
-### ROADMAP.md
+### planning/ROADMAP.md
 **Development timeline and priorities**
 
-- Current status: Baby Steps 1-5 complete
+- Current status: Baby Steps 1-5 complete, Phase 0.5 (validation) complete
 - Phase 1: 4 features (8-10 days)
 - Phase 2: 4 features (7-11 days)
 - Phase 3: Optional enhancements
 
-### FEATURES.md
+### planning/FEATURES.md
 **Feature comparison and tracking**
 
 - Complete feature matrix (Lite vs Official SDK)
@@ -71,7 +80,7 @@ docs/
 - Priority levels and effort estimates
 - Code examples
 
-### QUICK_START.md
+### guides/QUICK_START.md
 **Getting started with the SDK**
 
 - Installation instructions
@@ -79,13 +88,20 @@ docs/
 - Common patterns
 - Best practices
 
-### MIGRATION.md
+### guides/MIGRATION.md
 **Migration from official SDK**
 
 - API compatibility guide
 - Code examples (before/after)
 - Breaking changes
 - Migration steps
+
+### guides/REVERSE_ENGINEERING.md
+**Proxy CLI debugging technique**
+
+- Intercept CLI communication for debugging
+- Compare Official SDK vs Lite SDK behavior
+- Discover protocol differences
 
 ---
 
@@ -97,6 +113,7 @@ docs/
 - Protocol is documented
 - Local CLI approach validated
 - Performance optimization identified
+- Cache token parity fix (73% cost reduction)
 - 70x smaller bundle size
 
 ### research/protocol.md
@@ -122,6 +139,20 @@ docs/
 - Isolation modes
 - Test results
 - Recommendations
+
+### research/cache-token-investigation.md
+**Cache token parity fix**
+
+- Discovery of `systemPrompt: ""` field requirement
+- Reduced costs from 73% higher to 1.8% cheaper
+- Proxy CLI debugging technique
+
+### research/PROXY_CLI_SUCCESS.md
+**Proxy CLI technique success**
+
+- Method for intercepting CLI messages
+- Comparing Official vs Lite SDK behavior
+- Key protocol discoveries
 
 ---
 

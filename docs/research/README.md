@@ -48,6 +48,17 @@ By default, CLI loads ALL user MCP servers and skills:
 
 **See:** [`performance.md`](./performance.md)
 
+### 5. Cache Token Parity Fix ✅
+
+Discovered via proxy CLI debugging that Official SDK sends `systemPrompt: ""` field:
+- Without fix: 73% higher costs than Official SDK
+- With fix: 1.8% cheaper than Official SDK
+- Root cause: Cache write tokens vs cache read tokens
+
+**Solution:** Always include `systemPrompt: ""` in options
+
+**See:** [`cache-token-investigation.md`](./cache-token-investigation.md), [`PROXY_CLI_SUCCESS.md`](./PROXY_CLI_SUCCESS.md)
+
 ---
 
 ## Research Files
@@ -59,6 +70,8 @@ By default, CLI loads ALL user MCP servers and skills:
 | **performance.md** | Performance optimization research |
 | **architecture.md** | Architecture decisions & trade-offs |
 | **alternatives.md** | Community implementations comparison |
+| **cache-token-investigation.md** | Cache token parity fix (73% → -1.8% cost) |
+| **PROXY_CLI_SUCCESS.md** | Proxy CLI debugging technique |
 
 ---
 
@@ -81,5 +94,5 @@ By default, CLI loads ALL user MCP servers and skills:
 ---
 
 **Status:** ✅ Research Complete
-**Date:** 2026-02-02
-**Next Phase:** Implementation (Baby Steps 1-5 complete, Phase 1 next)
+**Date:** 2026-02-03
+**Next Phase:** Implementation (Baby Steps 1-5 complete, Phase 0.5 validation complete, Phase 1 next)
