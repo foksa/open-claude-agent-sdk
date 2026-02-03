@@ -91,6 +91,17 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   const settingSources = options.settingSources ?? DEFAULT_SETTING_SOURCES;
   args.push('--setting-sources', settingSources.join(','));
 
+  // Debug options (added in SDK v0.2.30)
+  if ((options as any).debugFile) {
+    args.push('--debug-file', (options as any).debugFile);
+  } else if ((options as any).debug) {
+    args.push('--debug');
+  }
+  // DEBUG_CLAUDE_AGENT_SDK env var enables debug to stderr
+  if (process.env.DEBUG_CLAUDE_AGENT_SDK) {
+    args.push('--debug-to-stderr');
+  }
+
   // TODO: Add in future steps:
   // - --mcp-config
   // - --resume
