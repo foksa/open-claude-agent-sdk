@@ -92,9 +92,9 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   args.push('--setting-sources', settingSources.join(','));
 
   // Debug options (added in SDK v0.2.30)
-  if ((options as any).debugFile) {
-    args.push('--debug-file', (options as any).debugFile);
-  } else if ((options as any).debug) {
+  if (options.debugFile) {
+    args.push('--debug-file', options.debugFile);
+  } else if (options.debug) {
     args.push('--debug');
   }
   // DEBUG_CLAUDE_AGENT_SDK env var enables debug to stderr
