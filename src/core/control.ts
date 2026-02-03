@@ -7,7 +7,7 @@
  * @internal
  */
 
-import { Writable } from 'node:stream';
+import type { Writable } from 'node:stream';
 import type { Options, PermissionResult } from '../types/index.ts';
 import type { ControlRequest, ControlResponse } from '../types/control.ts';
 
@@ -196,6 +196,6 @@ export class ControlProtocolHandler {
    */
   private sendControlResponse(response: ControlResponse) {
     const json = JSON.stringify(response);
-    this.stdin.write(json + '\n');
+    this.stdin.write(`${json}\n`);
   }
 }

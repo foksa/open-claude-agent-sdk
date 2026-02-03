@@ -8,7 +8,7 @@
 import { test, expect, describe } from 'bun:test';
 import { query as liteQuery } from '../../src/api/query.ts';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
-import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import type { Options, HookCallbackMatcher } from '../../src/types/index.ts';
 
 const COMPARE_CLI = './tests/utils/compare-cli.cjs';
@@ -56,7 +56,7 @@ exec node "${process.cwd()}/${COMPARE_CLI}" "$@"
     for await (const msg of queryFn({ prompt, options: opts })) {
       if (msg.type === 'result') break;
     }
-  } catch (e) {
+  } catch (_e) {
     // May error, ok
   }
 
@@ -69,7 +69,7 @@ exec node "${process.cwd()}/${COMPARE_CLI}" "$@"
         const data = JSON.parse(readFileSync(outputFile, 'utf-8'));
         unlinkSync(outputFile);
         return data;
-      } catch (e) {
+      } catch (_e) {
         await new Promise(r => setTimeout(r, 200));
       }
     } else {

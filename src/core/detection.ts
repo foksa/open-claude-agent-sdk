@@ -44,7 +44,7 @@ export function detectClaudeBinary(options?: Options): string {
         return path;
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // Ignore - will throw below
   }
 

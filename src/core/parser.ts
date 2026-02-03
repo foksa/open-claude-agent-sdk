@@ -15,7 +15,7 @@
  */
 
 import { createInterface } from 'node:readline';
-import { Readable } from 'node:stream';
+import type { Readable } from 'node:stream';
 import type { SDKMessage } from '../types/index.ts';
 
 /**

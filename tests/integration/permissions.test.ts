@@ -22,7 +22,7 @@ const testWithBothSDKs = (name: string, testFn: (sdk: SDKType) => Promise<void>,
   });
 };
 
-const testWithBothSDKsSkip = (name: string, testFn: (sdk: SDKType) => Promise<void>, timeout = 60000) => {
+const _testWithBothSDKsSkip = (name: string, testFn: (sdk: SDKType) => Promise<void>, timeout = 60000) => {
   describe.skip(name, () => {
     test(`[lite] ${name}`, () => testFn('lite'), { timeout });
     test(`[official] ${name}`, () => testFn('official'), { timeout });
@@ -38,7 +38,7 @@ testWithBothSDKs('canUseTool callback allows tool execution', async (sdk) => {
     {
       maxTurns: 5,
       permissionMode: 'default',
-      canUseTool: async (toolName, input, context) => {
+      canUseTool: async (toolName, input, _context) => {
         allowedTools.push(toolName);
         return { behavior: 'allow', updatedInput: input };
       }
@@ -64,7 +64,7 @@ testWithBothSDKs('canUseTool callback denies tool execution', async (sdk) => {
     {
       maxTurns: 5,
       permissionMode: 'default',
-      canUseTool: async (toolName, input, context) => {
+      canUseTool: async (toolName, _input, _context) => {
         deniedTools.push(toolName);
         return { behavior: 'deny', message: 'Permission denied by test' };
       }
@@ -116,7 +116,7 @@ testWithBothSDKs('canUseTool callback with selective filtering', async (sdk) => 
     {
       maxTurns: 5,
       permissionMode: 'default',
-      canUseTool: async (toolName, input, context) => {
+      canUseTool: async (toolName, input, _context) => {
         toolsRequested.push(toolName);
 
         // Allow Write but deny Bash
@@ -162,7 +162,7 @@ testWithBothSDKs('canUseTool callback with async operations', async (sdk) => {
     {
       maxTurns: 5,
       permissionMode: 'default',
-      canUseTool: async (toolName, input, context) => {
+      canUseTool: async (_toolName, input, _context) => {
         const start = Date.now();
         await new Promise(resolve => setTimeout(resolve, 100));
         delays.push(Date.now() - start);
@@ -185,7 +185,7 @@ testWithBothSDKs('canUseTool callback can return permission updates', async (sdk
     {
       maxTurns: 5,
       permissionMode: 'default',
-      canUseTool: async (toolName, input, context): Promise<PermissionResult> => {
+      canUseTool: async (_toolName, input, _context): Promise<PermissionResult> => {
         callbackCalled = true;
         return {
           behavior: 'allow',

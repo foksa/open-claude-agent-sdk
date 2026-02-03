@@ -4,9 +4,9 @@
  *
  * Set COMPARE_OUTPUT_FILE env var before running.
  */
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const { spawn } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const REAL_CLI = path.join(__dirname, '../../node_modules/@anthropic-ai/claude-agent-sdk/cli.js');
 const outputFile = process.env.COMPARE_OUTPUT_FILE;
@@ -46,8 +46,8 @@ cli.stdout.on('data', (chunk) => {
 
 function save() {
   capture.duration = Date.now() - capture.startTime;
-  fs.writeFileSync(outputFile + '.tmp', JSON.stringify(capture, null, 2));
-  fs.renameSync(outputFile + '.tmp', outputFile);
+  fs.writeFileSync(`${outputFile}.tmp`, JSON.stringify(capture, null, 2));
+  fs.renameSync(`${outputFile}.tmp`, outputFile);
 }
 
 cli.on('exit', (code) => { save(); process.exit(code || 0); });

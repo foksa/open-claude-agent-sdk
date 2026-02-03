@@ -6,9 +6,9 @@
  * Usage: Replace pathToClaudeCodeExecutable with this proxy
  */
 
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const { spawn } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
 
 // Real CLI location
 const REAL_CLI = path.join(__dirname, '../../node_modules/@anthropic-ai/claude-agent-sdk/cli.js');
@@ -79,7 +79,7 @@ realCli.stdout.on('data', (chunk) => {
   lines.forEach(line => {
     try {
       const parsed = JSON.parse(line);
-      const summary = `${parsed.type}${parsed.subtype ? ':' + parsed.subtype : ''}`;
+      const summary = `${parsed.type}${parsed.subtype ? `:${parsed.subtype}` : ''}`;
 
       // Log control_request in full detail
       if (parsed.type === 'control_request') {

@@ -16,7 +16,7 @@ const testWithBothSDKs = (name: string, testFn: (sdk: SDKType) => Promise<void>,
   });
 };
 
-const testWithBothSDKsSkip = (name: string, testFn: (sdk: SDKType) => Promise<void>, timeout = 60000) => {
+const _testWithBothSDKsSkip = (name: string, testFn: (sdk: SDKType) => Promise<void>, timeout = 60000) => {
   describe.skip(name, () => {
     test(`[lite] ${name}`, () => testFn('lite'), { timeout });
     test(`[official] ${name}`, () => testFn('official'), { timeout });
@@ -30,7 +30,7 @@ testWithBothSDKs('PreToolUse hook is called before tool execution', async (sdk) 
     PreToolUse: [
       {
         hooks: [
-          async (input, toolUseId, context) => {
+          async (_input, _toolUseId, _context) => {
             preToolUseCalls.push('PreToolUse');
             return {};
           }
@@ -65,7 +65,7 @@ testWithBothSDKs('PostToolUse hook is called after tool execution', async (sdk) 
       {
         // No matcher - match all tools to increase chances of being called
         hooks: [
-          async (input, toolUseId, context) => {
+          async (_input, _toolUseId, _context) => {
             postToolUseCalls.push('PostToolUse');
             return {};  // Empty object = continue
           }
@@ -98,7 +98,7 @@ testWithBothSDKs('hooks receive correct input data', async (sdk) => {
     PreToolUse: [
       {
         hooks: [
-          async (input, toolUseId, context) => {
+          async (input, _toolUseId, _context) => {
             if (!capturedInput) capturedInput = input;
             return {};
           }
@@ -133,7 +133,7 @@ testWithBothSDKs('hook can cancel tool execution', async (sdk) => {
       {
         // No matcher - cancel any tool
         hooks: [
-          async (input, toolUseId, context) => {
+          async (_input, _toolUseId, _context) => {
             return { continue: false };
           }
         ]
@@ -163,7 +163,7 @@ testWithBothSDKs('UserPromptSubmit hook is called', async (sdk) => {
     UserPromptSubmit: [
       {
         hooks: [
-          async (input, toolUseId, context) => {
+          async (_input, _toolUseId, _context) => {
             hookCalls.push('UserPromptSubmit');
             return {};
           }
@@ -196,7 +196,7 @@ testWithBothSDKs('hooks with tool name matcher filter correctly', async (sdk) =>
       {
         matcher: 'Read',
         hooks: [
-          async (input, toolUseId, context) => {
+          async (input, _toolUseId, _context) => {
             matchedTools.push(input.tool_name);
             return {};
           }
@@ -230,7 +230,7 @@ testWithBothSDKs('hook with async operations', async (sdk) => {
     PreToolUse: [
       {
         hooks: [
-          async (input, toolUseId, context) => {
+          async (_input, _toolUseId, _context) => {
             const start = Date.now();
             await new Promise(resolve => setTimeout(resolve, 100));
             hookDelays.push(Date.now() - start);
@@ -286,7 +286,7 @@ testWithBothSDKs('matcher filters by tool name correctly', async (sdk) => {
       {
         matcher: 'Write',
         hooks: [
-          async (input, toolUseId, context) => {
+          async (input, _toolUseId, _context) => {
             writeHookCalls.push(input.tool_name);
             return {};
           }
@@ -295,7 +295,7 @@ testWithBothSDKs('matcher filters by tool name correctly', async (sdk) => {
       {
         matcher: 'Read',
         hooks: [
-          async (input, toolUseId, context) => {
+          async (input, _toolUseId, _context) => {
             readHookCalls.push(input.tool_name);
             return {};
           }
@@ -332,7 +332,7 @@ testWithBothSDKs('multiple matchers can coexist', async (sdk) => {
       {
         matcher: 'Read',
         hooks: [
-          async (input, toolUseId, context) => {
+          async (input, _toolUseId, _context) => {
             matcherACalls.push(input.tool_name);
             return {};
           }
@@ -341,7 +341,7 @@ testWithBothSDKs('multiple matchers can coexist', async (sdk) => {
       {
         matcher: 'Glob',
         hooks: [
-          async (input, toolUseId, context) => {
+          async (input, _toolUseId, _context) => {
             matcherBCalls.push(input.tool_name);
             return {};
           }

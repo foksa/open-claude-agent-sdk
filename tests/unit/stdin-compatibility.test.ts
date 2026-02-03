@@ -8,7 +8,7 @@
 import { test, expect, describe } from 'bun:test';
 import { query as liteQuery } from '../../src/api/query.ts';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
-import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import type { HookCallbackMatcher } from '../../src/types/index.ts';
 
 const CAPTURE_CLI = './tests/utils/capture-cli.cjs';
@@ -46,7 +46,7 @@ CAPTURE_OUTPUT_FILE="${outputFile}" exec node "${process.cwd()}/${CAPTURE_CLI}" 
     for await (const msg of queryFn({ prompt, options: opts })) {
       if (msg.type === 'result') break;
     }
-  } catch (e) {
+  } catch (_e) {
     // May error on mock CLI closing, that's ok
   }
 
@@ -54,7 +54,7 @@ CAPTURE_OUTPUT_FILE="${outputFile}" exec node "${process.cwd()}/${CAPTURE_CLI}" 
   await new Promise(r => setTimeout(r, 300));
 
   // Cleanup wrapper script
-  try { unlinkSync(wrapperScript); } catch (e) {}
+  try { unlinkSync(wrapperScript); } catch (_e) {}
 
   // Read captured messages
   if (existsSync(outputFile)) {
@@ -89,7 +89,7 @@ function normalizeMessage(msg: any): any {
 
   // Normalize hook callback IDs (they're generated dynamically)
   if (clone.request?.hooks) {
-    for (const [event, matchers] of Object.entries(clone.request.hooks as Record<string, any[]>)) {
+    for (const [_event, matchers] of Object.entries(clone.request.hooks as Record<string, any[]>)) {
       for (const matcher of matchers) {
         if (matcher.hookCallbackIds) {
           // Replace with placeholder to show structure is same

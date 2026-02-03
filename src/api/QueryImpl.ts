@@ -9,7 +9,7 @@
  * @internal
  */
 
-import { ChildProcess } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import type { Query, SDKMessage, SDKUserMessage, Options, PermissionMode } from '../types/index.ts';
 import type { StdoutMessage } from '../types/control.ts';
@@ -203,7 +203,7 @@ export class QueryImpl implements Query {
     });
   }
 
-  async return(value?: any): Promise<IteratorResult<SDKMessage>> {
+  async return(_value?: any): Promise<IteratorResult<SDKMessage>> {
     this.close();
     return { value: undefined as any, done: true };
   }
@@ -269,7 +269,7 @@ export class QueryImpl implements Query {
    */
   async streamInput(stream: AsyncIterable<SDKUserMessage>): Promise<void> {
     for await (const msg of stream) {
-      this.process.stdin!.write(JSON.stringify(msg) + '\n');
+      this.process.stdin?.write(`${JSON.stringify(msg)}\n`);
     }
   }
 
@@ -315,28 +315,28 @@ export class QueryImpl implements Query {
   /**
    * Rewind files to previous state
    */
-  async rewindFiles(userMessageId: string, options?: { dryRun?: boolean }): Promise<any> {
+  async rewindFiles(_userMessageId: string, _options?: { dryRun?: boolean }): Promise<any> {
     throw new Error('rewindFiles() not implemented in Baby Step 5');
   }
 
   /**
    * Reconnect to MCP server
    */
-  async reconnectMcpServer(serverName: string): Promise<void> {
+  async reconnectMcpServer(_serverName: string): Promise<void> {
     throw new Error('reconnectMcpServer() not implemented in Baby Step 5');
   }
 
   /**
    * Toggle MCP server enabled/disabled
    */
-  async toggleMcpServer(serverName: string, enabled: boolean): Promise<void> {
+  async toggleMcpServer(_serverName: string, _enabled: boolean): Promise<void> {
     throw new Error('toggleMcpServer() not implemented in Baby Step 5');
   }
 
   /**
    * Set MCP servers dynamically
    */
-  async setMcpServers(servers: Record<string, any>): Promise<any> {
+  async setMcpServers(_servers: Record<string, any>): Promise<any> {
     throw new Error('setMcpServers() not implemented in Baby Step 5');
   }
 
@@ -349,11 +349,11 @@ export class QueryImpl implements Query {
    */
   private sendControlRequest(request: any): void {
     const requestId = this.generateRequestId();
-    this.process.stdin!.write(JSON.stringify({
+    this.process.stdin?.write(`${JSON.stringify({
       type: 'control_request',
       request_id: requestId,
       request
-    }) + '\n');
+    })}\n`);
   }
 
   /**
@@ -420,7 +420,7 @@ export class QueryImpl implements Query {
       console.error('[DEBUG] Sending control protocol init:', JSON.stringify(init, null, 2));
     }
 
-    this.process.stdin!.write(JSON.stringify(init) + '\n');
+    this.process.stdin?.write(`${JSON.stringify(init)}\n`);
   }
 
   private sendInitialPrompt(prompt: string): void {
@@ -439,7 +439,7 @@ export class QueryImpl implements Query {
       parent_tool_use_id: null
     };
 
-    this.process.stdin!.write(JSON.stringify(initialMessage) + '\n');
+    this.process.stdin?.write(`${JSON.stringify(initialMessage)}\n`);
   }
 
   /**
@@ -453,7 +453,7 @@ export class QueryImpl implements Query {
     try {
       for await (const userMsg of generator) {
         // Write each message to stdin as it's yielded by the generator
-        this.process.stdin!.write(JSON.stringify(userMsg) + '\n');
+        this.process.stdin?.write(`${JSON.stringify(userMsg)}\n`);
       }
       // Generator exhausted - no more input
     } catch (error: any) {

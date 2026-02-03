@@ -4,7 +4,6 @@
  */
 
 import { test, expect } from 'bun:test';
-import type { Page } from 'playwright';
 
 // Check if we have playwright MCP available
 const hasPlaywright = typeof (globalThis as any).mcp__plugin_playwright_playwright__browser_navigate === 'function';
@@ -16,8 +15,8 @@ if (!hasPlaywright) {
 test.skipIf(!hasPlaywright)('demo app loads and shows correct UI', async () => {
   const navigate = (globalThis as any).mcp__plugin_playwright_playwright__browser_navigate;
   const snapshot = (globalThis as any).mcp__plugin_playwright_playwright__browser_snapshot;
-  const click = (globalThis as any).mcp__plugin_playwright_playwright__browser_click;
-  const type = (globalThis as any).mcp__plugin_playwright_playwright__browser_type;
+  const _click = (globalThis as any).mcp__plugin_playwright_playwright__browser_click;
+  const _type = (globalThis as any).mcp__plugin_playwright_playwright__browser_type;
   const waitFor = (globalThis as any).mcp__plugin_playwright_playwright__browser_wait_for;
   const close = (globalThis as any).mcp__plugin_playwright_playwright__browser_close;
 
@@ -43,7 +42,7 @@ test.skipIf(!hasPlaywright)('demo app loads and shows correct UI', async () => {
     // Clean up
     try {
       await close({});
-    } catch (e) {
+    } catch (_e) {
       // Ignore close errors
     }
   }
@@ -106,7 +105,7 @@ test.skipIf(!hasPlaywright)('demo app sends query to both SDKs', async () => {
   } finally {
     try {
       await close({});
-    } catch (e) {
+    } catch (_e) {
       // Ignore
     }
   }
@@ -188,7 +187,7 @@ test.skipIf(!hasPlaywright)('demo app continues conversation', async () => {
   } finally {
     try {
       await close({});
-    } catch (e) {
+    } catch (_e) {
       // Ignore
     }
   }

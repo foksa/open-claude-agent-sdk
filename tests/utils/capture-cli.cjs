@@ -10,8 +10,8 @@
  * Output file: Uses CAPTURE_OUTPUT_FILE env var or /tmp/capture-<pid>.json
  */
 
-const readline = require('readline');
-const fs = require('fs');
+const readline = require('node:readline');
+const fs = require('node:fs');
 
 // Output file from env var or default based on PID for uniqueness
 const outputFile = process.env.CAPTURE_OUTPUT_FILE || `/tmp/capture-${process.pid}.json`;
@@ -54,7 +54,7 @@ rl.on('line', (line) => {
 console.log(JSON.stringify({
   type: 'system',
   subtype: 'init',
-  session_id: 'test-session-' + Date.now(),
+  session_id: `test-session-${Date.now()}`,
   model: 'test-model',
   tools: [],
   permissionMode: 'bypassPermissions',
@@ -64,7 +64,7 @@ console.log(JSON.stringify({
 // After delay, send result and save captured messages
 setTimeout(() => {
   // Save captured messages FIRST (atomically via temp file)
-  const tempFile = outputFile + '.tmp';
+  const tempFile = `${outputFile}.tmp`;
   fs.writeFileSync(tempFile, JSON.stringify(messages, null, 2));
   fs.renameSync(tempFile, outputFile);
 

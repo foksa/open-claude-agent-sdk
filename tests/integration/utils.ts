@@ -24,7 +24,7 @@ export async function recordSnapshot(
   const filepath = join(snapshotsDir, filename);
 
   // Write as NDJSON (newline-delimited JSON)
-  const ndjson = messages.map(m => JSON.stringify(m)).join('\n') + '\n';
+  const ndjson = `${messages.map(m => JSON.stringify(m)).join('\n')}\n`;
   await writeFile(filepath, ndjson);
 
   return filepath;

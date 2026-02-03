@@ -19,6 +19,7 @@
   },
   "linter": {
     "enabled": true,
+    "includes": ["src/**", "tests/**"],
     "rules": {
       "recommended": true,
       "correctness": {
