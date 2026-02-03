@@ -7,11 +7,11 @@ import { test, expect, describe } from 'bun:test';
 import { runWithSDK, compareMessageStructures } from './comparison-utils.ts';
 import type { SDKType } from './comparison-utils.ts';
 
-// Run each test with both SDKs
+// Run each test with both SDKs in parallel
 const testWithBothSDKs = (name: string, testFn: (sdk: SDKType) => Promise<void>, timeout = 45000) => {
   describe(name, () => {
-    test(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test(`[official] ${name}`, () => testFn('official'), { timeout });
+    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
+    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
   });
 };
 

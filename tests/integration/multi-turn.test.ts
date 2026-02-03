@@ -10,8 +10,9 @@ import type { SDKUserMessage } from '../../src/types/index.ts';
 
 const testWithBothSDKs = (name: string, testFn: (sdk: 'lite' | 'official') => Promise<void>, timeout = 60000) => {
   describe(name, () => {
-    test(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test(`[official] ${name}`, () => testFn('official'), { timeout });
+    // Run lite and official tests in parallel
+    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
+    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
   });
 };
 
