@@ -1,6 +1,12 @@
 /**
  * Comparison tests for canUseTool permission callback
  * Same tests run with both lite and official SDKs
+ *
+ * IMPORTANT: canUseTool is only called for tools that require permission.
+ * Tools NOT requiring permission (auto-approved): Read, Glob, Grep, AskUserQuestion
+ * Tools requiring permission: Bash, Write, Edit, WebFetch, NotebookEdit
+ *
+ * See: https://code.claude.com/docs/en/settings
  */
 
 import { test, expect, describe } from 'bun:test';
@@ -28,13 +34,13 @@ testWithBothSDKs('canUseTool callback allows tool execution', async (sdk) => {
 
   const messages = await runWithSDKPermissions(
     sdk,
-    'Read the package.json file',
+    'Write the text "hello world" to /tmp/permission-test.txt',  // Write requires permission
     {
-      maxTurns: 3,
-      // No bypassPermissions - canUseTool will be called
+      maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (toolName, input, context) => {
         allowedTools.push(toolName);
-        return { behavior: 'allow' };
+        return { behavior: 'allow', updatedInput: input };
       }
     }
   );
@@ -54,13 +60,13 @@ testWithBothSDKs('canUseTool callback denies tool execution', async (sdk) => {
 
   const messages = await runWithSDKPermissions(
     sdk,
-    'Read the package.json file',
+    'Write the text "test" to /tmp/permission-deny-test.txt',  // Write requires permission
     {
-      maxTurns: 3,
-      // No bypassPermissions - canUseTool will be called
+      maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (toolName, input, context) => {
         deniedTools.push(toolName);
-        return { behavior: 'deny' };
+        return { behavior: 'deny', message: 'Permission denied by test' };
       }
     }
   );
@@ -79,17 +85,17 @@ testWithBothSDKs('canUseTool callback receives correct parameters', async (sdk) 
 
   await runWithSDKPermissions(
     sdk,
-    'Read the package.json file',
+    'Write the text "params test" to /tmp/permission-params-test.txt',  // Write requires permission
     {
-      maxTurns: 3,
-      // No bypassPermissions - canUseTool will be called
+      maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (toolName, input, context) => {
         if (!capturedToolName) {  // Capture first tool call only
           capturedToolName = toolName;
           capturedInput = input;
           capturedContext = context;
         }
-        return { behavior: 'allow' };
+        return { behavior: 'allow', updatedInput: input };
       }
     }
   );
@@ -98,7 +104,7 @@ testWithBothSDKs('canUseTool callback receives correct parameters', async (sdk) 
   expect(capturedInput).toBeTruthy();
   expect(capturedContext).toBeTruthy();
   expect(capturedContext.toolUseID).toBeTruthy();
-  console.log(`   [${sdk}] Captured tool:`, capturedToolName);
+  console.log(`   [${sdk}] Captured tool:`, capturedToolName, 'input:', capturedInput);
 });
 
 testWithBothSDKs('canUseTool callback with selective filtering', async (sdk) => {
@@ -106,18 +112,18 @@ testWithBothSDKs('canUseTool callback with selective filtering', async (sdk) => 
 
   await runWithSDKPermissions(
     sdk,
-    'Read package.json and count the lines',
+    'Create a file at /tmp/selective-test.txt with "hello" then run: echo "done"',  // Write and Bash require permission
     {
       maxTurns: 5,
-      // No bypassPermissions - canUseTool will be called
+      permissionMode: 'default',
       canUseTool: async (toolName, input, context) => {
         toolsRequested.push(toolName);
 
-        // Allow Read but deny other tools
-        if (toolName === 'Read') {
-          return { behavior: 'allow' };
+        // Allow Write but deny Bash
+        if (toolName === 'Write') {
+          return { behavior: 'allow', updatedInput: input };
         }
-        return { behavior: 'deny' };
+        return { behavior: 'deny', message: 'Only Write is allowed' };
       }
     }
   );
@@ -126,15 +132,17 @@ testWithBothSDKs('canUseTool callback with selective filtering', async (sdk) => 
   console.log(`   [${sdk}] Tools requested:`, toolsRequested);
 });
 
-testWithBothSDKs('no canUseTool callback defaults to allow', async (sdk) => {
+testWithBothSDKs('no canUseTool callback defaults to allow with bypassPermissions', async (sdk) => {
+  // Note: This test uses Read which doesn't require permission anyway,
+  // but with bypassPermissions mode, even Write would auto-approve
   const messages = await runWithSDKPermissions(
     sdk,
     'Read the package.json file',
     {
-      maxTurns: 3,
+      maxTurns: 5,
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
-      // No canUseTool callback - should default to allow with bypass mode
+      // No canUseTool callback - with bypassPermissions, all tools auto-approve
     }
   );
 
@@ -150,15 +158,15 @@ testWithBothSDKs('canUseTool callback with async operations', async (sdk) => {
 
   await runWithSDKPermissions(
     sdk,
-    'Read the package.json file',
+    'Write the text "async test" to /tmp/permission-async-test.txt',  // Write requires permission
     {
-      maxTurns: 3,
-      // No bypassPermissions - canUseTool will be called
+      maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (toolName, input, context) => {
         const start = Date.now();
         await new Promise(resolve => setTimeout(resolve, 100));
         delays.push(Date.now() - start);
-        return { behavior: 'allow' };
+        return { behavior: 'allow', updatedInput: input };
       }
     }
   );
@@ -169,21 +177,25 @@ testWithBothSDKs('canUseTool callback with async operations', async (sdk) => {
 });
 
 testWithBothSDKs('canUseTool callback can return permission updates', async (sdk) => {
+  let callbackCalled = false;
+
   await runWithSDKPermissions(
     sdk,
-    'Read the package.json file',
+    'Write the text "updates test" to /tmp/permission-updates-test.txt',  // Write requires permission
     {
-      maxTurns: 3,
-      // No bypassPermissions - canUseTool will be called
+      maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (toolName, input, context): Promise<PermissionResult> => {
+        callbackCalled = true;
         return {
           behavior: 'allow',
-          // Permission updates could be added here
+          updatedInput: input,
+          // Permission updates could be added here via updatedPermissions
         };
       }
     }
   );
 
-  // Test just needs to complete successfully
-  expect(true).toBe(true);
+  expect(callbackCalled).toBe(true);
+  console.log(`   [${sdk}] canUseTool callback was called:`, callbackCalled);
 });
