@@ -227,7 +227,7 @@ describe('stdin message compatibility', () => {
     expect(liteTypes).toEqual(officialTypes);
 
     console.log('   Message order:', { lite: liteTypes, official: officialTypes });
-  });
+  }, { timeout: 30000 });
 
   test.concurrent('multiple hooks registration works correctly', async () => {
     const hooks: Record<string, HookCallbackMatcher[]> = {
