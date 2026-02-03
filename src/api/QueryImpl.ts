@@ -11,7 +11,7 @@
 
 import type { ChildProcess } from 'node:child_process';
 import { createInterface } from 'node:readline';
-import type { Query, SDKMessage, SDKUserMessage, Options, PermissionMode } from '../types/index.ts';
+import type { Query, SDKMessage, SDKUserMessage, Options, PermissionMode, SDKControlInitializeResponse } from '../types/index.ts';
 import type { StdoutMessage } from '../types/control.ts';
 import { detectClaudeBinary } from '../core/detection.ts';
 import { buildCliArgs, spawnClaude } from '../core/spawn.ts';
@@ -124,9 +124,9 @@ export class QueryImpl implements Query {
             }
             // Handle control request internally (don't yield to user)
             await this.controlHandler.handleControlRequest(msg);
-          } else if (msg.type === 'control_response') {
+          } else if ((msg as any).type === 'control_response') {
             // Filter out control_response - internal protocol message
-            // Don't yield to user
+            // Don't yield to user (use 'as any' since control_response isn't in SDKMessage union)
             if (process.env.DEBUG_HOOKS) {
               console.error('[DEBUG] control_response received (filtered)');
             }
@@ -282,6 +282,13 @@ export class QueryImpl implements Query {
       this.done = true;
       this.notifyWaiters();
     }
+  }
+
+  /**
+   * Get initialization result (commands, models, account info)
+   */
+  async initializationResult(): Promise<SDKControlInitializeResponse> {
+    throw new Error('initializationResult() not implemented in Baby Step 5');
   }
 
   /**

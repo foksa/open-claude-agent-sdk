@@ -42,8 +42,6 @@ export type {
  */
 export type {
   Query,
-  OutputFormat,
-  JsonSchemaOutputFormat,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================
@@ -186,6 +184,19 @@ export type {
   ApiKeySource,
   SdkBeta,
 } from '@anthropic-ai/claude-agent-sdk';
+
+/**
+ * Control protocol initialization response
+ * (Not exported from official SDK, so we define it here)
+ * Uses inline import() types to reference already-exported types
+ */
+export type SDKControlInitializeResponse = {
+  commands: import('@anthropic-ai/claude-agent-sdk').SlashCommand[];
+  output_style: string;
+  available_output_styles: string[];
+  models: import('@anthropic-ai/claude-agent-sdk').ModelInfo[];
+  account: import('@anthropic-ai/claude-agent-sdk').AccountInfo;
+};
 
 // ============================================================================
 // ADVANCED TYPES (for completeness)

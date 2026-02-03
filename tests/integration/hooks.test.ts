@@ -197,7 +197,9 @@ testWithBothSDKs('hooks with tool name matcher filter correctly', async (sdk) =>
         matcher: 'Read',
         hooks: [
           async (input, _toolUseId, _context) => {
-            matchedTools.push(input.tool_name);
+            if ('tool_name' in input) {
+              matchedTools.push(input.tool_name);
+            }
             return {};
           }
         ]
@@ -287,7 +289,9 @@ testWithBothSDKs('matcher filters by tool name correctly', async (sdk) => {
         matcher: 'Write',
         hooks: [
           async (input, _toolUseId, _context) => {
-            writeHookCalls.push(input.tool_name);
+            if ('tool_name' in input) {
+              writeHookCalls.push(input.tool_name);
+            }
             return {};
           }
         ]
@@ -296,7 +300,9 @@ testWithBothSDKs('matcher filters by tool name correctly', async (sdk) => {
         matcher: 'Read',
         hooks: [
           async (input, _toolUseId, _context) => {
-            readHookCalls.push(input.tool_name);
+            if ('tool_name' in input) {
+              readHookCalls.push(input.tool_name);
+            }
             return {};
           }
         ]
@@ -333,7 +339,9 @@ testWithBothSDKs('multiple matchers can coexist', async (sdk) => {
         matcher: 'Read',
         hooks: [
           async (input, _toolUseId, _context) => {
-            matcherACalls.push(input.tool_name);
+            if ('tool_name' in input) {
+              matcherACalls.push(input.tool_name);
+            }
             return {};
           }
         ]
@@ -342,7 +350,9 @@ testWithBothSDKs('multiple matchers can coexist', async (sdk) => {
         matcher: 'Glob',
         hooks: [
           async (input, _toolUseId, _context) => {
-            matcherBCalls.push(input.tool_name);
+            if ('tool_name' in input) {
+              matcherBCalls.push(input.tool_name);
+            }
             return {};
           }
         ]

@@ -32,7 +32,7 @@ import {
  */
 export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   // Required flags for stream-json protocol (from defaults.ts)
-  const args = [...REQUIRED_CLI_FLAGS];
+  const args: string[] = [...REQUIRED_CLI_FLAGS];
 
   // Permission mode - always pass explicitly (official SDK behavior)
   const permissionMode = options.permissionMode ?? DEFAULT_PERMISSION_MODE;
