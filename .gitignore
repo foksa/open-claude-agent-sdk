@@ -46,3 +46,9 @@ update-all-refs.sh
 
 # Test output files
 tests/output/*.xml
+
+# Test output
+tests/output/
+
+# Playwright screenshots
+.playwright-mcp/
