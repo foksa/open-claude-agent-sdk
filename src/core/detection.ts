@@ -10,19 +10,27 @@
  */
 
 import { spawnSync } from 'node:child_process';
+import type { Options } from '../types/index.ts';
 
 /**
  * Detect Claude CLI binary location
  *
  * Priority:
- * 1. CLAUDE_BINARY env var (absolute path)
- * 2. PATH lookup (using 'which claude')
+ * 1. pathToClaudeCodeExecutable option (if provided)
+ * 2. CLAUDE_BINARY env var (absolute path)
+ * 3. PATH lookup (using 'which claude')
  *
+ * @param options Query options (may contain pathToClaudeCodeExecutable)
  * @throws {Error} If Claude CLI is not found
  * @returns Absolute path to claude binary
  */
-export function detectClaudeBinary(): string {
-  // Check env var first
+export function detectClaudeBinary(options?: Options): string {
+  // Check option first (for embedded CLI from official SDK)
+  if (options?.pathToClaudeCodeExecutable) {
+    return options.pathToClaudeCodeExecutable;
+  }
+
+  // Check env var
   if (process.env.CLAUDE_BINARY) {
     return process.env.CLAUDE_BINARY;
   }

@@ -28,8 +28,8 @@ export class QueryImpl implements Query {
   constructor(params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options }) {
     const { prompt, options = {} } = params;
 
-    // 1. Detect binary
-    const binary = detectClaudeBinary();
+    // 1. Detect binary (pass options for pathToClaudeCodeExecutable support)
+    const binary = detectClaudeBinary(options);
 
     // 2. Build args with --input-format stream-json (NO prompt on CLI)
     const args = buildCliArgs({ ...options, prompt: '' });
@@ -50,7 +50,13 @@ export class QueryImpl implements Query {
     // 6. Start background reading
     this.startReading();
 
-    // 7. Handle input based on type
+    // 7. ALWAYS send control protocol initialization
+    // Official SDK sends this even without hooks - affects API caching!
+    // Must happen BEFORE sending any user messages
+    this.sendControlProtocolInit(options);
+
+    // 8. Handle input based on type
+    // Note: We don't await init - CLI handles message ordering
     if (typeof prompt === 'string') {
       // Simple string input: send as first user message
       this.sendInitialPrompt(prompt);
@@ -95,12 +101,31 @@ export class QueryImpl implements Query {
       for await (const line of rl) {
         if (!line.trim()) continue;
 
+        // Debug: log raw line
+        if (process.env.DEBUG_HOOKS) {
+          console.error('[DEBUG] Raw line:', line.substring(0, 200));
+        }
+
         try {
           const msg = JSON.parse(line) as StdoutMessage;
 
+          // Debug: log message type
+          if (process.env.DEBUG_HOOKS) {
+            console.error('[DEBUG] Message type:', msg.type);
+          }
+
           if (msg.type === 'control_request') {
+            if (process.env.DEBUG_HOOKS) {
+              console.error('[DEBUG] !!! CONTROL REQUEST !!!:', (msg as any).request?.subtype);
+            }
             // Handle control request internally (don't yield to user)
             await this.controlHandler.handleControlRequest(msg);
+          } else if (msg.type === 'control_response') {
+            // Filter out control_response - internal protocol message
+            // Don't yield to user
+            if (process.env.DEBUG_HOOKS) {
+              console.error('[DEBUG] control_response received (filtered)');
+            }
           } else {
             // Regular message - add to queue and notify waiters
             this.messageQueue.push(msg as SDKMessage);
@@ -330,12 +355,65 @@ export class QueryImpl implements Query {
    * Send initial user message with prompt
    * Required when using --input-format stream-json
    */
+  /**
+   * Send control protocol initialization
+   * Must be sent BEFORE first user message to register hooks
+   */
+  private async sendControlProtocolInit(options: Options): Promise<void> {
+    // Generate unique request ID
+    const requestId = `init_${Date.now()}`;
+
+    const init: any = {
+      type: 'control_request',
+      request_id: requestId,
+      request: {
+        subtype: 'initialize',
+        systemPrompt: ''  // Official SDK always sends this
+      }
+    };
+
+    // Register hooks if configured
+    if (options.hooks) {
+      const hooksConfig: Record<string, any> = {};
+      let callbackId = 0;
+
+      for (const [eventName, matchers] of Object.entries(options.hooks)) {
+        hooksConfig[eventName] = matchers.map((matcher) => {
+          const hookCallbackIds = matcher.hooks.map((hookFn) => {
+            const id = `hook_${callbackId++}`;
+            // Store callback mapping in control handler
+            this.controlHandler.registerCallback(id, hookFn);
+            return id;
+          });
+
+          return {
+            matcher: matcher.matcher,
+            hookCallbackIds
+          };
+        });
+      }
+
+      init.request.hooks = hooksConfig;
+    }
+
+    if (process.env.DEBUG_HOOKS) {
+      console.error('[DEBUG] Sending control protocol init:', JSON.stringify(init, null, 2));
+    }
+
+    this.process.stdin!.write(JSON.stringify(init) + '\n');
+  }
+
   private sendInitialPrompt(prompt: string): void {
     const initialMessage: SDKUserMessage = {
       type: 'user',
       message: {
         role: 'user',
-        content: prompt
+        content: [
+          {
+            type: 'text',
+            text: prompt
+          }
+        ]
       },
       session_id: '', // Will be filled by CLI
       parent_tool_use_id: null

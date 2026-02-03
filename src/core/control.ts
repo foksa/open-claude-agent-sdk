@@ -12,22 +12,39 @@ import type { Options, PermissionResult } from '../types/index.ts';
 import type { ControlRequest, ControlResponse } from '../types/control.ts';
 
 export class ControlProtocolHandler {
+  private callbackMap: Map<string, any> = new Map();
+
   constructor(
     private stdin: Writable,
     private options: Options
   ) {}
 
   /**
+   * Register a callback function with its ID
+   */
+  registerCallback(id: string, callback: any): void {
+    this.callbackMap.set(id, callback);
+  }
+
+  /**
    * Handle control request from CLI
    * Routes to appropriate handler based on request subtype
    */
   async handleControlRequest(req: ControlRequest): Promise<void> {
+    // Debug logging (remove in production)
+    if (process.env.DEBUG_HOOKS) {
+      console.error('[DEBUG] Control request:', JSON.stringify(req, null, 2));
+      console.error('[DEBUG] Subtype:', req.request.subtype);
+    }
+
     try {
       switch (req.request.subtype) {
         case 'can_use_tool':
+          if (process.env.DEBUG_HOOKS) console.error('[DEBUG] Handling can_use_tool');
           await this.handleCanUseTool(req);
           break;
         case 'hook_callback':
+          if (process.env.DEBUG_HOOKS) console.error('[DEBUG] Handling hook_callback');
           await this.handleHookCallback(req);
           break;
         case 'initialize':
@@ -96,38 +113,32 @@ export class ControlProtocolHandler {
 
     const { callback_id, input, tool_use_id } = req.request;
 
-    // If no hooks configured, continue by default
-    if (!this.options.hooks) {
-      this.sendSuccess(req.request_id, { continue: true });
-      return;
+    if (process.env.DEBUG_HOOKS) {
+      console.error('[DEBUG] handleHookCallback:', { callback_id, has_hook: this.callbackMap.has(callback_id), map_size: this.callbackMap.size });
     }
 
-    // Find matching hook by event name
-    const hookEvent = input.hook_event_name;
-    const matchingHooks = this.options.hooks[hookEvent];
+    // Find the hook function by callback_id
+    const hookFn = this.callbackMap.get(callback_id);
 
-    if (!matchingHooks || matchingHooks.length === 0) {
-      this.sendSuccess(req.request_id, { continue: true });
-      return;
-    }
-
-    // Execute hooks (simplified - real implementation would match callback_id)
-    // For now, just execute first matching hook
-    try {
-      for (const hookMatcher of matchingHooks) {
-        for (const hookFn of hookMatcher.hooks) {
-          const result = await hookFn(input, tool_use_id, {
-            signal: new AbortController().signal,
-          });
-
-          // Return first hook result
-          this.sendSuccess(req.request_id, result);
-          return;
-        }
+    if (!hookFn) {
+      // No matching callback found, continue by default
+      if (process.env.DEBUG_HOOKS) {
+        console.error('[DEBUG] No hook found for callback_id:', callback_id);
       }
-
-      // No hooks executed, continue
       this.sendSuccess(req.request_id, { continue: true });
+      return;
+    }
+
+    // Execute the specific hook
+    try {
+      if (process.env.DEBUG_HOOKS) {
+        console.error('[DEBUG] Executing hook:', callback_id);
+      }
+      const result = await hookFn(input, tool_use_id, {
+        signal: new AbortController().signal,
+      });
+
+      this.sendSuccess(req.request_id, result);
     } catch (error: any) {
       this.sendError(req.request_id, error.message || 'Hook execution failed');
     }
@@ -135,9 +146,12 @@ export class ControlProtocolHandler {
 
   /**
    * Handle initialization request
+   *
+   * NOTE: We don't handle hooks here - QueryImpl already sends hooks config
+   * in the initial control_request. This just acknowledges the response.
    */
   private async handleInitialize(req: ControlRequest) {
-    // Send empty success response for initialization
+    // Just acknowledge - hooks are already configured in the request
     this.sendSuccess(req.request_id, {});
   }
 

@@ -41,6 +41,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--permission-mode', options.permissionMode);
   }
 
+  // Allow dangerously skip permissions (for bypassPermissions mode)
+  if (options.allowDangerouslySkipPermissions) {
+    args.push('--allow-dangerously-skip-permissions');
+  }
+
   // Model
   if (options.model) {
     args.push('--model', options.model);
@@ -66,6 +71,12 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--cwd', options.cwd);
   }
 
+  // Enable control protocol for permissions only (not hooks)
+  // Hooks use control protocol but don't need --permission-prompt-tool stdio
+  if (options.canUseTool) {
+    args.push('--permission-prompt-tool', 'stdio');
+  }
+
   // Output format (structured outputs)
   if (options.outputFormat) {
     if (options.outputFormat.type === 'json_schema') {
@@ -74,9 +85,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   }
 
   // Setting sources (for skills/commands)
-  if (options.settingSources) {
-    args.push('--setting-sources', options.settingSources.join(','));
-  }
+  // Official SDK default: [] (empty array) = no settings loaded
+  // CLI default when flag omitted: loads all settings (user+project+local)
+  // So we must explicitly pass empty string to match official SDK behavior
+  const settingSources = options.settingSources ?? []; // Default to empty like official SDK
+  args.push('--setting-sources', settingSources.join(','));
 
   // TODO: Add in future steps (Baby Step 6+):
   // - --system-prompt
@@ -91,6 +104,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   // Test support: Allow injecting extra CLI args for testing
   if ((options as any)._testCliArgs) {
     args.push(...(options as any)._testCliArgs);
+  }
+
+  // Debug: log args if DEBUG_HOOKS is set
+  if (process.env.DEBUG_HOOKS) {
+    console.error('[DEBUG] CLI args:', args.join(' '));
   }
 
   return args;
