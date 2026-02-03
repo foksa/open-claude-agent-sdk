@@ -344,4 +344,54 @@ describe('stdin message compatibility', () => {
 
     console.log('   Empty prompt handling test passed');
   }, { timeout: 15000 });
+
+  test.concurrent('systemPrompt option is serialized correctly', async () => {
+    const systemPrompt = 'You are a helpful assistant named TestBot.';
+
+    const [liteMessages, officialMessages] = await Promise.all([
+      captureStdin(liteQuery, 'test', { systemPrompt }),
+      captureStdin(officialQuery, 'test', { systemPrompt })
+    ]);
+
+    const liteInit = liteMessages.find(m => m.request?.subtype === 'initialize');
+    const officialInit = officialMessages.find(m => m.request?.subtype === 'initialize');
+
+    expect(liteInit).toBeTruthy();
+    expect(officialInit).toBeTruthy();
+
+    // Both should have systemPrompt in the init request
+    expect(liteInit?.request?.systemPrompt).toBe(systemPrompt);
+    expect(officialInit?.request?.systemPrompt).toBe(systemPrompt);
+
+    console.log('   systemPrompt option test passed');
+    console.log('   Lite systemPrompt:', liteInit?.request?.systemPrompt);
+    console.log('   Official systemPrompt:', officialInit?.request?.systemPrompt);
+  }, { timeout: 15000 });
+
+  test.concurrent('systemPrompt with preset type matches official SDK', async () => {
+    const systemPrompt = {
+      type: 'preset' as const,
+      preset: 'claude_code' as const,
+      appendSystemPrompt: 'Additional instructions here.'
+    };
+
+    const [liteMessages, officialMessages] = await Promise.all([
+      captureStdin(liteQuery, 'test', { systemPrompt }),
+      captureStdin(officialQuery, 'test', { systemPrompt })
+    ]);
+
+    const liteInit = liteMessages.find(m => m.request?.subtype === 'initialize');
+    const officialInit = officialMessages.find(m => m.request?.subtype === 'initialize');
+
+    expect(liteInit).toBeTruthy();
+    expect(officialInit).toBeTruthy();
+
+    // Compare the systemPrompt structure
+    const liteSystemPrompt = liteInit?.request?.systemPrompt;
+    const officialSystemPrompt = officialInit?.request?.systemPrompt;
+
+    expect(liteSystemPrompt).toEqual(officialSystemPrompt);
+
+    console.log('   systemPrompt preset type test passed');
+  }, { timeout: 15000 });
 });
