@@ -623,8 +623,9 @@ src/
 
 1. ✅ Clean up documentation (delete obsolete files)
 2. ✅ Phase 0.5: Validation complete (canUseTool & hooks tested)
-3. 🚀 Begin Phase 1 implementation
-4. 📦 Ship v1.0.0 with production features
+3. 🎯 **Next: Implement `systemPrompt` option** - Pass `--system-prompt` flag to CLI
+4. 🚀 Begin Phase 1 implementation
+5. 📦 Ship v1.0.0 with production features
 
 ---
 
