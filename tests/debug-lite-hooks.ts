@@ -1,0 +1,50 @@
+/**
+ * Debug lite SDK hooks
+ */
+import { query as liteQuery } from '../src/api/query.ts';
+import type { HookCallbackMatcher, Options } from '../src/types/index.ts';
+
+const hookCalls: string[] = [];
+
+const hooks: Record<string, HookCallbackMatcher[]> = {
+  PreToolUse: [
+    {
+      matcher: 'Read',
+      hooks: [
+        async (input, toolUseId, context) => {
+          console.log('[DEBUG] PreToolUse hook called!', { tool_name: input.tool_name, toolUseId });
+          hookCalls.push('PreToolUse-Read');
+          return {};
+        }
+      ]
+    }
+  ]
+};
+
+const options: Options = {
+  model: 'haiku',
+  maxTurns: 2,
+  permissionMode: 'bypassPermissions',
+  allowDangerouslySkipPermissions: true,
+  settingSources: [],
+  pathToClaudeCodeExecutable: './tests/utils/proxy-cli.cjs',
+  hooks
+};
+
+console.log('[DEBUG] Starting lite query');
+
+for await (const msg of liteQuery({ prompt: 'Read the package.json file', options })) {
+  console.log(`[DEBUG] Message type: ${msg.type}`);
+  if (msg.type === 'result') {
+    console.log('[DEBUG] Result:', msg.subtype);
+    break;
+  }
+}
+
+console.log('[DEBUG] Hook calls:', hookCalls);
+console.log('[DEBUG] Total hook calls:', hookCalls.length);
+
+if (hookCalls.length === 0) {
+  console.error('[ERROR] Hooks were NEVER called!');
+  process.exit(1);
+}
