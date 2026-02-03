@@ -4,6 +4,11 @@ auto = "fallback"
 
 [test]
 preload = ["./tests/setup.ts"]
+# Run test files in parallel (each file spawns Claude processes)
+concurrency = 4
+
+[test.reporter]
+junit = "tests/output/junit.xml"
 
 [run]
 shell = "system"
