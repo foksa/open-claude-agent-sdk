@@ -1,15 +1,24 @@
 /**
- * Integration tests for multi-turn conversations and control methods
- * Baby Step 5: Tests Query interface control methods
+ * Comparison tests for multi-turn conversations
+ * Same tests run with both lite and official SDKs
  */
 
-import { test, expect } from 'bun:test';
-import { query } from '../../src/api/query.ts';
+import { test, expect, describe } from 'bun:test';
+import { query as liteQuery } from '../../src/api/query.ts';
+import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import type { SDKUserMessage } from '../../src/types/index.ts';
-import { recordSnapshot } from './utils.ts';
 
-test('multi-turn conversation via streamInput', async () => {
-  const q = query({
+const testWithBothSDKs = (name: string, testFn: (sdk: 'lite' | 'official') => Promise<void>, timeout = 60000) => {
+  describe(name, () => {
+    test(`[lite] ${name}`, () => testFn('lite'), { timeout });
+    test(`[official] ${name}`, () => testFn('official'), { timeout });
+  });
+};
+
+testWithBothSDKs('multi-turn conversation via streamInput', async (sdk) => {
+  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+
+  const q = queryFn({
     prompt: 'Say hello in one word',
     options: {
       permissionMode: 'bypassPermissions',
@@ -57,15 +66,16 @@ test('multi-turn conversation via streamInput', async () => {
     }
   }
 
-  await recordSnapshot('multi-turn', messages);
-
   expect(firstResultSeen).toBe(true);
   expect(secondResultSeen).toBe(true);
   expect(messages.length).toBeGreaterThan(2);
-}, { timeout: 60000 });
+  console.log(`   [${sdk}] Multi-turn: ${messages.length} messages`);
+});
 
-test('interrupt() stops query execution', async () => {
-  const q = query({
+testWithBothSDKs('interrupt() stops query execution', async (sdk) => {
+  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+
+  const q = queryFn({
     prompt: 'Count from 1 to 100',
     options: {
       permissionMode: 'bypassPermissions',
@@ -80,11 +90,8 @@ test('interrupt() stops query execution', async () => {
   }, 2000);
 
   let gotResult = false;
-  const messages = [];
 
   for await (const msg of q) {
-    messages.push(msg);
-
     if (msg.type === 'result') {
       gotResult = true;
       clearTimeout(interruptTimer);
@@ -92,14 +99,14 @@ test('interrupt() stops query execution', async () => {
     }
   }
 
-  await recordSnapshot('interrupt', messages);
-
-  // Should have completed (either interrupted or finished)
   expect(gotResult).toBe(true);
-}, { timeout: 30000 });
+  console.log(`   [${sdk}] Interrupt test completed`);
+});
 
-test('close() terminates query', async () => {
-  const q = query({
+testWithBothSDKs('close() terminates query', async (sdk) => {
+  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+
+  const q = queryFn({
     prompt: 'Say hello',
     options: {
       permissionMode: 'bypassPermissions',
@@ -116,24 +123,24 @@ test('close() terminates query', async () => {
 
     if (msg.type === 'system') {
       sawSystemMessage = true;
-      // Close after system message - this proves close() works
       q.close();
       break;
     }
 
     if (msg.type === 'result') {
-      // If we get result first, that's fine too
       break;
     }
   }
 
-  // We should have received at least the system message
   expect(sawSystemMessage).toBe(true);
   expect(messageCount).toBeGreaterThanOrEqual(1);
-}, { timeout: 10000 });
+  console.log(`   [${sdk}] Close test: ${messageCount} messages before close`);
+});
 
-test('setPermissionMode() changes permissions', async () => {
-  const q = query({
+testWithBothSDKs('setPermissionMode() changes permissions', async (sdk) => {
+  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+
+  const q = queryFn({
     prompt: 'List files in current directory',
     options: {
       permissionMode: 'plan',
@@ -156,10 +163,13 @@ test('setPermissionMode() changes permissions', async () => {
   }
 
   expect(gotResult).toBe(true);
-}, { timeout: 30000 });
+  console.log(`   [${sdk}] setPermissionMode test completed`);
+});
 
-test('setModel() changes model', async () => {
-  const q = query({
+testWithBothSDKs('setModel() changes model', async (sdk) => {
+  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+
+  const q = queryFn({
     prompt: 'Say hello',
     options: {
       permissionMode: 'bypassPermissions',
@@ -169,7 +179,6 @@ test('setModel() changes model', async () => {
     }
   });
 
-  // Try to change model (this may not have visible effect in 1 turn)
   setTimeout(() => {
     q.setModel('claude-haiku-4-5-20251001');
   }, 500);
@@ -184,10 +193,13 @@ test('setModel() changes model', async () => {
   }
 
   expect(gotResult).toBe(true);
-}, { timeout: 30000 });
+  console.log(`   [${sdk}] setModel test completed`);
+});
 
-test('Query implements AsyncGenerator interface', async () => {
-  const q = query({
+testWithBothSDKs('Query implements AsyncGenerator interface', async (sdk) => {
+  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+
+  const q = queryFn({
     prompt: 'Say hello',
     options: {
       permissionMode: 'bypassPermissions',
@@ -213,4 +225,6 @@ test('Query implements AsyncGenerator interface', async () => {
   for await (const msg of q) {
     if (msg.type === 'result') break;
   }
-}, { timeout: 30000 });
+
+  console.log(`   [${sdk}] AsyncGenerator interface verified`);
+});

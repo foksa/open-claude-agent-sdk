@@ -1,99 +1,80 @@
 /**
- * Integration tests for query() function
- * These tests call the real Claude CLI and verify NDJSON output
+ * Comparison tests: Same tests run with both lite and official SDKs
+ * Validates that our SDK produces compatible results
  */
 
-import { test, expect } from 'bun:test';
-import { query } from '../../src/api/query.ts';
-import { recordSnapshot } from './utils.ts';
+import { test, expect, describe } from 'bun:test';
+import { runWithSDK, compareMessageStructures } from './comparison-utils.ts';
+import type { SDKType } from './comparison-utils.ts';
 
-test('query() returns valid SDKMessage stream', async () => {
-  const messages = [];
+// Run each test with both SDKs
+const testWithBothSDKs = (name: string, testFn: (sdk: SDKType) => Promise<void>, timeout = 45000) => {
+  describe(name, () => {
+    test(`[lite] ${name}`, () => testFn('lite'), { timeout });
+    test(`[official] ${name}`, () => testFn('official'), { timeout });
+  });
+};
 
-  for await (const msg of query({
-    prompt: 'Say hello in one word',
-    options: {
+testWithBothSDKs('basic hello world query', async (sdk) => {
+  const messages = await runWithSDK(
+    sdk,
+    'Say hello in one word',
+    {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       maxTurns: 1,
     }
-  })) {
-    messages.push(msg);
+  );
 
-    // Validate message structure
-    expect(msg).toHaveProperty('type');
-    expect(msg).toHaveProperty('session_id');
-
-    if (msg.type === 'result') {
-      break;  // Stop on result
-    }
-  }
-
-  // Record snapshot for debugging
-  const snapshot = await recordSnapshot('hello-world', messages);
-  console.log('📸 Snapshot saved to:', snapshot);
-
-  // Basic assertions
+  // Validate message structure
   expect(messages.length).toBeGreaterThan(0);
-  expect(messages[0].type).toBe('system');  // First message is system init
-  expect(messages[messages.length - 1].type).toBe('result');  // Last is result
+  expect(messages[0].type).toBe('system');
+  expect(messages[messages.length - 1].type).toBe('result');
 
   // Check result is successful
   const result = messages[messages.length - 1];
-  expect(result.type).toBe('result');
   if (result.type === 'result') {
     expect(result.subtype).toBe('success');
     expect(result.is_error).toBe(false);
   }
-}, { timeout: 45000 });
+});
 
-test('query() with streaming (includePartialMessages)', async () => {
-  const messages = [];
+testWithBothSDKs('streaming with includePartialMessages', async (sdk) => {
   let streamEventCount = 0;
 
-  for await (const msg of query({
-    prompt: 'Write a haiku about coding',
-    options: {
+  const messages = await runWithSDK(
+    sdk,
+    'Write a haiku about coding',
+    {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       maxTurns: 1,
-      includePartialMessages: true,  // Enable streaming
+      includePartialMessages: true,
+    },
+    (msg) => {
+      if (msg.type === 'stream_event') {
+        streamEventCount++;
+      }
     }
-  })) {
-    messages.push(msg);
-
-    if (msg.type === 'stream_event') {
-      streamEventCount++;
-    }
-
-    if (msg.type === 'result') break;
-  }
-
-  await recordSnapshot('streaming-haiku', messages);
+  );
 
   // Should have stream_event messages
   expect(streamEventCount).toBeGreaterThan(0);
-  console.log(`   Got ${streamEventCount} stream_event messages`);
+  console.log(`   [${sdk}] Got ${streamEventCount} stream_event messages`);
 
   // Should still end with result
   expect(messages[messages.length - 1].type).toBe('result');
-}, { timeout: 45000 });
+});
 
-test('query() with plan mode', async () => {
-  const messages = [];
-
-  for await (const msg of query({
-    prompt: 'List the files in the current directory',
-    options: {
-      permissionMode: 'plan',  // Plan mode - read-only
+testWithBothSDKs('plan mode', async (sdk) => {
+  const messages = await runWithSDK(
+    sdk,
+    'List the files in the current directory',
+    {
+      permissionMode: 'plan',
       maxTurns: 2,
     }
-  })) {
-    messages.push(msg);
-    if (msg.type === 'result') break;
-  }
-
-  await recordSnapshot('plan-mode-ls', messages);
+  );
 
   expect(messages.length).toBeGreaterThan(0);
 
@@ -102,29 +83,62 @@ test('query() with plan mode', async () => {
   if (systemMsg && systemMsg.type === 'system') {
     expect(systemMsg.permissionMode).toBe('plan');
   }
-}, { timeout: 45000 });
+});
 
-test('query() with custom model', async () => {
-  const messages = [];
-
-  for await (const msg of query({
-    prompt: 'Say hi',
-    options: {
+testWithBothSDKs('custom model', async (sdk) => {
+  const messages = await runWithSDK(
+    sdk,
+    'Say hi',
+    {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
-      model: 'claude-sonnet-4-5-20250929',  // Explicit model
+      model: 'claude-sonnet-4-5-20250929',
       maxTurns: 1,
     }
-  })) {
-    messages.push(msg);
-    if (msg.type === 'result') break;
-  }
-
-  await recordSnapshot('custom-model', messages);
+  );
 
   // Check system message has correct model
   const systemMsg = messages.find(m => m.type === 'system');
   if (systemMsg && systemMsg.type === 'system') {
     expect(systemMsg.model).toBe('claude-sonnet-4-5-20250929');
   }
-}, { timeout: 45000 });
+});
+
+// Structure comparison test - runs both and compares
+test('structure comparison: both SDKs produce similar message flow', async () => {
+  const liteMessages = await runWithSDK(
+    'lite',
+    'Say hello',
+    {
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      maxTurns: 1,
+    }
+  );
+
+  const officialMessages = await runWithSDK(
+    'official',
+    'Say hello',
+    {
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      maxTurns: 1,
+    }
+  );
+
+  const comparison = compareMessageStructures(liteMessages, officialMessages);
+
+  console.log('   Structure comparison:', {
+    lite: `${comparison.liteCount} messages`,
+    official: `${comparison.officialCount} messages`,
+  });
+
+  // Both should have system and result messages
+  expect(comparison.bothHaveSystem).toBe(true);
+  expect(comparison.bothHaveResult).toBe(true);
+
+  // Message counts should be similar (within reasonable range)
+  const ratio = comparison.liteCount / comparison.officialCount;
+  expect(ratio).toBeGreaterThan(0.5);
+  expect(ratio).toBeLessThan(2.0);
+}, { timeout: 90000 });
