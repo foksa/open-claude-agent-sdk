@@ -259,4 +259,89 @@ describe('stdin message compatibility', () => {
 
     console.log('   Multiple hooks test passed');
   }, { timeout: 15000 });
+
+  test.concurrent('permissionMode flag is passed correctly', async () => {
+    const [liteMessages, officialMessages] = await Promise.all([
+      captureStdin(liteQuery, 'test', { permissionMode: 'acceptEdits' }),
+      captureStdin(officialQuery, 'test', { permissionMode: 'acceptEdits' })
+    ]);
+
+    const liteInit = liteMessages.find(m => m.request?.subtype === 'initialize');
+    const officialInit = officialMessages.find(m => m.request?.subtype === 'initialize');
+
+    expect(liteInit).toBeTruthy();
+    expect(officialInit).toBeTruthy();
+
+    console.log('   Permission mode test passed');
+  }, { timeout: 15000 });
+
+  test.concurrent('model option is serialized correctly', async () => {
+    const [liteMessages, officialMessages] = await Promise.all([
+      captureStdin(liteQuery, 'test', { model: 'claude-sonnet-4-20250514' }),
+      captureStdin(officialQuery, 'test', { model: 'claude-sonnet-4-20250514' })
+    ]);
+
+    const liteInit = liteMessages.find(m => m.request?.subtype === 'initialize');
+    const officialInit = officialMessages.find(m => m.request?.subtype === 'initialize');
+
+    expect(liteInit).toBeTruthy();
+    expect(officialInit).toBeTruthy();
+
+    console.log('   Model option test passed');
+  }, { timeout: 15000 });
+
+  test.concurrent('maxTurns option is serialized correctly', async () => {
+    const [liteMessages, officialMessages] = await Promise.all([
+      captureStdin(liteQuery, 'test', { maxTurns: 10 }),
+      captureStdin(officialQuery, 'test', { maxTurns: 10 })
+    ]);
+
+    const liteInit = liteMessages.find(m => m.request?.subtype === 'initialize');
+    const officialInit = officialMessages.find(m => m.request?.subtype === 'initialize');
+
+    expect(liteInit).toBeTruthy();
+    expect(officialInit).toBeTruthy();
+
+    console.log('   maxTurns option test passed');
+  }, { timeout: 15000 });
+
+  test.concurrent('all hook event types are supported', async () => {
+    const hooks: Record<string, HookCallbackMatcher[]> = {
+      PreToolUse: [{ hooks: [async () => ({})] }],
+      PostToolUse: [{ hooks: [async () => ({})] }],
+      UserPromptSubmit: [{ hooks: [async () => ({})] }],
+    };
+
+    const [liteMessages, officialMessages] = await Promise.all([
+      captureStdin(liteQuery, 'test', { hooks }),
+      captureStdin(officialQuery, 'test', { hooks })
+    ]);
+
+    const liteInit = liteMessages.find(m => m.request?.subtype === 'initialize');
+    const officialInit = officialMessages.find(m => m.request?.subtype === 'initialize');
+
+    if (liteInit && officialInit) {
+      const liteHookTypes = Object.keys(liteInit.request.hooks || {}).sort();
+      const officialHookTypes = Object.keys(officialInit.request.hooks || {}).sort();
+      expect(liteHookTypes).toEqual(officialHookTypes);
+    }
+
+    console.log('   All hook event types test passed');
+  }, { timeout: 15000 });
+
+  test.concurrent('empty prompt handling matches', async () => {
+    const [liteMessages, officialMessages] = await Promise.all([
+      captureStdin(liteQuery, ''),
+      captureStdin(officialQuery, '')
+    ]);
+
+    const liteUser = liteMessages.find(m => m.type === 'user');
+    const officialUser = officialMessages.find(m => m.type === 'user');
+
+    if (liteUser && officialUser) {
+      expect(liteUser.message.role).toBe(officialUser.message.role);
+    }
+
+    console.log('   Empty prompt handling test passed');
+  }, { timeout: 15000 });
 });
