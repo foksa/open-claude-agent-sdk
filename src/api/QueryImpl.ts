@@ -10,7 +10,7 @@
  */
 
 import type { ChildProcess } from 'node:child_process';
-import { createInterface } from 'node:readline';
+import { createInterface, type Interface } from 'node:readline';
 import type { Query, SDKMessage, SDKUserMessage, Options, PermissionMode, SDKControlInitializeResponse } from '../types/index.ts';
 import type { StdoutMessage } from '../types/control.ts';
 import { detectClaudeBinary } from '../core/detection.ts';
@@ -20,8 +20,12 @@ import { ControlProtocolHandler } from '../core/control.ts';
 export class QueryImpl implements Query {
   private process: ChildProcess;
   private controlHandler: ControlProtocolHandler;
+  private readline: Interface | null = null;
   private messageQueue: SDKMessage[] = [];
-  private resolveQueue: Array<(value: IteratorResult<SDKMessage>) => void> = [];
+  private waitQueue: Array<{
+    resolve: (value: IteratorResult<SDKMessage>) => void;
+    reject: (error: Error) => void;
+  }> = [];
   private done = false;
   private error: Error | null = null;
   private isSingleUserTurn: boolean;  // Track if single-turn (string prompt) vs multi-turn (AsyncIterable)
@@ -97,12 +101,12 @@ export class QueryImpl implements Query {
         throw new Error('Process stdout is null');
       }
 
-      const rl = createInterface({
+      this.readline = createInterface({
         input: this.process.stdout,
         crlfDelay: Infinity
       });
 
-      for await (const line of rl) {
+      for await (const line of this.readline) {
         if (!line.trim()) continue;
 
         // Debug: log raw line
@@ -161,21 +165,21 @@ export class QueryImpl implements Query {
    */
   private notifyWaiters() {
     // Resolve pending promises with available messages
-    while (this.resolveQueue.length > 0 && this.messageQueue.length > 0) {
-      const resolve = this.resolveQueue.shift()!;
+    while (this.waitQueue.length > 0 && this.messageQueue.length > 0) {
+      const waiter = this.waitQueue.shift()!;
       const message = this.messageQueue.shift()!;
-      resolve({ value: message, done: false });
+      waiter.resolve({ value: message, done: false });
     }
 
     // If done and no more messages, notify all remaining waiters
-    if (this.done && this.resolveQueue.length > 0) {
-      const resolvers = this.resolveQueue.splice(0);
-      for (const resolve of resolvers) {
+    if (this.done && this.waitQueue.length > 0) {
+      const waiters = this.waitQueue.splice(0);
+      for (const waiter of waiters) {
         if (this.error) {
-          // Return done with error (consumer should check for result message)
-          resolve({ value: undefined as any, done: true });
+          // Propagate error to consumer
+          waiter.reject(this.error);
         } else {
-          resolve({ value: undefined as any, done: true });
+          waiter.resolve({ value: undefined as any, done: true });
         }
       }
     }
@@ -192,14 +196,17 @@ export class QueryImpl implements Query {
       return { value: message, done: false };
     }
 
-    // If done and no messages, return done
+    // If done, either throw error or return done
     if (this.done) {
+      if (this.error) {
+        throw this.error;
+      }
       return { value: undefined as any, done: true };
     }
 
     // Wait for next message
-    return new Promise<IteratorResult<SDKMessage>>((resolve) => {
-      this.resolveQueue.push(resolve);
+    return new Promise<IteratorResult<SDKMessage>>((resolve, reject) => {
+      this.waitQueue.push({ resolve, reject });
     });
   }
 
@@ -278,6 +285,11 @@ export class QueryImpl implements Query {
    */
   close(): void {
     if (!this.done) {
+      // Close readline interface to prevent resource leak
+      if (this.readline) {
+        this.readline.close();
+        this.readline = null;
+      }
       this.process.kill();
       this.done = true;
       this.notifyWaiters();

@@ -111,7 +111,8 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   // No '-- prompt' argument needed!
 
   // Test support: Allow injecting extra CLI args for testing
-  if ((options as any)._testCliArgs) {
+  // Security: Only enabled in test environment to prevent misuse
+  if (process.env.NODE_ENV === 'test' && (options as any)._testCliArgs) {
     args.push(...(options as any)._testCliArgs);
   }
 

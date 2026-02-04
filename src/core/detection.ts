@@ -10,7 +10,37 @@
  */
 
 import { spawnSync } from 'node:child_process';
+import { existsSync, statSync, accessSync, constants } from 'node:fs';
+import { resolve } from 'node:path';
 import type { Options } from '../types/index.ts';
+
+/**
+ * Validate that a path points to an executable file
+ * @param path Path to validate
+ * @throws {Error} If path is invalid, not a file, or not executable
+ */
+function validateExecutablePath(path: string): void {
+  // Resolve to absolute path to prevent traversal attacks
+  const resolvedPath = resolve(path);
+
+  // Check if path exists
+  if (!existsSync(resolvedPath)) {
+    throw new Error(`Claude CLI path does not exist: ${path}`);
+  }
+
+  // Check if it's a file (not a directory)
+  const stat = statSync(resolvedPath);
+  if (!stat.isFile()) {
+    throw new Error(`Claude CLI path is not a file: ${path}`);
+  }
+
+  // Check if it's executable
+  try {
+    accessSync(resolvedPath, constants.X_OK);
+  } catch {
+    throw new Error(`Claude CLI path is not executable: ${path}`);
+  }
+}
 
 /**
  * Detect Claude CLI binary location
@@ -27,12 +57,14 @@ import type { Options } from '../types/index.ts';
 export function detectClaudeBinary(options?: Options): string {
   // Check option first (for embedded CLI from official SDK)
   if (options?.pathToClaudeCodeExecutable) {
-    return options.pathToClaudeCodeExecutable;
+    validateExecutablePath(options.pathToClaudeCodeExecutable);
+    return resolve(options.pathToClaudeCodeExecutable);
   }
 
   // Check env var
   if (process.env.CLAUDE_BINARY) {
-    return process.env.CLAUDE_BINARY;
+    validateExecutablePath(process.env.CLAUDE_BINARY);
+    return resolve(process.env.CLAUDE_BINARY);
   }
 
   // Try 'which' command to find in PATH
