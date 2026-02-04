@@ -33,6 +33,7 @@
     "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm && bun run build:types",
     "build:types": "tsc --emitDeclarationOnly --outDir dist",
     "test": "bun test",
+    "test:unit": "bun test tests/unit/",
     "test:hooks": "bun test tests/integration/hooks.test.ts",
     "test:permissions": "bun test tests/integration/permissions.test.ts",
     "test:query": "bun test tests/integration/query.test.ts",
