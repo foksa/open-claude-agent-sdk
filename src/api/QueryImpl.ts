@@ -25,8 +25,8 @@ import type {
 } from '../types/index.ts';
 
 export class QueryImpl implements Query {
-  private process: ChildProcess;
-  private controlHandler: ControlProtocolHandler;
+  private process!: ChildProcess;
+  private controlHandler!: ControlProtocolHandler;
   private readline: Interface | null = null;
   private messageQueue: SDKMessage[] = [];
   private waitQueue: Array<{
@@ -35,12 +35,19 @@ export class QueryImpl implements Query {
   }> = [];
   private done = false;
   private error: Error | null = null;
-  private isSingleUserTurn: boolean; // Track if single-turn (string prompt) vs multi-turn (AsyncIterable)
+  private isSingleUserTurn: boolean = false; // Track if single-turn (string prompt) vs multi-turn (AsyncIterable)
   private abortHandler: (() => void) | null = null; // Handler for abortController cleanup
   private abortController: AbortController | undefined; // Store for cleanup
 
   constructor(params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options }) {
     const { prompt, options = {} } = params;
+
+    // Check for pre-aborted signal BEFORE spawning process (save resources)
+    if (options.abortController?.signal.aborted) {
+      this.done = true;
+      // Mark as aborted - the iterator will return done immediately
+      return;
+    }
 
     // Determine if single-turn or multi-turn (matches official SDK behavior)
     this.isSingleUserTurn = typeof prompt === 'string';
@@ -310,7 +317,7 @@ export class QueryImpl implements Query {
         this.abortController.signal.removeEventListener('abort', this.abortHandler);
         this.abortHandler = null;
       }
-      this.process.kill();
+      this.process?.kill();
       this.done = true;
       this.notifyWaiters();
     }
