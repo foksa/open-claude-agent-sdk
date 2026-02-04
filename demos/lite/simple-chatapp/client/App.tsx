@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
-import useWebSocket, { ReadyState } from "react-use-websocket";
-import { ChatList } from "./components/ChatList";
-import { ChatWindow } from "./components/ChatWindow";
+import { useCallback, useEffect, useState } from 'react';
+import useWebSocket, { ReadyState } from 'react-use-websocket';
+import { ChatList } from './components/ChatList';
+import { ChatWindow } from './components/ChatWindow';
 
 interface Chat {
   id: string;
@@ -12,7 +12,7 @@ interface Chat {
 
 interface Message {
   id: string;
-  role: "user" | "assistant" | "tool_use";
+  role: 'user' | 'assistant' | 'tool_use';
   content: string;
   timestamp: string;
   toolName?: string;
@@ -20,7 +20,7 @@ interface Message {
 }
 
 // Use relative URLs - Vite will proxy to the backend
-const API_BASE = "/api";
+const API_BASE = '/api';
 const WS_URL = `ws://${window.location.hostname}:3001/ws`;
 
 export default function App() {
@@ -32,24 +32,24 @@ export default function App() {
   // Handle WebSocket messages
   const handleWSMessage = useCallback((message: any) => {
     switch (message.type) {
-      case "connected":
-        console.log("Connected to server");
+      case 'connected':
+        console.log('Connected to server');
         break;
 
-      case "history":
+      case 'history':
         setMessages(message.messages || []);
         break;
 
-      case "user_message":
+      case 'user_message':
         // User message already added locally
         break;
 
-      case "assistant_message":
+      case 'assistant_message':
         setMessages((prev) => [
           ...prev,
           {
             id: crypto.randomUUID(),
-            role: "assistant",
+            role: 'assistant',
             content: message.content,
             timestamp: new Date().toISOString(),
           },
@@ -57,7 +57,7 @@ export default function App() {
         setIsLoading(false);
         break;
 
-      case "tool_use":
+      case 'tool_use':
         // Add tool use to messages array so it persists
         // Alternative: To show tool uses only while pending, store them in a
         // separate `pendingToolUses` state and clear it on "assistant_message" or "result"
@@ -65,8 +65,8 @@ export default function App() {
           ...prev,
           {
             id: message.toolId,
-            role: "tool_use",
-            content: "",
+            role: 'tool_use',
+            content: '',
             timestamp: new Date().toISOString(),
             toolName: message.toolName,
             toolInput: message.toolInput,
@@ -74,14 +74,14 @@ export default function App() {
         ]);
         break;
 
-      case "result":
+      case 'result':
         setIsLoading(false);
         // Refresh chat list to get updated titles
         fetchChats();
         break;
 
-      case "error":
-        console.error("Server error:", message.error);
+      case 'error':
+        console.error('Server error:', message.error);
         setIsLoading(false);
         break;
     }
@@ -109,7 +109,7 @@ export default function App() {
       const data = await res.json();
       setChats(data);
     } catch (error) {
-      console.error("Failed to fetch chats:", error);
+      console.error('Failed to fetch chats:', error);
     }
   };
 
@@ -117,28 +117,28 @@ export default function App() {
   const createChat = async () => {
     try {
       const res = await fetch(`${API_BASE}/chats`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
       });
       const chat = await res.json();
       setChats((prev) => [chat, ...prev]);
       selectChat(chat.id);
     } catch (error) {
-      console.error("Failed to create chat:", error);
+      console.error('Failed to create chat:', error);
     }
   };
 
   // Delete chat
   const deleteChat = async (chatId: string) => {
     try {
-      await fetch(`${API_BASE}/chats/${chatId}`, { method: "DELETE" });
+      await fetch(`${API_BASE}/chats/${chatId}`, { method: 'DELETE' });
       setChats((prev) => prev.filter((c) => c.id !== chatId));
       if (selectedChatId === chatId) {
         setSelectedChatId(null);
         setMessages([]);
       }
     } catch (error) {
-      console.error("Failed to delete chat:", error);
+      console.error('Failed to delete chat:', error);
     }
   };
 
@@ -149,7 +149,7 @@ export default function App() {
     setIsLoading(false);
 
     // Subscribe to chat via WebSocket
-    sendJsonMessage({ type: "subscribe", chatId });
+    sendJsonMessage({ type: 'subscribe', chatId });
   };
 
   // Send a message
@@ -161,7 +161,7 @@ export default function App() {
       ...prev,
       {
         id: crypto.randomUUID(),
-        role: "user",
+        role: 'user',
         content,
         timestamp: new Date().toISOString(),
       },
@@ -171,7 +171,7 @@ export default function App() {
 
     // Send via WebSocket
     sendJsonMessage({
-      type: "chat",
+      type: 'chat',
       content,
       chatId: selectedChatId,
     });

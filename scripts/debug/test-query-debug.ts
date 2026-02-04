@@ -3,8 +3,8 @@
  */
 
 import { detectClaudeBinary } from './src/core/detection.ts';
-import { buildCliArgs, spawnClaude } from './src/core/spawn.ts';
 import { parseNDJSON } from './src/core/parser.ts';
+import { buildCliArgs, spawnClaude } from './src/core/spawn.ts';
 
 console.log('1. Detecting binary...');
 const binary = detectClaudeBinary();

@@ -7,8 +7,8 @@
  * or if they're just a one-time overhead.
  */
 
-import { query as liteQuery, type Query } from '../../src/api/query.ts';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
+import { query as liteQuery, type Query } from '../../src/api/query.ts';
 import type { SDKMessage, SDKUserMessage } from '../../src/types/index.ts';
 
 interface TurnResult {
@@ -31,13 +31,7 @@ interface SDKResult {
   totalCacheRead: number;
 }
 
-const prompts = [
-  'What is 3+3?',
-  'What is 5+5?',
-  'What is 7+7?',
-  'What is 9+9?',
-  'What is 11+11?'
-];
+const prompts = ['What is 3+3?', 'What is 5+5?', 'What is 7+7?', 'What is 9+9?', 'What is 11+11?'];
 
 async function* createMessageStream(prompts: string[]): AsyncGenerator<SDKUserMessage> {
   for (const prompt of prompts) {
@@ -45,10 +39,10 @@ async function* createMessageStream(prompts: string[]): AsyncGenerator<SDKUserMe
       type: 'user',
       message: {
         role: 'user',
-        content: prompt
+        content: prompt,
       },
       session_id: '',
-      parent_tool_use_id: null
+      parent_tool_use_id: null,
     };
   }
 }
@@ -96,7 +90,7 @@ async function testSDK(sdk: 'lite' | 'official'): Promise<SDKResult> {
         cacheRead: usage.cache_read_input_tokens || 0,
         inputTokens: usage.input_tokens || 0,
         outputTokens: usage.output_tokens || 0,
-        cost
+        cost,
       };
 
       turns.push(turn);
@@ -140,7 +134,7 @@ async function testSDK(sdk: 'lite' | 'official'): Promise<SDKResult> {
     totalTime,
     totalCost,
     totalCacheCreation,
-    totalCacheRead
+    totalCacheRead,
   };
 }
 
@@ -160,7 +154,7 @@ async function main() {
   }
 
   // Wait a bit to avoid cache collision
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   // Test Lite SDK
   try {
@@ -189,10 +183,10 @@ async function main() {
 
       console.log(
         `| ${oTurn.turnNumber} ` +
-        `| ${oTurn.prompt.substring(0, 15).padEnd(15)} ` +
-        `| ${oTurn.timeMs.toString().padEnd(13)}ms ` +
-        `| ${lTurn.timeMs.toString().padEnd(9)}ms ` +
-        `| ${diff > 0 ? '+' : ''}${diff}ms (${diff > 0 ? '+' : ''}${diffPct}%) |`
+          `| ${oTurn.prompt.substring(0, 15).padEnd(15)} ` +
+          `| ${oTurn.timeMs.toString().padEnd(13)}ms ` +
+          `| ${lTurn.timeMs.toString().padEnd(9)}ms ` +
+          `| ${diff > 0 ? '+' : ''}${diff}ms (${diff > 0 ? '+' : ''}${diffPct}%) |`
       );
     }
 
@@ -207,9 +201,9 @@ async function main() {
 
       console.log(
         `| ${oTurn.turnNumber} ` +
-        `| $${oTurn.cost.toFixed(4).padEnd(12)} ` +
-        `| $${lTurn.cost.toFixed(4).padEnd(8)} ` +
-        `| ${diff > 0 ? '+' : ''}$${diff.toFixed(4)} (${diff > 0 ? '+' : ''}${diffPct}%) |`
+          `| $${oTurn.cost.toFixed(4).padEnd(12)} ` +
+          `| $${lTurn.cost.toFixed(4).padEnd(8)} ` +
+          `| ${diff > 0 ? '+' : ''}$${diff.toFixed(4)} (${diff > 0 ? '+' : ''}${diffPct}%) |`
       );
     }
 
@@ -225,9 +219,9 @@ async function main() {
 
       console.log(
         `| ${oTurn.turnNumber} ` +
-        `| ${oCacheTotal.toString().padEnd(14)} ` +
-        `| ${lCacheTotal.toString().padEnd(10)} ` +
-        `| ${diff > 0 ? '+' : ''}${diff} |`
+          `| ${oCacheTotal.toString().padEnd(14)} ` +
+          `| ${lCacheTotal.toString().padEnd(10)} ` +
+          `| ${diff > 0 ? '+' : ''}${diff} |`
       );
     }
 
@@ -242,18 +236,24 @@ async function main() {
     const costDiff = lite.totalCost - official.totalCost;
     const costDiffPct = ((costDiff / official.totalCost) * 100).toFixed(1);
 
-    const cacheDiff = (lite.totalCacheCreation + lite.totalCacheRead) -
-                      (official.totalCacheCreation + official.totalCacheRead);
+    const cacheDiff =
+      lite.totalCacheCreation +
+      lite.totalCacheRead -
+      (official.totalCacheCreation + official.totalCacheRead);
 
     console.log(`\n⏱️  Total Time:`);
     console.log(`   Official: ${official.totalTime}ms`);
     console.log(`   Lite:     ${lite.totalTime}ms`);
-    console.log(`   Diff:     ${timeDiff > 0 ? '+' : ''}${timeDiff}ms (${timeDiff > 0 ? '+' : ''}${timeDiffPct}%)`);
+    console.log(
+      `   Diff:     ${timeDiff > 0 ? '+' : ''}${timeDiff}ms (${timeDiff > 0 ? '+' : ''}${timeDiffPct}%)`
+    );
 
     console.log(`\n💰 Total Cost:`);
     console.log(`   Official: $${official.totalCost.toFixed(4)}`);
     console.log(`   Lite:     $${lite.totalCost.toFixed(4)}`);
-    console.log(`   Diff:     ${costDiff > 0 ? '+' : ''}$${costDiff.toFixed(4)} (${costDiff > 0 ? '+' : ''}${costDiffPct}%)`);
+    console.log(
+      `   Diff:     ${costDiff > 0 ? '+' : ''}$${costDiff.toFixed(4)} (${costDiff > 0 ? '+' : ''}${costDiffPct}%)`
+    );
 
     console.log(`\n📊 Total Cache Tokens:`);
     console.log(`   Official: ${official.totalCacheCreation + official.totalCacheRead}`);
@@ -264,9 +264,15 @@ async function main() {
     const avgTimeDiff = timeDiff / prompts.length;
     const avgCostDiff = costDiff / prompts.length;
     const avgCacheDiff = cacheDiff / prompts.length;
-    console.log(`   Avg Time Diff: ${avgTimeDiff > 0 ? '+' : ''}${avgTimeDiff.toFixed(0)}ms per turn`);
-    console.log(`   Avg Cost Diff: ${avgCostDiff > 0 ? '+' : ''}$${avgCostDiff.toFixed(4)} per turn`);
-    console.log(`   Avg Cache Diff: ${avgCacheDiff > 0 ? '+' : ''}${avgCacheDiff.toFixed(0)} tokens per turn`);
+    console.log(
+      `   Avg Time Diff: ${avgTimeDiff > 0 ? '+' : ''}${avgTimeDiff.toFixed(0)}ms per turn`
+    );
+    console.log(
+      `   Avg Cost Diff: ${avgCostDiff > 0 ? '+' : ''}$${avgCostDiff.toFixed(4)} per turn`
+    );
+    console.log(
+      `   Avg Cache Diff: ${avgCacheDiff > 0 ? '+' : ''}${avgCacheDiff.toFixed(0)} tokens per turn`
+    );
 
     // Verdict
     console.log('\n' + '='.repeat(70));

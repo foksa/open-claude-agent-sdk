@@ -2,7 +2,7 @@
  * Unit tests for spawn.ts - CLI argument building
  */
 
-import { test, expect, describe } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { buildCliArgs } from '../../src/core/spawn.ts';
 
 describe('buildCliArgs', () => {
@@ -78,7 +78,7 @@ describe('buildCliArgs', () => {
   test('includes --json-schema for json_schema output format', () => {
     const schema = { type: 'object', properties: { name: { type: 'string' } } };
     const args = buildCliArgs({
-      outputFormat: { type: 'json_schema', schema }
+      outputFormat: { type: 'json_schema', schema },
     });
 
     expect(args).toContain('--json-schema');
@@ -106,6 +106,45 @@ describe('buildCliArgs', () => {
 
     expect(args).toContain('--setting-sources');
     expect(args).toContain('user,project');
+  });
+
+  test('includes --setting-sources with project only', () => {
+    const args = buildCliArgs({ settingSources: ['project'] });
+
+    expect(args).toContain('--setting-sources');
+    const idx = args.indexOf('--setting-sources');
+    expect(args[idx + 1]).toBe('project');
+  });
+
+  test('includes --setting-sources with user only', () => {
+    const args = buildCliArgs({ settingSources: ['user'] });
+
+    expect(args).toContain('--setting-sources');
+    const idx = args.indexOf('--setting-sources');
+    expect(args[idx + 1]).toBe('user');
+  });
+
+  test('includes --setting-sources with explicit empty array', () => {
+    const args = buildCliArgs({ settingSources: [] });
+
+    expect(args).toContain('--setting-sources');
+    const idx = args.indexOf('--setting-sources');
+    expect(args[idx + 1]).toBe('');
+  });
+
+  test('includes --setting-sources with local source', () => {
+    const args = buildCliArgs({ settingSources: ['local'] });
+
+    expect(args).toContain('--setting-sources');
+    const idx = args.indexOf('--setting-sources');
+    expect(args[idx + 1]).toBe('local');
+  });
+
+  test('includes --setting-sources with all sources', () => {
+    const args = buildCliArgs({ settingSources: ['user', 'project', 'local'] });
+
+    expect(args).toContain('--setting-sources');
+    expect(args).toContain('user,project,local');
   });
 
   test('includes --debug-file when specified', () => {

@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from 'react';
 
 interface Message {
   id: string;
-  role: "user" | "assistant" | "tool_use";
+  role: 'user' | 'assistant' | 'tool_use';
   content: string;
   timestamp: string;
   toolName?: string;
@@ -23,20 +23,20 @@ function ToolUseBlock({ message }: { message: Message }) {
   const getToolSummary = () => {
     const input = message.toolInput || {};
     switch (message.toolName) {
-      case "Read":
+      case 'Read':
         return input.file_path;
-      case "Write":
-      case "Edit":
+      case 'Write':
+      case 'Edit':
         return input.file_path;
-      case "Bash":
-        return input.command?.slice(0, 60) + (input.command?.length > 60 ? "..." : "");
-      case "Grep":
-        return `"${input.pattern}" in ${input.path || "."}`;
-      case "Glob":
+      case 'Bash':
+        return input.command?.slice(0, 60) + (input.command?.length > 60 ? '...' : '');
+      case 'Grep':
+        return `"${input.pattern}" in ${input.path || '.'}`;
+      case 'Glob':
         return input.pattern;
-      case "WebSearch":
+      case 'WebSearch':
         return input.query;
-      case "WebFetch":
+      case 'WebFetch':
         return input.url;
       default:
         return JSON.stringify(input).slice(0, 50);
@@ -50,14 +50,10 @@ function ToolUseBlock({ message }: { message: Message }) {
         className="w-full p-2 flex items-center justify-between text-left hover:bg-gray-100"
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-gray-600 uppercase">
-            {message.toolName}
-          </span>
-          <span className="text-xs text-gray-500 truncate max-w-md">
-            {getToolSummary()}
-          </span>
+          <span className="text-xs font-semibold text-gray-600 uppercase">{message.toolName}</span>
+          <span className="text-xs text-gray-500 truncate max-w-md">{getToolSummary()}</span>
         </div>
-        <span className="text-xs text-gray-400">{isExpanded ? "▼" : "▶"}</span>
+        <span className="text-xs text-gray-400">{isExpanded ? '▼' : '▶'}</span>
       </button>
       {isExpanded && (
         <div className="p-2 border-t border-gray-200">
@@ -71,15 +67,13 @@ function ToolUseBlock({ message }: { message: Message }) {
 }
 
 function MessageBubble({ message }: { message: Message }) {
-  const isUser = message.role === "user";
+  const isUser = message.role === 'user';
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[80%] rounded-lg px-4 py-2 ${
-          isUser
-            ? "bg-blue-600 text-white"
-            : "bg-gray-100 text-gray-900"
+          isUser ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
         }`}
       >
         <p className="whitespace-pre-wrap">{message.content}</p>
@@ -95,18 +89,18 @@ export function ChatWindow({
   isLoading,
   onSendMessage,
 }: ChatWindowProps) {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !chatId || isLoading || !isConnected) return;
     onSendMessage(input.trim());
-    setInput("");
+    setInput('');
   };
 
   if (!chatId) {
@@ -143,7 +137,7 @@ export function ChatWindow({
         ) : (
           <>
             {messages.map((msg) =>
-              msg.role === "tool_use" ? (
+              msg.role === 'tool_use' ? (
                 <ToolUseBlock key={msg.id} message={msg} />
               ) : (
                 <MessageBubble key={msg.id} message={msg} />
@@ -167,7 +161,7 @@ export function ChatWindow({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isConnected ? "Type a message..." : "Connecting..."}
+            placeholder={isConnected ? 'Type a message...' : 'Connecting...'}
             disabled={!isConnected || isLoading}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
           />

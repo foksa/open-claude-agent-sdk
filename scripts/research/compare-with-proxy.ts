@@ -4,10 +4,10 @@
  * Run both SDKs through proxy CLI to capture exact stdin messages
  */
 
-import { query as liteQuery } from '../../src/api/query.ts';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
-import { readFileSync, readdirSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { query as liteQuery } from '../../src/api/query.ts';
 
 const PROXY_CLI = './tests/utils/proxy-cli.js';
 const LOG_DIR = './tests/research/logs';
@@ -34,7 +34,9 @@ async function testSDK(sdk: 'official' | 'lite', label: string) {
       console.log('Result received:');
       console.log(`  Cache creation: ${usage.cache_creation_input_tokens || 0}`);
       console.log(`  Cache read: ${usage.cache_read_input_tokens || 0}`);
-      console.log(`  Total cache: ${(usage.cache_creation_input_tokens || 0) + (usage.cache_read_input_tokens || 0)}`);
+      console.log(
+        `  Total cache: ${(usage.cache_creation_input_tokens || 0) + (usage.cache_read_input_tokens || 0)}`
+      );
       break;
     }
   }
@@ -46,7 +48,7 @@ async function main() {
   console.log('='.repeat(60));
 
   // Get initial log count
-  const logsBefore = readdirSync(LOG_DIR).filter(f => f.startsWith('proxy-'));
+  const logsBefore = readdirSync(LOG_DIR).filter((f) => f.startsWith('proxy-'));
   console.log(`\nExisting logs: ${logsBefore.length}`);
 
   // Test Official SDK
@@ -55,7 +57,7 @@ async function main() {
   const officialTime = Date.now();
 
   // Wait a bit so we get different timestamps
-  await new Promise(r => setTimeout(r, 100));
+  await new Promise((r) => setTimeout(r, 100));
 
   // Test Lite SDK
   const liteStart = Date.now();
@@ -63,8 +65,8 @@ async function main() {
   const liteTime = Date.now();
 
   // Find new log files
-  const logsAfter = readdirSync(LOG_DIR).filter(f => f.startsWith('proxy-'));
-  const newLogs = logsAfter.filter(f => !logsBefore.includes(f)).sort();
+  const logsAfter = readdirSync(LOG_DIR).filter((f) => f.startsWith('proxy-'));
+  const newLogs = logsAfter.filter((f) => !logsBefore.includes(f)).sort();
 
   console.log('\n' + '='.repeat(60));
   console.log('LOG FILES CREATED');
@@ -149,8 +151,8 @@ async function main() {
         const oKeys = Object.keys(oMsg).sort();
         const lKeys = Object.keys(lMsg).sort();
 
-        const extraInLite = lKeys.filter(k => !oKeys.includes(k));
-        const missingInLite = oKeys.filter(k => !lKeys.includes(k));
+        const extraInLite = lKeys.filter((k) => !oKeys.includes(k));
+        const missingInLite = oKeys.filter((k) => !lKeys.includes(k));
 
         if (extraInLite.length > 0) {
           console.log(`     Extra fields in Lite: ${extraInLite.join(', ')}`);

@@ -3,12 +3,16 @@
  * Same tests run with both lite and official SDKs
  */
 
-import { test, expect, describe } from 'bun:test';
-import { query as liteQuery } from '../../src/api/query.ts';
+import { describe, expect, test } from 'bun:test';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
+import { query as liteQuery } from '../../src/api/query.ts';
 import type { SDKUserMessage } from '../../src/types/index.ts';
 
-const testWithBothSDKs = (name: string, testFn: (sdk: 'lite' | 'official') => Promise<void>, timeout = 60000) => {
+const testWithBothSDKs = (
+  name: string,
+  testFn: (sdk: 'lite' | 'official') => Promise<void>,
+  timeout = 60000
+) => {
   describe(name, () => {
     // Run lite and official tests in parallel
     test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
@@ -25,7 +29,7 @@ testWithBothSDKs('multi-turn conversation via streamInput', async (sdk) => {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       maxTurns: 5,
-    }
+    },
   });
 
   let sessionId = '';
@@ -50,14 +54,13 @@ testWithBothSDKs('multi-turn conversation via streamInput', async (sdk) => {
         type: 'user',
         message: {
           role: 'user',
-          content: 'Now say goodbye in one word'
+          content: 'Now say goodbye in one word',
         },
         session_id: sessionId,
-        parent_tool_use_id: null
+        parent_tool_use_id: null,
       };
 
       await q.streamInput([followUp]);
-
     } else if (msg.type === 'result' && firstResultSeen) {
       secondResultSeen = true;
       expect(msg.subtype).toBe('success');
@@ -82,7 +85,7 @@ testWithBothSDKs('interrupt() stops query execution', async (sdk) => {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       maxTurns: 10,
-    }
+    },
   });
 
   // Interrupt after 2 seconds
@@ -113,7 +116,7 @@ testWithBothSDKs('close() terminates query', async (sdk) => {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       maxTurns: 1,
-    }
+    },
   });
 
   let messageCount = 0;
@@ -146,7 +149,7 @@ testWithBothSDKs('setPermissionMode() changes permissions', async (sdk) => {
     options: {
       permissionMode: 'plan',
       maxTurns: 3,
-    }
+    },
   });
 
   // Change to bypassPermissions after starting
@@ -177,7 +180,7 @@ testWithBothSDKs('setModel() changes model', async (sdk) => {
       allowDangerouslySkipPermissions: true,
       model: 'claude-sonnet-4-5-20250929',
       maxTurns: 1,
-    }
+    },
   });
 
   setTimeout(() => {
@@ -206,7 +209,7 @@ testWithBothSDKs('Query implements AsyncGenerator interface', async (sdk) => {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       maxTurns: 1,
-    }
+    },
   });
 
   // Check that it has AsyncGenerator methods

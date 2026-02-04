@@ -12,10 +12,10 @@ const hooks: Record<string, HookCallbackMatcher[]> = {
         async (input, toolUseId, context) => {
           console.log('Hook called!');
           return { continue: true };
-        }
-      ]
-    }
-  ]
+        },
+      ],
+    },
+  ],
 };
 
 console.log('Hook configuration structure:');

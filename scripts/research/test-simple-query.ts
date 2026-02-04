@@ -4,9 +4,9 @@
  * Test simple query (no hooks) through proxy to see message flow
  */
 
-import { query as liteQuery } from '../../src/api/query.ts';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { resolve } from 'path';
+import { query as liteQuery } from '../../src/api/query.ts';
 
 const PROXY_CLI = resolve('./tests/utils/proxy-cli.cjs');
 
@@ -46,7 +46,7 @@ async function main() {
   await testSDK('official');
 
   // Wait a bit
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise((r) => setTimeout(r, 500));
 
   // Test Lite SDK
   await testSDK('lite');

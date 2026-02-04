@@ -101,7 +101,7 @@ options: {
 }
 ```
 
-**In our SDK:** ❌ Not implemented - Phase 1 priority
+**In our SDK:** ✅ Complete - See `tests/integration/system-prompt.test.ts`
 
 ### settingSources Option
 
@@ -111,7 +111,7 @@ options: {
 }
 ```
 
-**In our SDK:** ❌ Not implemented - Phase 1 feature
+**In our SDK:** ✅ Complete - See `tests/integration/setting-sources.test.ts`
 
 **Purpose:** Load project-specific skills and commands from `.claude/` directory
 
@@ -230,14 +230,10 @@ node agent/custom_scripts/generate_resume.js
 
 ### What's Missing ❌
 
-1. **systemPrompt option** - ❌ Phase 1 (HIGH priority)
-   - Need to add `--system-prompt` flag support
-   - Effort: 1-2 hours
+None - All features required by this demo are now implemented!
 
-2. **settingSources option** - ❌ Phase 1 (HIGH priority)
-   - Load skills from `.claude/skills/`
-   - Load commands from `.claude/commands/`
-   - Effort: 2-3 days
+1. **systemPrompt option** - ✅ Complete
+2. **settingSources option** - ✅ Complete
 
 ---
 
@@ -441,21 +437,11 @@ Each resume:
 
 ## Next Steps
 
-1. **Add systemPrompt** (Phase 1, HIGH priority)
-   - 1-2 hours
-   - Required for this demo
-
-2. **Add settingSources** (Phase 1, HIGH priority)
-   - 2-3 days
-   - Required for project-specific skills
-
-3. **Test resume generation** with Lite SDK
-   - After Phase 1 features
-   - Verify output quality
-
-4. **Port to examples/** directory
-   - Create `examples/official-demos/resume-generator/`
-   - After Phase 1 complete
+All completed:
+1. ✅ **systemPrompt** - Implemented
+2. ✅ **settingSources** - Implemented
+3. ✅ **Ported demos** - `demos/lite/resume-generator/` and `demos/official/resume-generator/`
+4. ✅ **Integration tests** - `tests/integration/setting-sources.test.ts`
 
 ---
 
@@ -465,8 +451,8 @@ Each resume:
 - **README:** `README.md`
 - **Output:** `agent/custom_scripts/resume.docx`
 
-**Status:** ⚠️ 80% compatible, needs systemPrompt + settingSources
+**Status:** ✅ 100% compatible - Demo ported to `demos/lite/resume-generator/` and `demos/official/resume-generator/`
 
-**Priority:** HIGH (demonstrates practical use case)
+**Priority:** Complete
 
-**Estimated Time to Full Compatibility:** 1-3 days (Phase 1 features)
+**Compatibility:** Full - Both systemPrompt and settingSources are now implemented and tested

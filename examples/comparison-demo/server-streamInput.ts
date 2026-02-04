@@ -4,18 +4,21 @@
  * Key insight: ONE query loop per SDK that handles all messages
  */
 
-import index from "./index.html";
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as ourQuery } from '../../src/index.ts';
-import type { SDKMessage, SDKUserMessage, Query } from '../../src/types/index.ts';
+import type { Query, SDKMessage, SDKUserMessage } from '../../src/types/index.ts';
+import index from './index.html';
 
 const PORT = 3000;
 
 // Store active query loops
-const activeQueryLoops = new Map<string, {
-  query: Query;
-  sessionId: string;
-}>();
+const activeQueryLoops = new Map<
+  string,
+  {
+    query: Query;
+    sessionId: string;
+  }
+>();
 
 console.log('Starting SDK Comparison Demo Server (FIXED)...');
 
@@ -38,14 +41,14 @@ Bun.serve({
 
       if (transpiled.outputs.length > 0) {
         return new Response(transpiled.outputs[0], {
-          headers: { "Content-Type": "application/javascript" },
+          headers: { 'Content-Type': 'application/javascript' },
         });
       }
     }
 
     // Serve HTML
-    return new Response(Bun.file("./index.html"), {
-      headers: { "Content-Type": "text/html" },
+    return new Response(Bun.file('./index.html'), {
+      headers: { 'Content-Type': 'text/html' },
     });
   },
   websocket: {
@@ -59,10 +62,12 @@ Bun.serve({
         const { prompt, sdk, continue: isContinue, sessionId } = data;
 
         if (!prompt || !sdk) {
-          ws.send(JSON.stringify({
-            sdk,
-            error: 'Missing prompt or sdk parameter'
-          }));
+          ws.send(
+            JSON.stringify({
+              sdk,
+              error: 'Missing prompt or sdk parameter',
+            })
+          );
           return;
         }
 
@@ -74,10 +79,12 @@ Bun.serve({
 
           const activeLoop = activeQueryLoops.get(queryKey);
           if (!activeLoop) {
-            ws.send(JSON.stringify({
-              sdk,
-              error: 'No active query. Please start a new query first.'
-            }));
+            ws.send(
+              JSON.stringify({
+                sdk,
+                error: 'No active query. Please start a new query first.',
+              })
+            );
             return;
           }
 
@@ -87,21 +94,22 @@ Bun.serve({
               type: 'user',
               message: {
                 role: 'user',
-                content: prompt
+                content: prompt,
               },
               session_id: sessionId,
-              parent_tool_use_id: null
+              parent_tool_use_id: null,
             };
 
             await activeLoop.query.streamInput([followUp]);
             console.log(`[${sdk.toUpperCase()}] Follow-up sent, query loop will continue...`);
-
           } catch (error: any) {
             console.error(`[${sdk.toUpperCase()}] streamInput error:`, error);
-            ws.send(JSON.stringify({
-              sdk,
-              error: error.message || 'Failed to continue'
-            }));
+            ws.send(
+              JSON.stringify({
+                sdk,
+                error: error.message || 'Failed to continue',
+              })
+            );
           }
 
           return;
@@ -126,7 +134,7 @@ Bun.serve({
               permissionMode: 'bypassPermissions',
               allowDangerouslySkipPermissions: true,
               maxTurns: 20,
-            }
+            },
           });
 
           // Start query loop in background
@@ -146,12 +154,16 @@ Bun.serve({
                 }
 
                 // Send message to client
-                ws.send(JSON.stringify({
-                  sdk,
-                  message: msg
-                }));
+                ws.send(
+                  JSON.stringify({
+                    sdk,
+                    message: msg,
+                  })
+                );
 
-                console.log(`[${sdk.toUpperCase()}] ${msg.type}${msg.subtype ? `:${msg.subtype}` : ''}`);
+                console.log(
+                  `[${sdk.toUpperCase()}] ${msg.type}${msg.subtype ? `:${msg.subtype}` : ''}`
+                );
 
                 // DON'T break on result - keep loop running for multi-turn!
                 if (msg.type === 'result') {
@@ -162,13 +174,14 @@ Bun.serve({
               // Loop ended - query closed
               console.log(`[${sdk.toUpperCase()}] Query loop ended`);
               activeQueryLoops.delete(queryKey);
-
             } catch (error: any) {
               console.error(`[${sdk.toUpperCase()}] Query loop error:`, error);
-              ws.send(JSON.stringify({
-                sdk,
-                error: error.message || 'Query failed'
-              }));
+              ws.send(
+                JSON.stringify({
+                  sdk,
+                  error: error.message || 'Query failed',
+                })
+              );
               activeQueryLoops.delete(queryKey);
             }
           })();
@@ -176,23 +189,25 @@ Bun.serve({
           // Store query reference for streamInput
           activeQueryLoops.set(queryKey, {
             query: q,
-            sessionId: ''
+            sessionId: '',
           });
-
         } catch (error: any) {
           console.error(`[${sdk.toUpperCase()}] Start error:`, error);
-          ws.send(JSON.stringify({
-            sdk,
-            error: error.message || 'Failed to start query'
-          }));
+          ws.send(
+            JSON.stringify({
+              sdk,
+              error: error.message || 'Failed to start query',
+            })
+          );
         }
-
       } catch (error: any) {
         console.error('Message parsing error:', error);
-        ws.send(JSON.stringify({
-          sdk: 'unknown',
-          error: 'Invalid message format'
-        }));
+        ws.send(
+          JSON.stringify({
+            sdk: 'unknown',
+            error: 'Invalid message format',
+          })
+        );
       }
     },
 
@@ -207,12 +222,12 @@ Bun.serve({
 
     error(ws, error) {
       console.error('WebSocket error:', error);
-    }
+    },
   },
   development: {
     hmr: true,
     console: true,
-  }
+  },
 });
 
 console.log(`

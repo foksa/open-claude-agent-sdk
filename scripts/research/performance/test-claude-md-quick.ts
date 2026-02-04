@@ -15,8 +15,8 @@ async function quickTest(name: string, settingSources: string) {
       maxTurns: 1,
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
-      _testCliArgs: settingSources ? ['--setting-sources', settingSources] : []
-    } as any
+      _testCliArgs: settingSources ? ['--setting-sources', settingSources] : [],
+    } as any,
   })) {
     if (msg.type === 'result') {
       const tokens = (msg as any).usage?.cache_creation_input_tokens || 0;
@@ -33,7 +33,7 @@ async function main() {
     default: await quickTest('Default (all settings)', ''),
     empty: await quickTest('Empty (no settings)', ''),
     user: await quickTest('User only', 'user'),
-    project: await quickTest('Project only', 'project')
+    project: await quickTest('Project only', 'project'),
   };
 
   console.log('\n' + '='.repeat(50));

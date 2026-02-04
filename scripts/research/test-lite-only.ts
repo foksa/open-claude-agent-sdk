@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
-import { query } from '../../src/api/query.ts';
 import { resolve } from 'path';
+import { query } from '../../src/api/query.ts';
 
 const PROXY_CLI = resolve('./tests/utils/proxy-cli.cjs');
 
@@ -25,7 +25,9 @@ async function main() {
     if (msg.type === 'result') {
       const usage = (msg as any).usage || {};
       console.log('Result:');
-      console.log(`  Cache: ${(usage.cache_creation_input_tokens || 0) + (usage.cache_read_input_tokens || 0)}`);
+      console.log(
+        `  Cache: ${(usage.cache_creation_input_tokens || 0) + (usage.cache_read_input_tokens || 0)}`
+      );
       break;
     }
   }

@@ -6,18 +6,25 @@ import { spawn } from 'node:child_process';
 
 console.log('Spawning claude...');
 
-const proc = spawn('/Users/marshal/.local/bin/claude', [
-  '--print',
-  '--output-format', 'stream-json',
-  '--verbose',
-  '--permission-mode', 'bypassPermissions',
-  '--max-turns', '1',
-  '--',
-  'Say hello in one word'
-], {
-  stdio: ['pipe', 'pipe', 'pipe'],
-  shell: false,
-});
+const proc = spawn(
+  '/Users/marshal/.local/bin/claude',
+  [
+    '--print',
+    '--output-format',
+    'stream-json',
+    '--verbose',
+    '--permission-mode',
+    'bypassPermissions',
+    '--max-turns',
+    '1',
+    '--',
+    'Say hello in one word',
+  ],
+  {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    shell: false,
+  }
+);
 
 console.log('PID:', proc.pid);
 

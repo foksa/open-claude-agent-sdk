@@ -8,8 +8,8 @@
  */
 
 import type { Writable } from 'node:stream';
-import type { Options, PermissionResult } from '../types/index.ts';
 import type { ControlRequest, ControlResponse } from '../types/control.ts';
+import type { Options, PermissionResult } from '../types/index.ts';
 
 export class ControlProtocolHandler {
   private callbackMap: Map<string, any> = new Map();
@@ -80,7 +80,15 @@ export class ControlProtocolHandler {
   private async handleCanUseTool(req: ControlRequest) {
     if (req.request.subtype !== 'can_use_tool') return;
 
-    const { tool_name, input, tool_use_id, permission_suggestions, blocked_path, decision_reason, agent_id } = req.request;
+    const {
+      tool_name,
+      input,
+      tool_use_id,
+      permission_suggestions,
+      blocked_path,
+      decision_reason,
+      agent_id,
+    } = req.request;
 
     // If no callback provided, allow by default
     if (!this.options.canUseTool) {
@@ -89,18 +97,14 @@ export class ControlProtocolHandler {
     }
 
     // Call user-provided permission callback
-    const result: PermissionResult = await this.options.canUseTool(
-      tool_name,
-      input,
-      {
-        signal: new AbortController().signal, // TODO: proper abort signal handling
-        suggestions: permission_suggestions,
-        blockedPath: blocked_path,
-        decisionReason: decision_reason,
-        toolUseID: tool_use_id,
-        agentID: agent_id,
-      }
-    );
+    const result: PermissionResult = await this.options.canUseTool(tool_name, input, {
+      signal: new AbortController().signal, // TODO: proper abort signal handling
+      suggestions: permission_suggestions,
+      blockedPath: blocked_path,
+      decisionReason: decision_reason,
+      toolUseID: tool_use_id,
+      agentID: agent_id,
+    });
 
     this.sendSuccess(req.request_id, result);
   }
@@ -114,7 +118,11 @@ export class ControlProtocolHandler {
     const { callback_id, input, tool_use_id } = req.request;
 
     if (process.env.DEBUG_HOOKS) {
-      console.error('[DEBUG] handleHookCallback:', { callback_id, has_hook: this.callbackMap.has(callback_id), map_size: this.callbackMap.size });
+      console.error('[DEBUG] handleHookCallback:', {
+        callback_id,
+        has_hook: this.callbackMap.has(callback_id),
+        map_size: this.callbackMap.size,
+      });
     }
 
     // Find the hook function by callback_id
@@ -172,8 +180,8 @@ export class ControlProtocolHandler {
       response: {
         subtype: 'success',
         request_id,
-        response
-      }
+        response,
+      },
     });
   }
 
@@ -186,8 +194,8 @@ export class ControlProtocolHandler {
       response: {
         subtype: 'error',
         request_id,
-        error
-      }
+        error,
+      },
     });
   }
 

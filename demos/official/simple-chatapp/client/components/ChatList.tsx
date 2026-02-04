@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 interface Chat {
   id: string;
@@ -48,9 +48,7 @@ export function ChatList({
               <div
                 key={chat.id}
                 className={`group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                  selectedChatId === chat.id
-                    ? "bg-gray-700"
-                    : "hover:bg-gray-800"
+                  selectedChatId === chat.id ? 'bg-gray-700' : 'hover:bg-gray-800'
                 }`}
                 onClick={() => onSelectChat(chat.id)}
               >
@@ -73,9 +71,7 @@ export function ChatList({
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-700">
-        <p className="text-xs text-gray-500 text-center">
-          Simple Chat App
-        </p>
+        <p className="text-xs text-gray-500 text-center">Simple Chat App</p>
       </div>
     </div>
   );

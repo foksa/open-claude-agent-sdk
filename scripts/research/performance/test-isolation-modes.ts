@@ -20,7 +20,10 @@ interface TestResult {
   messages: string[];
 }
 
-async function testMode(mode: 'default' | 'minimal' | 'project', args: string[]): Promise<TestResult> {
+async function testMode(
+  mode: 'default' | 'minimal' | 'project',
+  args: string[]
+): Promise<TestResult> {
   const start = Date.now();
   let firstTokenTime: number | null = null;
   let messageCount = 0;
@@ -36,8 +39,8 @@ async function testMode(mode: 'default' | 'minimal' | 'project', args: string[])
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       // Inject extra args for testing
-      _testCliArgs: args
-    } as any
+      _testCliArgs: args,
+    } as any,
   })) {
     messageCount++;
     messages.push(msg.type);
@@ -57,7 +60,7 @@ async function testMode(mode: 'default' | 'minimal' | 'project', args: string[])
         timeToFirstToken: firstTokenTime,
         totalTime,
         messageCount,
-        messages
+        messages,
       };
     }
   }
@@ -66,9 +69,9 @@ async function testMode(mode: 'default' | 'minimal' | 'project', args: string[])
 }
 
 async function main() {
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
   console.log('SDK Overhead Investigation');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
 
   const results: TestResult[] = [];
 
@@ -86,7 +89,8 @@ async function main() {
       '--disable-slash-commands',
       '--strict-mcp-config',
       '--no-session-persistence',
-      '--setting-sources', ''
+      '--setting-sources',
+      '',
     ]);
     results.push(result);
   } catch (err) {
@@ -96,9 +100,10 @@ async function main() {
   // Test 3: Project-only (like official SDK)
   try {
     const result = await testMode('project', [
-      '--setting-sources', 'project',
+      '--setting-sources',
+      'project',
       '--strict-mcp-config',
-      '--no-session-persistence'
+      '--no-session-persistence',
     ]);
     results.push(result);
   } catch (err) {
@@ -106,45 +111,44 @@ async function main() {
   }
 
   // Print comparison
-  console.log('\n' + '=' .repeat(60));
+  console.log('\n' + '='.repeat(60));
   console.log('RESULTS COMPARISON');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
 
   console.log('\n| Mode | First Token | Total Time | Messages | Overhead |');
   console.log('|------|-------------|------------|----------|----------|');
 
-  const baseline = results.find(r => r.mode === 'minimal');
+  const baseline = results.find((r) => r.mode === 'minimal');
 
   for (const result of results) {
-    const overhead = baseline && result !== baseline
-      ? `+${result.totalTime - baseline.totalTime}ms`
-      : 'baseline';
+    const overhead =
+      baseline && result !== baseline ? `+${result.totalTime - baseline.totalTime}ms` : 'baseline';
 
     console.log(
       `| ${result.mode.padEnd(8)} ` +
-      `| ${(result.timeToFirstToken || 0).toString().padEnd(11)} ` +
-      `| ${result.totalTime.toString().padEnd(10)} ` +
-      `| ${result.messageCount.toString().padEnd(8)} ` +
-      `| ${overhead.padEnd(8)} |`
+        `| ${(result.timeToFirstToken || 0).toString().padEnd(11)} ` +
+        `| ${result.totalTime.toString().padEnd(10)} ` +
+        `| ${result.messageCount.toString().padEnd(8)} ` +
+        `| ${overhead.padEnd(8)} |`
     );
   }
 
-  console.log('\n' + '=' .repeat(60));
+  console.log('\n' + '='.repeat(60));
 
   // Show improvement
-  const defaultResult = results.find(r => r.mode === 'default');
-  const minimalResult = results.find(r => r.mode === 'minimal');
+  const defaultResult = results.find((r) => r.mode === 'default');
+  const minimalResult = results.find((r) => r.mode === 'minimal');
 
   if (defaultResult && minimalResult) {
     const improvement = defaultResult.totalTime - minimalResult.totalTime;
-    const percentImprovement = (improvement / defaultResult.totalTime * 100).toFixed(1);
+    const percentImprovement = ((improvement / defaultResult.totalTime) * 100).toFixed(1);
 
     console.log('📈 IMPROVEMENT');
-    console.log('=' .repeat(60));
+    console.log('='.repeat(60));
     console.log(`Default: ${defaultResult.totalTime}ms`);
     console.log(`Minimal: ${minimalResult.totalTime}ms`);
     console.log(`Saved: ${improvement}ms (${percentImprovement}% faster)`);
-    console.log('=' .repeat(60));
+    console.log('='.repeat(60));
   }
 
   console.log('\n✅ Investigation complete');

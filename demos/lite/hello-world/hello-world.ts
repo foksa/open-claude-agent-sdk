@@ -1,7 +1,8 @@
 // Using lite-claude-agent-sdk instead of official SDK
+
+import * as path from 'path';
 import { query } from '../../../src/index.ts';
-import type { HookJSONOutput } from "../../../src/types/index.ts";
-import * as path from "path";
+import type { HookJSONOutput } from '../../../src/types/index.ts';
 
 async function main() {
   const q = query({
@@ -9,16 +10,30 @@ async function main() {
     options: {
       maxTurns: 100,
       cwd: path.join(process.cwd(), 'agent'),
-      model: "opus",
+      model: 'opus',
       // Note: executable option removed - lite SDK uses CLI directly
       allowedTools: [
-        "Task", "Bash", "Glob", "Grep", "LS", "ExitPlanMode", "Read", "Edit", "MultiEdit", "Write", "NotebookEdit",
-        "WebFetch", "TodoWrite", "WebSearch", "BashOutput", "KillBash"
+        'Task',
+        'Bash',
+        'Glob',
+        'Grep',
+        'LS',
+        'ExitPlanMode',
+        'Read',
+        'Edit',
+        'MultiEdit',
+        'Write',
+        'NotebookEdit',
+        'WebFetch',
+        'TodoWrite',
+        'WebSearch',
+        'BashOutput',
+        'KillBash',
       ],
       hooks: {
         PreToolUse: [
           {
-            matcher: "Write|Edit|MultiEdit",
+            matcher: 'Write|Edit|MultiEdit',
             hooks: [
               async (input: any): Promise<HookJSONOutput> => {
                 const toolName = input.tool_name;
@@ -43,16 +58,16 @@ async function main() {
                     return {
                       decision: 'block',
                       stopReason: `Script files (.js and .ts) must be written to the custom_scripts directory. Please use the path: ${customScriptsPath}/${path.basename(filePath)}`,
-                      continue: false
+                      continue: false,
                     };
                   }
                 }
 
                 return { continue: true };
-              }
-            ]
-          }
-        ]
+              },
+            ],
+          },
+        ],
       },
     },
   });

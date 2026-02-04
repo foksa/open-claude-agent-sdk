@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from "uuid";
-import type { Chat, ChatMessage } from "./types.js";
+import { v4 as uuidv4 } from 'uuid';
+import type { Chat, ChatMessage } from './types.js';
 
 // Simple in-memory store for chats
 class ChatStore {
@@ -11,7 +11,7 @@ class ChatStore {
     const now = new Date().toISOString();
     const chat: Chat = {
       id,
-      title: title || "New Chat",
+      title: title || 'New Chat',
       createdAt: now,
       updatedAt: now,
     };
@@ -44,7 +44,10 @@ class ChatStore {
     return this.chats.delete(id);
   }
 
-  addMessage(chatId: string, message: Omit<ChatMessage, "id" | "chatId" | "timestamp">): ChatMessage {
+  addMessage(
+    chatId: string,
+    message: Omit<ChatMessage, 'id' | 'chatId' | 'timestamp'>
+  ): ChatMessage {
     const messages = this.messages.get(chatId);
     if (!messages) {
       throw new Error(`Chat ${chatId} not found`);
@@ -64,8 +67,8 @@ class ChatStore {
       chat.updatedAt = newMessage.timestamp;
 
       // Auto-generate title from first user message if still "New Chat"
-      if (chat.title === "New Chat" && message.role === "user") {
-        chat.title = message.content.slice(0, 50) + (message.content.length > 50 ? "..." : "");
+      if (chat.title === 'New Chat' && message.role === 'user') {
+        chat.title = message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '');
       }
     }
 

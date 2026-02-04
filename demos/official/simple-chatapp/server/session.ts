@@ -1,6 +1,6 @@
-import type { WSClient } from "./types.js";
-import { AgentSession } from "./ai-client.js";
-import { chatStore } from "./chat-store.js";
+import { AgentSession } from './ai-client.js';
+import { chatStore } from './chat-store.js';
+import type { WSClient } from './types.js';
 
 // Session manages a single chat conversation with a long-lived agent
 export class Session {
@@ -33,13 +33,13 @@ export class Session {
   sendMessage(content: string) {
     // Store user message
     chatStore.addMessage(this.chatId, {
-      role: "user",
+      role: 'user',
       content,
     });
 
     // Broadcast user message to subscribers
     this.broadcast({
-      type: "user_message",
+      type: 'user_message',
       content,
       chatId: this.chatId,
     });
@@ -54,34 +54,34 @@ export class Session {
   }
 
   private handleSDKMessage(message: any) {
-    if (message.type === "assistant") {
+    if (message.type === 'assistant') {
       const content = message.message.content;
 
-      if (typeof content === "string") {
+      if (typeof content === 'string') {
         chatStore.addMessage(this.chatId, {
-          role: "assistant",
+          role: 'assistant',
           content,
         });
         this.broadcast({
-          type: "assistant_message",
+          type: 'assistant_message',
           content,
           chatId: this.chatId,
         });
       } else if (Array.isArray(content)) {
         for (const block of content) {
-          if (block.type === "text") {
+          if (block.type === 'text') {
             chatStore.addMessage(this.chatId, {
-              role: "assistant",
+              role: 'assistant',
               content: block.text,
             });
             this.broadcast({
-              type: "assistant_message",
+              type: 'assistant_message',
               content: block.text,
               chatId: this.chatId,
             });
-          } else if (block.type === "tool_use") {
+          } else if (block.type === 'tool_use') {
             this.broadcast({
-              type: "tool_use",
+              type: 'tool_use',
               toolName: block.name,
               toolId: block.id,
               toolInput: block.input,
@@ -90,10 +90,10 @@ export class Session {
           }
         }
       }
-    } else if (message.type === "result") {
+    } else if (message.type === 'result') {
       this.broadcast({
-        type: "result",
-        success: message.subtype === "success",
+        type: 'result',
+        success: message.subtype === 'success',
         chatId: this.chatId,
         cost: message.total_cost_usd,
         duration: message.duration_ms,
@@ -122,7 +122,7 @@ export class Session {
           client.send(messageStr);
         }
       } catch (error) {
-        console.error("Error broadcasting to client:", error);
+        console.error('Error broadcasting to client:', error);
         this.subscribers.delete(client);
       }
     }
@@ -130,7 +130,7 @@ export class Session {
 
   private broadcastError(error: string) {
     this.broadcast({
-      type: "error",
+      type: 'error',
       error,
       chatId: this.chatId,
     });

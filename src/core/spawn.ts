@@ -11,7 +11,7 @@
  * (works in Node.js, Bun, and Deno)
  */
 
-import { spawn, type ChildProcess } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 import type { Options } from '../types/index.ts';
 import {
   DEFAULT_PERMISSION_MODE,
@@ -140,10 +140,14 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
  * @param options Spawn options (cwd, env, etc.)
  * @returns ChildProcess instance
  */
-export function spawnClaude(binary: string, args: string[], options?: { cwd?: string }): ChildProcess {
+export function spawnClaude(
+  binary: string,
+  args: string[],
+  options?: { cwd?: string }
+): ChildProcess {
   return spawn(binary, args, {
-    stdio: ['pipe', 'pipe', 'pipe'],  // stdin, stdout, stderr per gist spec
-    shell: false,  // Don't use shell (security + performance)
-    cwd: options?.cwd,  // Working directory for the process
+    stdio: ['pipe', 'pipe', 'pipe'], // stdin, stdout, stderr per gist spec
+    shell: false, // Don't use shell (security + performance)
+    cwd: options?.cwd, // Working directory for the process
   });
 }

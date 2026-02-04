@@ -19,15 +19,17 @@ if (!outputFile) {
 const capture = { stdin: [], stdout: [], startTime: Date.now() };
 
 const cli = spawn(REAL_CLI, process.argv.slice(2), {
-  stdio: ['pipe', 'pipe', process.stderr]
+  stdio: ['pipe', 'pipe', process.stderr],
 });
 
 process.stdin.on('data', (chunk) => {
   const data = chunk.toString();
-  for (const line of data.split('\n').filter(l => l.trim())) {
+  for (const line of data.split('\n').filter((l) => l.trim())) {
     try {
       capture.stdin.push({ timestamp: Date.now() - capture.startTime, message: JSON.parse(line) });
-    } catch { capture.stdin.push({ timestamp: Date.now() - capture.startTime, raw: line }); }
+    } catch {
+      capture.stdin.push({ timestamp: Date.now() - capture.startTime, raw: line });
+    }
   }
   cli.stdin.write(chunk);
 });
@@ -36,10 +38,12 @@ process.stdin.on('end', () => cli.stdin.end());
 
 cli.stdout.on('data', (chunk) => {
   const data = chunk.toString();
-  for (const line of data.split('\n').filter(l => l.trim())) {
+  for (const line of data.split('\n').filter((l) => l.trim())) {
     try {
       capture.stdout.push({ timestamp: Date.now() - capture.startTime, message: JSON.parse(line) });
-    } catch { capture.stdout.push({ timestamp: Date.now() - capture.startTime, raw: line }); }
+    } catch {
+      capture.stdout.push({ timestamp: Date.now() - capture.startTime, raw: line });
+    }
   }
   process.stdout.write(chunk);
 });
@@ -50,7 +54,13 @@ function save() {
   fs.renameSync(`${outputFile}.tmp`, outputFile);
 }
 
-cli.on('exit', (code) => { save(); process.exit(code || 0); });
-cli.on('error', () => { save(); process.exit(1); });
+cli.on('exit', (code) => {
+  save();
+  process.exit(code || 0);
+});
+cli.on('error', () => {
+  save();
+  process.exit(1);
+});
 process.on('SIGINT', () => cli.kill('SIGINT'));
 process.on('SIGTERM', () => cli.kill('SIGTERM'));

@@ -13,9 +13,11 @@ try {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       maxTurns: 1,
-    }
+    },
   })) {
-    console.log(`[${msg.type}] ${msg.type === 'assistant' ? 'Got assistant message' : msg.type === 'result' ? `Result: ${msg.subtype}` : ''}`);
+    console.log(
+      `[${msg.type}] ${msg.type === 'assistant' ? 'Got assistant message' : msg.type === 'result' ? `Result: ${msg.subtype}` : ''}`
+    );
 
     if (msg.type === 'result') {
       break;

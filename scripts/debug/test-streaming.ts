@@ -16,12 +16,12 @@ try {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       maxTurns: 1,
-      includePartialMessages: true,  // Enable streaming!
-    }
+      includePartialMessages: true, // Enable streaming!
+    },
   })) {
     if (msg.type === 'stream_event') {
       streamEventCount++;
-      process.stdout.write('.');  // Show progress
+      process.stdout.write('.'); // Show progress
     } else if (msg.type === 'assistant') {
       assistantCount++;
       console.log(`\n\n[assistant] Full message received`);
@@ -46,7 +46,6 @@ try {
   console.log(`\n✓ Streaming test passed!`);
   console.log(`  - stream_event messages: ${streamEventCount}`);
   console.log(`  - assistant messages: ${assistantCount}`);
-
 } catch (error: any) {
   console.error('\n✗ Streaming test failed:', error.message);
   Bun.exit(1);

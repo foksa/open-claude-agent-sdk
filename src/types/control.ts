@@ -9,7 +9,7 @@
  * @internal
  */
 
-import type { SDKMessage, HookInput, PermissionMode } from './index.ts';
+import type { HookInput, PermissionMode, SDKMessage } from './index.ts';
 
 /**
  * Messages from CLI stdout (can be regular messages OR control requests)

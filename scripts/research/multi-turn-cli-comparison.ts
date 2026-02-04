@@ -5,8 +5,8 @@
  * Tests if the 3200 token difference exists with both CLI types
  */
 
-import { query as liteQuery, type Query } from '../../src/api/query.ts';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
+import { query as liteQuery, type Query } from '../../src/api/query.ts';
 import type { SDKMessage, SDKUserMessage } from '../../src/types/index.ts';
 
 interface TestResult {
@@ -26,12 +26,15 @@ async function* createMessageStream(prompts: string[]): AsyncGenerator<SDKUserMe
       type: 'user',
       message: { role: 'user', content: prompt },
       session_id: '',
-      parent_tool_use_id: null
+      parent_tool_use_id: null,
     };
   }
 }
 
-async function testSDK(sdk: 'lite' | 'official', cliType: 'embedded' | 'local'): Promise<TestResult> {
+async function testSDK(
+  sdk: 'lite' | 'official',
+  cliType: 'embedded' | 'local'
+): Promise<TestResult> {
   console.log(`\n📊 Testing ${sdk.toUpperCase()} with ${cliType} CLI`);
 
   const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
@@ -55,7 +58,8 @@ async function testSDK(sdk: 'lite' | 'official', cliType: 'embedded' | 'local'):
   for await (const msg of queryInstance) {
     if (msg.type === 'result') {
       const usage = (msg as any).usage || {};
-      const cacheTotal = (usage.cache_creation_input_tokens || 0) + (usage.cache_read_input_tokens || 0);
+      const cacheTotal =
+        (usage.cache_creation_input_tokens || 0) + (usage.cache_read_input_tokens || 0);
       cacheTotals.push(cacheTotal);
 
       console.log(`   Turn ${cacheTotals.length}: ${cacheTotal} cache tokens`);
@@ -84,34 +88,38 @@ async function main() {
 
   // Test all combinations
   results.push(await testSDK('official', 'embedded'));
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise((r) => setTimeout(r, 500));
 
   results.push(await testSDK('lite', 'embedded'));
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise((r) => setTimeout(r, 500));
 
   results.push(await testSDK('official', 'local'));
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise((r) => setTimeout(r, 500));
 
   results.push(await testSDK('lite', 'local'));
 
   // Calculate differences
-  const officialEmbedded = results.find(r => r.sdk === 'official' && r.cliType === 'embedded')!;
-  const liteEmbedded = results.find(r => r.sdk === 'lite' && r.cliType === 'embedded')!;
-  const officialLocal = results.find(r => r.sdk === 'official' && r.cliType === 'local')!;
-  const liteLocal = results.find(r => r.sdk === 'lite' && r.cliType === 'local')!;
+  const officialEmbedded = results.find((r) => r.sdk === 'official' && r.cliType === 'embedded')!;
+  const liteEmbedded = results.find((r) => r.sdk === 'lite' && r.cliType === 'embedded')!;
+  const officialLocal = results.find((r) => r.sdk === 'official' && r.cliType === 'local')!;
+  const liteLocal = results.find((r) => r.sdk === 'lite' && r.cliType === 'local')!;
 
   // Calculate average cache differences
-  liteEmbedded.avgCacheDiff = Math.round((
-    (liteEmbedded.turn1Cache - officialEmbedded.turn1Cache) +
-    (liteEmbedded.turn2Cache - officialEmbedded.turn2Cache) +
-    (liteEmbedded.turn3Cache - officialEmbedded.turn3Cache)
-  ) / 3);
+  liteEmbedded.avgCacheDiff = Math.round(
+    (liteEmbedded.turn1Cache -
+      officialEmbedded.turn1Cache +
+      (liteEmbedded.turn2Cache - officialEmbedded.turn2Cache) +
+      (liteEmbedded.turn3Cache - officialEmbedded.turn3Cache)) /
+      3
+  );
 
-  liteLocal.avgCacheDiff = Math.round((
-    (liteLocal.turn1Cache - officialLocal.turn1Cache) +
-    (liteLocal.turn2Cache - officialLocal.turn2Cache) +
-    (liteLocal.turn3Cache - officialLocal.turn3Cache)
-  ) / 3);
+  liteLocal.avgCacheDiff = Math.round(
+    (liteLocal.turn1Cache -
+      officialLocal.turn1Cache +
+      (liteLocal.turn2Cache - officialLocal.turn2Cache) +
+      (liteLocal.turn3Cache - officialLocal.turn3Cache)) /
+      3
+  );
 
   console.log('\n' + '='.repeat(70));
   console.log('RESULTS');
@@ -124,11 +132,11 @@ async function main() {
     const diffStr = result.avgCacheDiff ? `+${result.avgCacheDiff}` : '-';
     console.log(
       `| ${result.sdk.padEnd(8)} ` +
-      `| ${result.cliType.padEnd(8)} ` +
-      `| ${result.turn1Cache.toString().padEnd(6)} ` +
-      `| ${result.turn2Cache.toString().padEnd(6)} ` +
-      `| ${result.turn3Cache.toString().padEnd(6)} ` +
-      `| ${diffStr.padEnd(19)} |`
+        `| ${result.cliType.padEnd(8)} ` +
+        `| ${result.turn1Cache.toString().padEnd(6)} ` +
+        `| ${result.turn2Cache.toString().padEnd(6)} ` +
+        `| ${result.turn3Cache.toString().padEnd(6)} ` +
+        `| ${diffStr.padEnd(19)} |`
     );
   }
 
@@ -137,13 +145,21 @@ async function main() {
   console.log('='.repeat(70));
 
   console.log('\n🔍 Embedded CLI:');
-  console.log(`   Official avg: ${Math.round((officialEmbedded.turn1Cache + officialEmbedded.turn2Cache + officialEmbedded.turn3Cache) / 3)}`);
-  console.log(`   Lite avg:     ${Math.round((liteEmbedded.turn1Cache + liteEmbedded.turn2Cache + liteEmbedded.turn3Cache) / 3)}`);
+  console.log(
+    `   Official avg: ${Math.round((officialEmbedded.turn1Cache + officialEmbedded.turn2Cache + officialEmbedded.turn3Cache) / 3)}`
+  );
+  console.log(
+    `   Lite avg:     ${Math.round((liteEmbedded.turn1Cache + liteEmbedded.turn2Cache + liteEmbedded.turn3Cache) / 3)}`
+  );
   console.log(`   Difference:   +${liteEmbedded.avgCacheDiff} tokens per turn`);
 
   console.log('\n🔍 Local CLI:');
-  console.log(`   Official avg: ${Math.round((officialLocal.turn1Cache + officialLocal.turn2Cache + officialLocal.turn3Cache) / 3)}`);
-  console.log(`   Lite avg:     ${Math.round((liteLocal.turn1Cache + liteLocal.turn2Cache + liteLocal.turn3Cache) / 3)}`);
+  console.log(
+    `   Official avg: ${Math.round((officialLocal.turn1Cache + officialLocal.turn2Cache + officialLocal.turn3Cache) / 3)}`
+  );
+  console.log(
+    `   Lite avg:     ${Math.round((liteLocal.turn1Cache + liteLocal.turn2Cache + liteLocal.turn3Cache) / 3)}`
+  );
   console.log(`   Difference:   +${liteLocal.avgCacheDiff} tokens per turn`);
 
   console.log('\n' + '='.repeat(70));

@@ -65,7 +65,7 @@ function handleMessage(data: { sdk: 'official' | 'lite'; message: any; error?: s
   if (data.error) {
     appendMessage(outputDiv, {
       type: 'error',
-      content: data.error
+      content: data.error,
     });
     return;
   }
@@ -192,15 +192,19 @@ function sendPrompt() {
   }, 500);
 
   // Send to both SDKs
-  ws.send(JSON.stringify({
-    prompt,
-    sdk: 'official'
-  }));
+  ws.send(
+    JSON.stringify({
+      prompt,
+      sdk: 'official',
+    })
+  );
 
-  ws.send(JSON.stringify({
-    prompt,
-    sdk: 'lite'
-  }));
+  ws.send(
+    JSON.stringify({
+      prompt,
+      sdk: 'lite',
+    })
+  );
 
   console.log('Sent prompt to both SDKs:', prompt);
 }
@@ -225,21 +229,25 @@ function continueConversation() {
 
   // Send continuation to both SDKs
   if (liteSessionId) {
-    ws.send(JSON.stringify({
-      prompt,
-      sdk: 'lite',
-      continue: true,
-      sessionId: liteSessionId
-    }));
+    ws.send(
+      JSON.stringify({
+        prompt,
+        sdk: 'lite',
+        continue: true,
+        sessionId: liteSessionId,
+      })
+    );
   }
 
   if (officialSessionId) {
-    ws.send(JSON.stringify({
-      prompt,
-      sdk: 'official',
-      continue: true,
-      sessionId: officialSessionId
-    }));
+    ws.send(
+      JSON.stringify({
+        prompt,
+        sdk: 'official',
+        continue: true,
+        sessionId: officialSessionId,
+      })
+    );
   }
 
   console.log('Continuing conversation with prompt:', prompt);

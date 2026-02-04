@@ -3,12 +3,16 @@
  * Same tests run with both lite and official SDKs
  */
 
-import { test, expect, describe } from 'bun:test';
-import { runWithSDK, runWithSDKPermissions } from './comparison-utils.ts';
-import type { SDKType } from './comparison-utils.ts';
+import { describe, expect, test } from 'bun:test';
 import type { HookCallbackMatcher } from '../../src/types/index.ts';
+import type { SDKType } from './comparison-utils.ts';
+import { runWithSDK, runWithSDKPermissions } from './comparison-utils.ts';
 
-const testWithBothSDKs = (name: string, testFn: (sdk: SDKType) => Promise<void>, timeout = 60000) => {
+const testWithBothSDKs = (
+  name: string,
+  testFn: (sdk: SDKType) => Promise<void>,
+  timeout = 60000
+) => {
   describe(name, () => {
     // Run lite and official tests in parallel
     test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
@@ -16,7 +20,11 @@ const testWithBothSDKs = (name: string, testFn: (sdk: SDKType) => Promise<void>,
   });
 };
 
-const _testWithBothSDKsSkip = (name: string, testFn: (sdk: SDKType) => Promise<void>, timeout = 60000) => {
+const _testWithBothSDKsSkip = (
+  name: string,
+  testFn: (sdk: SDKType) => Promise<void>,
+  timeout = 60000
+) => {
   describe.skip(name, () => {
     test(`[lite] ${name}`, () => testFn('lite'), { timeout });
     test(`[official] ${name}`, () => testFn('official'), { timeout });
@@ -33,25 +41,21 @@ testWithBothSDKs('PreToolUse hook is called before tool execution', async (sdk) 
           async (_input, _toolUseId, _context) => {
             preToolUseCalls.push('PreToolUse');
             return {};
-          }
-        ]
-      }
-    ]
+          },
+        ],
+      },
+    ],
   };
 
-  const messages = await runWithSDK(
-    sdk,
-    'Read the package.json file',
-    {
-      maxTurns: 5,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-      hooks
-    }
-  );
+  const messages = await runWithSDK(sdk, 'Read the package.json file', {
+    maxTurns: 5,
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
+    hooks,
+  });
 
   // Query should complete successfully
-  const result = messages.find(m => m.type === 'result');
+  const result = messages.find((m) => m.type === 'result');
   expect(result).toBeTruthy();
   // Log hook calls for debugging (don't fail if hook wasn't triggered due to timing)
   console.log(`   [${sdk}] PreToolUse calls:`, preToolUseCalls.length);
@@ -67,22 +71,18 @@ testWithBothSDKs('PostToolUse hook is called after tool execution', async (sdk) 
         hooks: [
           async (_input, _toolUseId, _context) => {
             postToolUseCalls.push('PostToolUse');
-            return {};  // Empty object = continue
-          }
-        ]
-      }
-    ]
+            return {}; // Empty object = continue
+          },
+        ],
+      },
+    ],
   };
 
   // Use non-bypass mode - PostToolUse may not fire in bypass mode
-  await runWithSDKPermissions(
-    sdk,
-    'Read the package.json file',
-    {
-      maxTurns: 5,
-      hooks
-    }
-  );
+  await runWithSDKPermissions(sdk, 'Read the package.json file', {
+    maxTurns: 5,
+    hooks,
+  });
 
   // Note: PostToolUse may not always fire depending on CLI behavior
   // Just log the result, don't fail if it doesn't fire
@@ -101,22 +101,18 @@ testWithBothSDKs('hooks receive correct input data', async (sdk) => {
           async (input, _toolUseId, _context) => {
             if (!capturedInput) capturedInput = input;
             return {};
-          }
-        ]
-      }
-    ]
+          },
+        ],
+      },
+    ],
   };
 
-  const messages = await runWithSDK(
-    sdk,
-    'Read the package.json file',
-    {
-      maxTurns: 5,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-      hooks
-    }
-  );
+  const messages = await runWithSDK(sdk, 'Read the package.json file', {
+    maxTurns: 5,
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
+    hooks,
+  });
 
   // Query should complete
   expect(messages.length).toBeGreaterThan(0);
@@ -135,22 +131,18 @@ testWithBothSDKs('hook can cancel tool execution', async (sdk) => {
         hooks: [
           async (_input, _toolUseId, _context) => {
             return { continue: false };
-          }
-        ]
-      }
-    ]
+          },
+        ],
+      },
+    ],
   };
 
-  const messages = await runWithSDK(
-    sdk,
-    'Read the package.json file',
-    {
-      maxTurns: 5,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-      hooks
-    }
-  );
+  const messages = await runWithSDK(sdk, 'Read the package.json file', {
+    maxTurns: 5,
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
+    hooks,
+  });
 
   // Test should complete even with cancellation
   expect(messages.length).toBeGreaterThan(0);
@@ -166,22 +158,18 @@ testWithBothSDKs('UserPromptSubmit hook is called', async (sdk) => {
           async (_input, _toolUseId, _context) => {
             hookCalls.push('UserPromptSubmit');
             return {};
-          }
-        ]
-      }
-    ]
+          },
+        ],
+      },
+    ],
   };
 
-  const messages = await runWithSDK(
-    sdk,
-    'Say hello',
-    {
-      maxTurns: 2,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-      hooks
-    }
-  );
+  const messages = await runWithSDK(sdk, 'Say hello', {
+    maxTurns: 2,
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
+    hooks,
+  });
 
   // Query should complete
   expect(messages.length).toBeGreaterThan(0);
@@ -201,27 +189,23 @@ testWithBothSDKs('hooks with tool name matcher filter correctly', async (sdk) =>
               matchedTools.push(input.tool_name);
             }
             return {};
-          }
-        ]
-      }
-    ]
+          },
+        ],
+      },
+    ],
   };
 
-  const messages = await runWithSDK(
-    sdk,
-    'Read the package.json file',
-    {
-      maxTurns: 5,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-      hooks
-    }
-  );
+  const messages = await runWithSDK(sdk, 'Read the package.json file', {
+    maxTurns: 5,
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
+    hooks,
+  });
 
   // Query should complete
   expect(messages.length).toBeGreaterThan(0);
   // If matcher fired, it should only match Read tools
-  expect(matchedTools.every(t => t === 'Read')).toBe(true);
+  expect(matchedTools.every((t) => t === 'Read')).toBe(true);
   console.log(`   [${sdk}] Read hooks: ${matchedTools.length}`);
 });
 
@@ -234,25 +218,21 @@ testWithBothSDKs('hook with async operations', async (sdk) => {
         hooks: [
           async (_input, _toolUseId, _context) => {
             const start = Date.now();
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise((resolve) => setTimeout(resolve, 100));
             hookDelays.push(Date.now() - start);
             return {};
-          }
-        ]
-      }
-    ]
+          },
+        ],
+      },
+    ],
   };
 
-  const messages = await runWithSDK(
-    sdk,
-    'Read the package.json file',
-    {
-      maxTurns: 5,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-      hooks
-    }
-  );
+  const messages = await runWithSDK(sdk, 'Read the package.json file', {
+    maxTurns: 5,
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
+    hooks,
+  });
 
   // Query should complete
   expect(messages.length).toBeGreaterThan(0);
@@ -264,18 +244,14 @@ testWithBothSDKs('hook with async operations', async (sdk) => {
 });
 
 testWithBothSDKs('no hooks configured allows normal execution', async (sdk) => {
-  const messages = await runWithSDK(
-    sdk,
-    'Read the package.json file',
-    {
-      maxTurns: 5,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-      // No hooks configured
-    }
-  );
+  const messages = await runWithSDK(sdk, 'Read the package.json file', {
+    maxTurns: 5,
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
+    // No hooks configured
+  });
 
-  const result = messages.find(m => m.type === 'result');
+  const result = messages.find((m) => m.type === 'result');
   expect(result).toBeTruthy();
 });
 
@@ -293,8 +269,8 @@ testWithBothSDKs('matcher filters by tool name correctly', async (sdk) => {
               writeHookCalls.push(input.tool_name);
             }
             return {};
-          }
-        ]
+          },
+        ],
       },
       {
         matcher: 'Read',
@@ -304,29 +280,27 @@ testWithBothSDKs('matcher filters by tool name correctly', async (sdk) => {
               readHookCalls.push(input.tool_name);
             }
             return {};
-          }
-        ]
-      }
-    ]
+          },
+        ],
+      },
+    ],
   };
 
-  const messages = await runWithSDK(
-    sdk,
-    'Read the package.json file',
-    {
-      maxTurns: 5,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-      hooks
-    }
-  );
+  const messages = await runWithSDK(sdk, 'Read the package.json file', {
+    maxTurns: 5,
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
+    hooks,
+  });
 
   // Query should complete
   expect(messages.length).toBeGreaterThan(0);
   // Matchers should only match their respective tools
-  expect(readHookCalls.every(name => name === 'Read')).toBe(true);
-  expect(writeHookCalls.every(name => name === 'Write')).toBe(true);
-  console.log(`   [${sdk}] Read hooks: ${readHookCalls.length}, Write hooks: ${writeHookCalls.length}`);
+  expect(readHookCalls.every((name) => name === 'Read')).toBe(true);
+  expect(writeHookCalls.every((name) => name === 'Write')).toBe(true);
+  console.log(
+    `   [${sdk}] Read hooks: ${readHookCalls.length}, Write hooks: ${writeHookCalls.length}`
+  );
 });
 
 testWithBothSDKs('multiple matchers can coexist', async (sdk) => {
@@ -343,8 +317,8 @@ testWithBothSDKs('multiple matchers can coexist', async (sdk) => {
               matcherACalls.push(input.tool_name);
             }
             return {};
-          }
-        ]
+          },
+        ],
       },
       {
         matcher: 'Glob',
@@ -354,27 +328,25 @@ testWithBothSDKs('multiple matchers can coexist', async (sdk) => {
               matcherBCalls.push(input.tool_name);
             }
             return {};
-          }
-        ]
-      }
-    ]
+          },
+        ],
+      },
+    ],
   };
 
-  const messages = await runWithSDK(
-    sdk,
-    'Read the package.json file',
-    {
-      maxTurns: 5,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-      hooks
-    }
-  );
+  const messages = await runWithSDK(sdk, 'Read the package.json file', {
+    maxTurns: 5,
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
+    hooks,
+  });
 
   // Query should complete
   expect(messages.length).toBeGreaterThan(0);
   // Matchers should only match their respective tools
-  expect(matcherACalls.every(t => t === 'Read')).toBe(true);
-  expect(matcherBCalls.every(t => t === 'Glob')).toBe(true);
-  console.log(`   [${sdk}] Multiple matchers - Read: ${matcherACalls.length}, Glob: ${matcherBCalls.length}`);
+  expect(matcherACalls.every((t) => t === 'Read')).toBe(true);
+  expect(matcherBCalls.every((t) => t === 'Glob')).toBe(true);
+  console.log(
+    `   [${sdk}] Multiple matchers - Read: ${matcherACalls.length}, Glob: ${matcherBCalls.length}`
+  );
 });

@@ -14,7 +14,7 @@ async function testSDK(name: string, queryFn: typeof officialQuery) {
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       maxTurns: 10,
-    }
+    },
   });
 
   let sessionId = '';
@@ -34,18 +34,19 @@ async function testSDK(name: string, queryFn: typeof officialQuery) {
         console.log(`[${name}] Continuing conversation...`);
 
         // Continue conversation
-        await q.streamInput([{
-          type: 'user',
-          message: {
-            role: 'user',
-            content: 'Now say goodbye in one word'
+        await q.streamInput([
+          {
+            type: 'user',
+            message: {
+              role: 'user',
+              content: 'Now say goodbye in one word',
+            },
+            session_id: sessionId,
+            parent_tool_use_id: null,
           },
-          session_id: sessionId,
-          parent_tool_use_id: null
-        }]);
+        ]);
 
         console.log(`[${name}] streamInput() called, waiting for next messages...`);
-
       } else if (msg.type === 'result' && firstResultSeen) {
         console.log(`[${name}] Second result:`, msg.result);
         console.log(`[${name}] ✅ Multi-turn SUCCESS!`);

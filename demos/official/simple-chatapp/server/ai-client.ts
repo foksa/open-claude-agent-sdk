@@ -1,5 +1,5 @@
 // Using official @anthropic-ai/claude-agent-sdk
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query } from '@anthropic-ai/claude-agent-sdk';
 
 const SYSTEM_PROMPT = `You are a helpful AI assistant. You can help users with a wide variety of tasks including:
 - Answering questions
@@ -11,8 +11,8 @@ const SYSTEM_PROMPT = `You are a helpful AI assistant. You can help users with a
 Be concise but thorough in your responses.`;
 
 type UserMessage = {
-  type: "user";
-  message: { role: "user"; content: string };
+  type: 'user';
+  message: { role: 'user'; content: string };
 };
 
 // Simple async queue - messages go in via push(), come out via async iteration
@@ -23,9 +23,9 @@ class MessageQueue {
 
   push(content: string) {
     const msg: UserMessage = {
-      type: "user",
+      type: 'user',
       message: {
-        role: "user",
+        role: 'user',
         content,
       },
     };
@@ -69,17 +69,8 @@ export class AgentSession {
       prompt: this.queue as any,
       options: {
         maxTurns: 100,
-        model: "opus",
-        allowedTools: [
-          "Bash",
-          "Read",
-          "Write",
-          "Edit",
-          "Glob",
-          "Grep",
-          "WebSearch",
-          "WebFetch",
-        ],
+        model: 'opus',
+        allowedTools: ['Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'WebSearch', 'WebFetch'],
         systemPrompt: SYSTEM_PROMPT,
       },
     })[Symbol.asyncIterator]();
@@ -93,7 +84,7 @@ export class AgentSession {
   // Get the output stream
   async *getOutputStream() {
     if (!this.outputIterator) {
-      throw new Error("Session not initialized");
+      throw new Error('Session not initialized');
     }
     while (true) {
       const { value, done } = await this.outputIterator.next();

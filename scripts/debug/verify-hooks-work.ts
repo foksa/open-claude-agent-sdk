@@ -28,12 +28,12 @@ const result = await query({
               console.log('   Tool:', input.tool_name);
               console.log('   Event:', input.hook_event_name);
               return {};
-            }
-          ]
-        }
-      ]
-    }
-  }
+            },
+          ],
+        },
+      ],
+    },
+  },
 });
 
 // Consume all messages

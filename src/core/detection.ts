@@ -10,7 +10,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, statSync, accessSync, constants } from 'node:fs';
+import { accessSync, constants, existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Options } from '../types/index.ts';
 
@@ -82,7 +82,7 @@ export function detectClaudeBinary(options?: Options): string {
 
   throw new Error(
     'Claude CLI not found. Install with:\n' +
-    '  npm install -g @anthropic-ai/claude-code\n' +
-    'Or set CLAUDE_BINARY environment variable to the path of your claude binary.'
+      '  npm install -g @anthropic-ai/claude-code\n' +
+      'Or set CLAUDE_BINARY environment variable to the path of your claude binary.'
   );
 }

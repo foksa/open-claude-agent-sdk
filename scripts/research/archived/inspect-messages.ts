@@ -12,27 +12,33 @@ const embeddedCli = './node_modules/@anthropic-ai/claude-agent-sdk/cli.js';
 
 const args = [
   '--print',
-  '--output-format', 'stream-json',
-  '--input-format', 'stream-json',
+  '--output-format',
+  'stream-json',
+  '--input-format',
+  'stream-json',
   '--verbose',
-  '--permission-mode', 'bypassPermissions',
-  '--model', 'haiku',
-  '--max-turns', '1',
-  '--setting-sources', ''
+  '--permission-mode',
+  'bypassPermissions',
+  '--model',
+  'haiku',
+  '--max-turns',
+  '1',
+  '--setting-sources',
+  '',
 ];
 
 console.log('Spawning CLI with args:', args.join(' '));
 console.log('='.repeat(70));
 
 const proc = spawn(embeddedCli, args, {
-  stdio: ['pipe', 'pipe', 'inherit']
+  stdio: ['pipe', 'pipe', 'inherit'],
 });
 
 // Monitor stdin writes
 const originalWrite = proc.stdin!.write.bind(proc.stdin!);
 let stdinMessageCount = 0;
 
-proc.stdin!.write = function(chunk: any, ...rest: any[]): boolean {
+proc.stdin!.write = function (chunk: any, ...rest: any[]): boolean {
   stdinMessageCount++;
   const msg = chunk.toString().trim();
   console.log(`\n📤 STDIN Message #${stdinMessageCount}:`);
@@ -48,7 +54,7 @@ proc.stdin!.write = function(chunk: any, ...rest: any[]): boolean {
 // Read stdout
 const rl = createInterface({
   input: proc.stdout!,
-  crlfDelay: Infinity
+  crlfDelay: Infinity,
 });
 
 let stdoutMessageCount = 0;
@@ -72,7 +78,9 @@ rl.on('line', (line) => {
 
       proc.kill();
     } else {
-      console.log(`\n📥 STDOUT Message #${stdoutMessageCount}: ${msg.type}${msg.subtype ? ':' + msg.subtype : ''}`);
+      console.log(
+        `\n📥 STDOUT Message #${stdoutMessageCount}: ${msg.type}${msg.subtype ? ':' + msg.subtype : ''}`
+      );
     }
   } catch (err) {
     console.log(`\n📥 STDOUT Message #${stdoutMessageCount}: [invalid JSON]`);
@@ -85,10 +93,10 @@ setTimeout(() => {
     type: 'user',
     message: {
       role: 'user',
-      content: 'Say hi in one word'
+      content: 'Say hi in one word',
     },
     session_id: '',
-    parent_tool_use_id: null
+    parent_tool_use_id: null,
   };
 
   proc.stdin!.write(JSON.stringify(userMessage) + '\n');
