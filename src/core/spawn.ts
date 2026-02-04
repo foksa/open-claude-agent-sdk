@@ -102,9 +102,22 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--debug-to-stderr');
   }
 
+  // Resume session (pass existing session ID to continue conversation)
+  if (options.resume) {
+    args.push('--resume', options.resume);
+  }
+
+  // Sandbox configuration
+  if (options.sandbox?.enabled) {
+    args.push('--sandbox');
+    if (options.sandbox.autoAllowBashIfSandboxed === false) {
+      // Default is true when sandboxed, so only pass flag when explicitly disabled
+      args.push('--no-auto-allow-bash-if-sandboxed');
+    }
+  }
+
   // TODO: Add in future steps:
   // - --mcp-config
-  // - --resume
 
   // Baby Step 5: With --input-format stream-json, prompt is sent via stdin
   // NOT as CLI argument. The prompt will be sent as first user message on stdin.

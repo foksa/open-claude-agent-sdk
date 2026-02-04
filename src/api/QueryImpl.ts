@@ -36,6 +36,8 @@ export class QueryImpl implements Query {
   private done = false;
   private error: Error | null = null;
   private isSingleUserTurn: boolean; // Track if single-turn (string prompt) vs multi-turn (AsyncIterable)
+  private abortHandler: (() => void) | null = null; // Handler for abortController cleanup
+  private abortController: AbortController | undefined; // Store for cleanup
 
   constructor(params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options }) {
     const { prompt, options = {} } = params;
@@ -92,6 +94,15 @@ export class QueryImpl implements Query {
       this.error = err;
       this.notifyWaiters();
     });
+
+    // 9. Setup abort controller listener if provided
+    if (options.abortController) {
+      this.abortController = options.abortController;
+      this.abortHandler = () => {
+        this.interrupt();
+      };
+      this.abortController.signal.addEventListener('abort', this.abortHandler);
+    }
   }
 
   /**
@@ -293,6 +304,11 @@ export class QueryImpl implements Query {
       if (this.readline) {
         this.readline.close();
         this.readline = null;
+      }
+      // Clean up abort controller listener
+      if (this.abortController && this.abortHandler) {
+        this.abortController.signal.removeEventListener('abort', this.abortHandler);
+        this.abortHandler = null;
       }
       this.process.kill();
       this.done = true;
