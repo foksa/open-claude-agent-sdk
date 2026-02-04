@@ -85,24 +85,6 @@ CAPTURE_OUTPUT_FILE="${outputFile}" exec node "${process.cwd()}/${CAPTURE_CLI}" 
 }
 
 /**
- * Normalize CLI args for comparison
- * Some args have dynamic values that need to be normalized
- */
-function normalizeArgs(args: string[]): string[] {
-  return args.map((arg, i) => {
-    // Normalize --settings JSON by parsing and re-stringifying (order may differ)
-    if (args[i - 1] === '--settings') {
-      try {
-        return JSON.stringify(JSON.parse(arg));
-      } catch {
-        return arg;
-      }
-    }
-    return arg;
-  });
-}
-
-/**
  * Normalize messages for comparison (remove dynamic fields)
  */
 function normalizeMessage(msg: any): any {
