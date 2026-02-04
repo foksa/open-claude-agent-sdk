@@ -184,7 +184,7 @@ for await (const event of session.stream()) {
 | Option | Lite SDK | Official SDK | CLI Flag | Priority |
 |--------|----------|--------------|----------|----------|
 | `outputFormat` | ❌ | ✅ | `--json-schema` | HIGH |
-| `settingSources` | ❌ | ✅ | `--setting-sources` | HIGH |
+| `settingSources` | ✅ Tested | ✅ | `--setting-sources` | - |
 
 ### Phase 2 Options (Advanced)
 
