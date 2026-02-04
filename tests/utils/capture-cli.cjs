@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
- * Capture CLI - Mock CLI that captures stdin messages for unit testing
+ * Capture CLI - Mock CLI that captures stdin messages AND CLI args for unit testing
  *
- * Usage: node capture-cli.cjs
+ * Usage: node capture-cli.cjs [args...]
  *
- * Captures all stdin messages to a JSON file, returns minimal valid responses.
- * Used for unit testing SDK stdin compatibility without real API calls.
+ * Captures:
+ * - All CLI arguments (process.argv)
+ * - All stdin messages
  *
  * Output file: Uses CAPTURE_OUTPUT_FILE env var or /tmp/capture-<pid>.json
+ * Format: { args: [...], stdin: [...] }
  */
 
 const readline = require('node:readline');
@@ -15,7 +17,12 @@ const fs = require('node:fs');
 
 // Output file from env var or default based on PID for uniqueness
 const outputFile = process.env.CAPTURE_OUTPUT_FILE || `/tmp/capture-${process.pid}.json`;
-const messages = [];
+
+// Capture CLI args (skip node and script path)
+const cliArgs = process.argv.slice(2);
+
+// Capture stdin messages
+const stdinMessages = [];
 
 // Track if we've sent init response
 let initResponseSent = false;
@@ -30,7 +37,7 @@ rl.on('line', (line) => {
 
   try {
     const msg = JSON.parse(line);
-    messages.push(msg);
+    stdinMessages.push(msg);
 
     // If this is the init control_request, send response
     if (
@@ -52,7 +59,7 @@ rl.on('line', (line) => {
       );
     }
   } catch (e) {
-    messages.push({ raw: line, error: e.message });
+    stdinMessages.push({ raw: line, error: e.message });
   }
 });
 
@@ -69,12 +76,23 @@ console.log(
   })
 );
 
-// After delay, send result and save captured messages
-setTimeout(() => {
-  // Save captured messages FIRST (atomically via temp file)
+/**
+ * Save captured data to output file
+ */
+function saveCapture() {
+  const capture = {
+    args: cliArgs,
+    stdin: stdinMessages,
+  };
   const tempFile = `${outputFile}.tmp`;
-  fs.writeFileSync(tempFile, JSON.stringify(messages, null, 2));
+  fs.writeFileSync(tempFile, JSON.stringify(capture, null, 2));
   fs.renameSync(tempFile, outputFile);
+}
+
+// After delay, send result and save captured data
+setTimeout(() => {
+  // Save captured data FIRST
+  saveCapture();
 
   // Then send result
   console.log(
@@ -94,5 +112,5 @@ setTimeout(() => {
 
 // Handle stdin close
 process.stdin.on('end', () => {
-  fs.writeFileSync(outputFile, JSON.stringify(messages, null, 2));
+  saveCapture();
 });

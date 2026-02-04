@@ -107,13 +107,9 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--resume', options.resume);
   }
 
-  // Sandbox configuration
-  if (options.sandbox?.enabled) {
-    args.push('--sandbox');
-    if (options.sandbox.autoAllowBashIfSandboxed === false) {
-      // Default is true when sandboxed, so only pass flag when explicitly disabled
-      args.push('--no-auto-allow-bash-if-sandboxed');
-    }
+  // Sandbox configuration - passed via --settings flag as JSON (matches official SDK)
+  if (options.sandbox) {
+    args.push('--settings', JSON.stringify({ sandbox: options.sandbox }));
   }
 
   // TODO: Add in future steps:

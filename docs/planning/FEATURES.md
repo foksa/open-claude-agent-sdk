@@ -192,7 +192,7 @@ for await (const event of session.stream()) {
 |--------|----------|--------------|----------|----------|
 | `resume` | ✅ | ✅ | `--resume` | - |
 | `forkSession` | ❌ | ✅ | `--fork` | MEDIUM |
-| `sandbox` | ⚠️ | ✅ | `--sandbox` | LOW |
+| `sandbox` | ✅ | ✅ | `--settings` | - |
 | `abortController` | ✅ | ✅ | (signal handler) | - |
 | `systemPrompt` | ✅ | ✅ | stdin init message | - | Complete |
 | `allowedTools` | ❌ | ✅ | `--allowed-tools` | MEDIUM |
@@ -373,9 +373,9 @@ These features are handled by Claude CLI or not needed for our use case:
    - Model metadata
    - Version info
 
-4. **Sandbox Config** ⚠️ (CLI args implemented, needs integration tests)
-   - ⚠️ Sandbox enabled flag (unit tested only)
-   - ⚠️ Auto-allow bash option (unit tested only)
+4. **Sandbox Config** ✅ (Implemented)
+   - ✅ Sandbox enabled flag
+   - ✅ Auto-allow bash option
    - Command restrictions (CLI feature)
    - Path restrictions (CLI feature)
 
