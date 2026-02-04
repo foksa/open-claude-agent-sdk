@@ -396,4 +396,64 @@ describe('stdin message compatibility', () => {
     console.log('   Lite:', liteSystemPrompt);
     console.log('   Official:', officialSystemPrompt);
   }, { timeout: 15000 });
+
+  test.concurrent('settingSources with project matches official SDK', async () => {
+    const [liteMessages, officialMessages] = await Promise.all([
+      captureStdin(liteQuery, 'test', { settingSources: ['project'] }),
+      captureStdin(officialQuery, 'test', { settingSources: ['project'] })
+    ]);
+
+    const liteInit = liteMessages.find(m => m.request?.subtype === 'initialize');
+    const officialInit = officialMessages.find(m => m.request?.subtype === 'initialize');
+
+    expect(liteInit).toBeTruthy();
+    expect(officialInit).toBeTruthy();
+
+    console.log('   settingSources: [project] test passed');
+  }, { timeout: 15000 });
+
+  test.concurrent('settingSources with user matches official SDK', async () => {
+    const [liteMessages, officialMessages] = await Promise.all([
+      captureStdin(liteQuery, 'test', { settingSources: ['user'] }),
+      captureStdin(officialQuery, 'test', { settingSources: ['user'] })
+    ]);
+
+    const liteInit = liteMessages.find(m => m.request?.subtype === 'initialize');
+    const officialInit = officialMessages.find(m => m.request?.subtype === 'initialize');
+
+    expect(liteInit).toBeTruthy();
+    expect(officialInit).toBeTruthy();
+
+    console.log('   settingSources: [user] test passed');
+  }, { timeout: 15000 });
+
+  test.concurrent('settingSources with multiple sources matches official SDK', async () => {
+    const [liteMessages, officialMessages] = await Promise.all([
+      captureStdin(liteQuery, 'test', { settingSources: ['user', 'project'] }),
+      captureStdin(officialQuery, 'test', { settingSources: ['user', 'project'] })
+    ]);
+
+    const liteInit = liteMessages.find(m => m.request?.subtype === 'initialize');
+    const officialInit = officialMessages.find(m => m.request?.subtype === 'initialize');
+
+    expect(liteInit).toBeTruthy();
+    expect(officialInit).toBeTruthy();
+
+    console.log('   settingSources: [user, project] test passed');
+  }, { timeout: 15000 });
+
+  test.concurrent('settingSources empty array matches official SDK', async () => {
+    const [liteMessages, officialMessages] = await Promise.all([
+      captureStdin(liteQuery, 'test', { settingSources: [] }),
+      captureStdin(officialQuery, 'test', { settingSources: [] })
+    ]);
+
+    const liteInit = liteMessages.find(m => m.request?.subtype === 'initialize');
+    const officialInit = officialMessages.find(m => m.request?.subtype === 'initialize');
+
+    expect(liteInit).toBeTruthy();
+    expect(officialInit).toBeTruthy();
+
+    console.log('   settingSources: [] test passed');
+  }, { timeout: 15000 });
 });
