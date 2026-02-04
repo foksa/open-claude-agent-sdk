@@ -92,6 +92,38 @@ bun tests/research/compare-with-proxy.ts
 - ❌ Don't reimplement protocol - we're a thin wrapper
 - ❌ Don't add features without updating `docs/planning/FEATURES.md`
 - ❌ Don't mark features ✅ complete without integration tests
+- ❌ **Don't guess how CLI flags or protocol work** - always verify first
+
+### CRITICAL: Always Check Official SDK Behavior First
+
+**Before implementing ANY feature, verify how the official SDK actually does it:**
+
+1. **Use the capture CLI** to see exact CLI args and stdin messages:
+   ```bash
+   # Run official SDK through capture CLI
+   bun -e "
+   import { query } from '@anthropic-ai/claude-agent-sdk';
+   for await (const msg of query({
+     prompt: 'test',
+     options: {
+       pathToClaudeCodeExecutable: './tests/utils/capture-cli.cjs',
+       // ... your options here
+     }
+   })) { if (msg.type === 'result') break; }
+   "
+   # Check captured output
+   cat /tmp/capture-*.json
+   ```
+
+2. **Compare both SDKs** in unit tests (`tests/unit/sdk-compatibility.test.ts`):
+   - CLI args must match
+   - Stdin messages must match
+
+3. **Compare both SDKs** in integration tests:
+   - Run same query with both SDKs
+   - Verify same behavior/output
+
+**Why?** We're wrapping CLI - if we guess wrong about flags or protocol, our implementation silently breaks. Unit tests that verify our invented implementation are useless. Only tests that compare against official SDK catch real issues.
 
 ## Key Constraints
 
