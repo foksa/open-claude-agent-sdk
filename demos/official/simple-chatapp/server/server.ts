@@ -1,13 +1,13 @@
-import "dotenv/config";
-import express from "express";
-import cors from "cors";
-import { createServer } from "http";
-import { WebSocketServer, WebSocket } from "ws";
-import path from "path";
-import { fileURLToPath } from "url";
-import type { WSClient, IncomingWSMessage } from "./types.js";
-import { chatStore } from "./chat-store.js";
-import { Session } from "./session.js";
+import 'dotenv/config';
+import cors from 'cors';
+import express from 'express';
+import { createServer } from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { WebSocket, WebSocketServer } from 'ws';
+import { chatStore } from './chat-store.js';
+import { Session } from './session.js';
+import type { IncomingWSMessage, WSClient } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,11 +20,11 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static files from client directory
-app.use("/client", express.static(path.join(__dirname, "../client")));
+app.use('/client', express.static(path.join(__dirname, '../client')));
 
 // Serve index.html at root
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../client/index.html"));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
 // Session management
@@ -40,31 +40,31 @@ function getOrCreateSession(chatId: string): Session {
 }
 
 // REST API: Get all chats
-app.get("/api/chats", (req, res) => {
+app.get('/api/chats', (req, res) => {
   const chats = chatStore.getAllChats();
   res.json(chats);
 });
 
 // REST API: Create new chat
-app.post("/api/chats", (req, res) => {
+app.post('/api/chats', (req, res) => {
   const chat = chatStore.createChat(req.body?.title);
   res.status(201).json(chat);
 });
 
 // REST API: Get single chat
-app.get("/api/chats/:id", (req, res) => {
+app.get('/api/chats/:id', (req, res) => {
   const chat = chatStore.getChat(req.params.id);
   if (!chat) {
-    return res.status(404).json({ error: "Chat not found" });
+    return res.status(404).json({ error: 'Chat not found' });
   }
   res.json(chat);
 });
 
 // REST API: Delete chat
-app.delete("/api/chats/:id", (req, res) => {
+app.delete('/api/chats/:id', (req, res) => {
   const deleted = chatStore.deleteChat(req.params.id);
   if (!deleted) {
-    return res.status(404).json({ error: "Chat not found" });
+    return res.status(404).json({ error: 'Chat not found' });
   }
   const session = sessions.get(req.params.id);
   if (session) {
@@ -75,7 +75,7 @@ app.delete("/api/chats/:id", (req, res) => {
 });
 
 // REST API: Get chat messages
-app.get("/api/chats/:id/messages", (req, res) => {
+app.get('/api/chats/:id/messages', (req, res) => {
   const messages = chatStore.getMessages(req.params.id);
   res.json(messages);
 });
@@ -84,39 +84,41 @@ app.get("/api/chats/:id/messages", (req, res) => {
 const server = createServer(app);
 
 // WebSocket server
-const wss = new WebSocketServer({ server, path: "/ws" });
+const wss = new WebSocketServer({ server, path: '/ws' });
 
-wss.on("connection", (ws: WSClient) => {
-  console.log("WebSocket client connected");
+wss.on('connection', (ws: WSClient) => {
+  console.log('WebSocket client connected');
   ws.isAlive = true;
 
-  ws.send(JSON.stringify({ type: "connected", message: "Connected to chat server" }));
+  ws.send(JSON.stringify({ type: 'connected', message: 'Connected to chat server' }));
 
-  ws.on("pong", () => {
+  ws.on('pong', () => {
     ws.isAlive = true;
   });
 
-  ws.on("message", (data) => {
+  ws.on('message', (data) => {
     try {
       const message: IncomingWSMessage = JSON.parse(data.toString());
 
       switch (message.type) {
-        case "subscribe": {
+        case 'subscribe': {
           const session = getOrCreateSession(message.chatId);
           session.subscribe(ws);
           console.log(`Client subscribed to chat ${message.chatId}`);
 
           // Send existing messages
           const messages = chatStore.getMessages(message.chatId);
-          ws.send(JSON.stringify({
-            type: "history",
-            messages,
-            chatId: message.chatId,
-          }));
+          ws.send(
+            JSON.stringify({
+              type: 'history',
+              messages,
+              chatId: message.chatId,
+            })
+          );
           break;
         }
 
-        case "chat": {
+        case 'chat': {
           const session = getOrCreateSession(message.chatId);
           session.subscribe(ws);
           session.sendMessage(message.content);
@@ -124,16 +126,16 @@ wss.on("connection", (ws: WSClient) => {
         }
 
         default:
-          console.warn("Unknown message type:", (message as any).type);
+          console.warn('Unknown message type:', (message as any).type);
       }
     } catch (error) {
-      console.error("Error handling WebSocket message:", error);
-      ws.send(JSON.stringify({ type: "error", error: "Invalid message format" }));
+      console.error('Error handling WebSocket message:', error);
+      ws.send(JSON.stringify({ type: 'error', error: 'Invalid message format' }));
     }
   });
 
-  ws.on("close", () => {
-    console.log("WebSocket client disconnected");
+  ws.on('close', () => {
+    console.log('WebSocket client disconnected');
     // Unsubscribe from all sessions
     for (const session of sessions.values()) {
       session.unsubscribe(ws);
@@ -153,7 +155,7 @@ const heartbeat = setInterval(() => {
   });
 }, 30000);
 
-wss.on("close", () => {
+wss.on('close', () => {
   clearInterval(heartbeat);
 });
 

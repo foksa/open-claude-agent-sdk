@@ -22,7 +22,7 @@ let initResponseSent = false;
 
 const rl = readline.createInterface({
   input: process.stdin,
-  crlfDelay: Infinity
+  crlfDelay: Infinity,
 });
 
 rl.on('line', (line) => {
@@ -33,17 +33,23 @@ rl.on('line', (line) => {
     messages.push(msg);
 
     // If this is the init control_request, send response
-    if (msg.type === 'control_request' && msg.request?.subtype === 'initialize' && !initResponseSent) {
+    if (
+      msg.type === 'control_request' &&
+      msg.request?.subtype === 'initialize' &&
+      !initResponseSent
+    ) {
       initResponseSent = true;
       // Send control_response for init
-      console.log(JSON.stringify({
-        type: 'control_response',
-        response: {
-          subtype: 'success',
-          request_id: msg.request_id,
-          response: { commands: [] }
-        }
-      }));
+      console.log(
+        JSON.stringify({
+          type: 'control_response',
+          response: {
+            subtype: 'success',
+            request_id: msg.request_id,
+            response: { commands: [] },
+          },
+        })
+      );
     }
   } catch (e) {
     messages.push({ raw: line, error: e.message });
@@ -51,15 +57,17 @@ rl.on('line', (line) => {
 });
 
 // Send minimal system message immediately
-console.log(JSON.stringify({
-  type: 'system',
-  subtype: 'init',
-  session_id: `test-session-${Date.now()}`,
-  model: 'test-model',
-  tools: [],
-  permissionMode: 'bypassPermissions',
-  cwd: process.cwd()
-}));
+console.log(
+  JSON.stringify({
+    type: 'system',
+    subtype: 'init',
+    session_id: `test-session-${Date.now()}`,
+    model: 'test-model',
+    tools: [],
+    permissionMode: 'bypassPermissions',
+    cwd: process.cwd(),
+  })
+);
 
 // After delay, send result and save captured messages
 setTimeout(() => {
@@ -69,14 +77,16 @@ setTimeout(() => {
   fs.renameSync(tempFile, outputFile);
 
   // Then send result
-  console.log(JSON.stringify({
-    type: 'result',
-    subtype: 'success',
-    is_error: false,
-    result: 'Mock response from capture-cli',
-    duration_ms: 100,
-    num_turns: 1
-  }));
+  console.log(
+    JSON.stringify({
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      result: 'Mock response from capture-cli',
+      duration_ms: 100,
+      num_turns: 1,
+    })
+  );
 
   // Exit cleanly
   process.exit(0);

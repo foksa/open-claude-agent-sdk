@@ -14,14 +14,14 @@ async function* messageGenerator() {
     type: 'user',
     message: {
       role: 'user',
-      content: 'Say hello in one word'
+      content: 'Say hello in one word',
     },
     session_id: '',
-    parent_tool_use_id: null
+    parent_tool_use_id: null,
   } as SDKUserMessage;
 
   // Wait a bit
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  await new Promise((resolve) => setTimeout(resolve, 3000));
 
   // Second message
   console.log('[Generator] Yielding second message...');
@@ -29,10 +29,10 @@ async function* messageGenerator() {
     type: 'user',
     message: {
       role: 'user',
-      content: 'Now say goodbye in one word'
+      content: 'Now say goodbye in one word',
     },
     session_id: '',
-    parent_tool_use_id: null
+    parent_tool_use_id: null,
   } as SDKUserMessage;
 
   console.log('[Generator] Done yielding messages');
@@ -44,7 +44,7 @@ const q = query({
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
     maxTurns: 10,
-  }
+  },
 });
 
 let resultCount = 0;
@@ -61,4 +61,6 @@ for await (const msg of q) {
 }
 
 console.log(`\nReceived ${resultCount} result(s)`);
-console.log(resultCount === 2 ? '✅ Multi-turn with AsyncIterable WORKS!' : '❌ Expected 2 results');
+console.log(
+  resultCount === 2 ? '✅ Multi-turn with AsyncIterable WORKS!' : '❌ Expected 2 results'
+);

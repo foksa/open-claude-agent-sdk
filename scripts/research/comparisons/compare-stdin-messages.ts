@@ -5,7 +5,7 @@
  * Capture what each SDK sends to CLI to identify differences
  */
 
-import { spawn, type ChildProcess } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 
 const embeddedCli = './node_modules/@anthropic-ai/claude-agent-sdk/cli.js';
@@ -14,24 +14,30 @@ function spawnWithStdinLogging(label: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const args = [
       '--print',
-      '--output-format', 'stream-json',
-      '--input-format', 'stream-json',
+      '--output-format',
+      'stream-json',
+      '--input-format',
+      'stream-json',
       '--verbose',
-      '--permission-mode', 'bypassPermissions',
-      '--model', 'haiku',
-      '--max-turns', '1',
-      '--setting-sources', ''
+      '--permission-mode',
+      'bypassPermissions',
+      '--model',
+      'haiku',
+      '--max-turns',
+      '1',
+      '--setting-sources',
+      '',
     ];
 
     const proc = spawn(embeddedCli, args, {
-      stdio: ['pipe', 'pipe', 'inherit']
+      stdio: ['pipe', 'pipe', 'inherit'],
     });
 
     const stdinMessages: string[] = [];
 
     // Intercept stdin writes
     const originalWrite = proc.stdin!.write.bind(proc.stdin!);
-    proc.stdin!.write = function(chunk: any, ...rest: any[]): boolean {
+    proc.stdin!.write = function (chunk: any, ...rest: any[]): boolean {
       const msg = chunk.toString().trim();
       stdinMessages.push(msg);
       return originalWrite(chunk, ...rest);
@@ -40,7 +46,7 @@ function spawnWithStdinLogging(label: string): Promise<string[]> {
     // Read stdout until result
     const rl = createInterface({
       input: proc.stdout!,
-      crlfDelay: Infinity
+      crlfDelay: Infinity,
     });
 
     rl.on('line', (line) => {
@@ -75,17 +81,17 @@ async function captureOfficialSDK(): Promise<string[]> {
     const Module = require('module');
     const originalRequire = Module.prototype.require;
 
-    Module.prototype.require = function(id: string) {
+    Module.prototype.require = function (id: string) {
       if (id === 'node:child_process' || id === 'child_process') {
         const cp = originalRequire.apply(this, arguments);
         const originalSpawn = cp.spawn;
 
-        cp.spawn = function(...args: any[]) {
+        cp.spawn = function (...args: any[]) {
           const proc = originalSpawn.apply(this, args);
 
           if (proc.stdin) {
             const originalWrite = proc.stdin.write.bind(proc.stdin);
-            proc.stdin.write = function(chunk: any, ...rest: any[]): boolean {
+            proc.stdin.write = function (chunk: any, ...rest: any[]): boolean {
               const msg = chunk.toString().trim();
               if (msg && msg.startsWith('{')) {
                 stdinMessages.push(msg);
@@ -140,17 +146,17 @@ async function captureLiteSDK(): Promise<string[]> {
     const Module = require('module');
     const originalRequire = Module.prototype.require;
 
-    Module.prototype.require = function(id: string) {
+    Module.prototype.require = function (id: string) {
       if (id === 'node:child_process' || id === 'child_process') {
         const cp = originalRequire.apply(this, arguments);
         const originalSpawn = cp.spawn;
 
-        cp.spawn = function(...args: any[]) {
+        cp.spawn = function (...args: any[]) {
           const proc = originalSpawn.apply(this, args);
 
           if (proc.stdin) {
             const originalWrite = proc.stdin.write.bind(proc.stdin);
-            proc.stdin.write = function(chunk: any, ...rest: any[]): boolean {
+            proc.stdin.write = function (chunk: any, ...rest: any[]): boolean {
               const msg = chunk.toString().trim();
               if (msg && msg.startsWith('{')) {
                 stdinMessages.push(msg);

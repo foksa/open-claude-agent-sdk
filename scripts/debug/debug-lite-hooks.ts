@@ -15,10 +15,10 @@ const hooks: Record<string, HookCallbackMatcher[]> = {
           console.log('[DEBUG] PreToolUse hook called!', { tool_name: input.tool_name, toolUseId });
           hookCalls.push('PreToolUse-Read');
           return {};
-        }
-      ]
-    }
-  ]
+        },
+      ],
+    },
+  ],
 };
 
 const options: Options = {
@@ -28,7 +28,7 @@ const options: Options = {
   allowDangerouslySkipPermissions: true,
   settingSources: [],
   pathToClaudeCodeExecutable: './tests/utils/proxy-cli.cjs',
-  hooks
+  hooks,
 };
 
 console.log('[DEBUG] Starting lite query');

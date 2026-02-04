@@ -3,8 +3,8 @@
  */
 
 import { spawn } from 'node:child_process';
-import { query } from '@anthropic-ai/claude-agent-sdk';
 import type { HookCallbackMatcher } from '@anthropic-ai/claude-agent-sdk';
+import { query } from '@anthropic-ai/claude-agent-sdk';
 
 // Monkey-patch spawn to see what args are used
 const originalSpawn = spawn;
@@ -20,10 +20,10 @@ const hooks: Record<string, HookCallbackMatcher[]> = {
         async (input, toolUseId, context) => {
           console.log('✓ PreToolUse hook called!');
           return { continue: true };
-        }
-      ]
-    }
-  ]
+        },
+      ],
+    },
+  ],
 };
 
 (async () => {
@@ -33,8 +33,8 @@ const hooks: Record<string, HookCallbackMatcher[]> = {
       maxTurns: 2,
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
-      hooks
-    }
+      hooks,
+    },
   });
 
   for await (const msg of q) {

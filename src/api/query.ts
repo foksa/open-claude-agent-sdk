@@ -10,7 +10,7 @@
  * Reference: https://buildwithaws.substack.com/p/inside-the-claude-agent-sdk-from
  */
 
-import type { Query, Options, SDKUserMessage } from '../types/index.ts';
+import type { Options, Query, SDKUserMessage } from '../types/index.ts';
 import { QueryImpl } from './QueryImpl.ts';
 
 /**

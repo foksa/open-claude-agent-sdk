@@ -21,8 +21,8 @@ async function testMode(name: string, args: string[]) {
       maxTurns: 1,
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
-      _testCliArgs: args
-    } as any
+      _testCliArgs: args,
+    } as any,
   })) {
     if (msg.type === 'result') {
       console.log('\n📊 Result Message:');
@@ -46,19 +46,13 @@ async function main() {
   await testMode('Default (loads CLAUDE.md)', []);
 
   // Test 2: setting-sources="" (should NOT load CLAUDE.md)
-  await testMode('setting-sources="" (no CLAUDE.md)', [
-    '--setting-sources', ''
-  ]);
+  await testMode('setting-sources="" (no CLAUDE.md)', ['--setting-sources', '']);
 
   // Test 3: setting-sources="user" (only user, no project CLAUDE.md)
-  await testMode('setting-sources="user" (no project)', [
-    '--setting-sources', 'user'
-  ]);
+  await testMode('setting-sources="user" (no project)', ['--setting-sources', 'user']);
 
   // Test 4: setting-sources="project" (should load CLAUDE.md)
-  await testMode('setting-sources="project" (has CLAUDE.md)', [
-    '--setting-sources', 'project'
-  ]);
+  await testMode('setting-sources="project" (has CLAUDE.md)', ['--setting-sources', 'project']);
 
   console.log('\n' + '='.repeat(70));
   console.log('✅ Test complete');

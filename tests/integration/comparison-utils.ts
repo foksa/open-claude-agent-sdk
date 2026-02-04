@@ -2,8 +2,8 @@
  * Utilities for running comparison tests between our SDK and official SDK
  */
 
-import { query as liteQuery } from '../../src/api/query.ts';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
+import { query as liteQuery } from '../../src/api/query.ts';
 import type { Options, SDKMessage } from '../../src/types/index.ts';
 
 export type SDKType = 'lite' | 'official';
@@ -39,7 +39,7 @@ export async function runWithBothSDKs(
 
   return {
     lite: { messages: liteMessages, duration: liteDuration },
-    official: { messages: officialMessages, duration: officialDuration }
+    official: { messages: officialMessages, duration: officialDuration },
   };
 }
 
@@ -60,7 +60,7 @@ export async function runWithSDK(
   // Use embedded CLI from official SDK to ensure identical behavior
   const testOptions: Options = {
     model: 'haiku',
-    settingSources: [],  // No filesystem settings - faster & cheaper
+    settingSources: [], // No filesystem settings - faster & cheaper
     pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
     ...options,
   };
@@ -111,7 +111,7 @@ export function compareMessageStructures(
   liteMessages: SDKMessage[],
   officialMessages: SDKMessage[]
 ) {
-  const getMessageTypes = (msgs: SDKMessage[]) => msgs.map(m => m.type);
+  const getMessageTypes = (msgs: SDKMessage[]) => msgs.map((m) => m.type);
 
   return {
     liteTypes: getMessageTypes(liteMessages),
@@ -119,10 +119,10 @@ export function compareMessageStructures(
     liteCount: liteMessages.length,
     officialCount: officialMessages.length,
     bothHaveResult:
-      liteMessages.some(m => m.type === 'result') &&
-      officialMessages.some(m => m.type === 'result'),
+      liteMessages.some((m) => m.type === 'result') &&
+      officialMessages.some((m) => m.type === 'result'),
     bothHaveSystem:
-      liteMessages.some(m => m.type === 'system') &&
-      officialMessages.some(m => m.type === 'system')
+      liteMessages.some((m) => m.type === 'system') &&
+      officialMessages.some((m) => m.type === 'system'),
   };
 }

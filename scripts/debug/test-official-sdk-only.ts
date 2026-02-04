@@ -27,12 +27,12 @@ const result = await query({
               console.log(`✅ Official SDK hook called (call #${hookCalls})`);
               console.log(`   Tool: ${input.tool_name}`);
               return { continue: true };
-            }
-          ]
-        }
-      ]
-    }
-  }
+            },
+          ],
+        },
+      ],
+    },
+  },
 });
 
 for await (const msg of result) {

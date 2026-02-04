@@ -12,7 +12,7 @@ const q = officialQuery({
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
     maxTurns: 10,
-  }
+  },
 });
 
 let messageCount = 0;
@@ -32,9 +32,10 @@ try {
     }
   }
 
-  console.log(`\n✓ Loop ended naturally after ${messageCount} messages and ${resultCount} result(s)`);
+  console.log(
+    `\n✓ Loop ended naturally after ${messageCount} messages and ${resultCount} result(s)`
+  );
   console.log('This means: Official SDK ends iteration after first result even without break!');
-
 } catch (error: any) {
   console.error('Error:', error.message);
 }

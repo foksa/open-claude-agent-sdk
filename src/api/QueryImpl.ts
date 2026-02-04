@@ -11,11 +11,18 @@
 
 import type { ChildProcess } from 'node:child_process';
 import { createInterface, type Interface } from 'node:readline';
-import type { Query, SDKMessage, SDKUserMessage, Options, PermissionMode, SDKControlInitializeResponse } from '../types/index.ts';
-import type { StdoutMessage } from '../types/control.ts';
+import { ControlProtocolHandler } from '../core/control.ts';
 import { detectClaudeBinary } from '../core/detection.ts';
 import { buildCliArgs, spawnClaude } from '../core/spawn.ts';
-import { ControlProtocolHandler } from '../core/control.ts';
+import type { StdoutMessage } from '../types/control.ts';
+import type {
+  Options,
+  PermissionMode,
+  Query,
+  SDKControlInitializeResponse,
+  SDKMessage,
+  SDKUserMessage,
+} from '../types/index.ts';
 
 export class QueryImpl implements Query {
   private process: ChildProcess;
@@ -28,7 +35,7 @@ export class QueryImpl implements Query {
   }> = [];
   private done = false;
   private error: Error | null = null;
-  private isSingleUserTurn: boolean;  // Track if single-turn (string prompt) vs multi-turn (AsyncIterable)
+  private isSingleUserTurn: boolean; // Track if single-turn (string prompt) vs multi-turn (AsyncIterable)
 
   constructor(params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options }) {
     const { prompt, options = {} } = params;
@@ -50,10 +57,7 @@ export class QueryImpl implements Query {
     // Baby Step 5: stdin stays open for bidirectional communication ✅
 
     // 5. Initialize control protocol handler
-    this.controlHandler = new ControlProtocolHandler(
-      this.process.stdin!,
-      options
-    );
+    this.controlHandler = new ControlProtocolHandler(this.process.stdin!, options);
 
     // 6. Start background reading
     this.startReading();
@@ -103,7 +107,7 @@ export class QueryImpl implements Query {
 
       this.readline = createInterface({
         input: this.process.stdout,
-        crlfDelay: Infinity
+        crlfDelay: Infinity,
       });
 
       for await (const line of this.readline) {
@@ -237,7 +241,7 @@ export class QueryImpl implements Query {
    */
   async interrupt(): Promise<void> {
     this.sendControlRequest({
-      subtype: 'interrupt'
+      subtype: 'interrupt',
     });
   }
 
@@ -247,7 +251,7 @@ export class QueryImpl implements Query {
   async setPermissionMode(mode: PermissionMode): Promise<void> {
     this.sendControlRequest({
       subtype: 'set_permission_mode',
-      mode
+      mode,
     });
   }
 
@@ -257,7 +261,7 @@ export class QueryImpl implements Query {
   async setModel(model?: string): Promise<void> {
     this.sendControlRequest({
       subtype: 'set_model',
-      model
+      model,
     });
   }
 
@@ -267,7 +271,7 @@ export class QueryImpl implements Query {
   async setMaxThinkingTokens(maxThinkingTokens: number | null): Promise<void> {
     this.sendControlRequest({
       subtype: 'set_max_thinking_tokens',
-      max_thinking_tokens: maxThinkingTokens
+      max_thinking_tokens: maxThinkingTokens,
     });
   }
 
@@ -368,11 +372,13 @@ export class QueryImpl implements Query {
    */
   private sendControlRequest(request: any): void {
     const requestId = this.generateRequestId();
-    this.process.stdin?.write(`${JSON.stringify({
-      type: 'control_request',
-      request_id: requestId,
-      request
-    })}\n`);
+    this.process.stdin?.write(
+      `${JSON.stringify({
+        type: 'control_request',
+        request_id: requestId,
+        request,
+      })}\n`
+    );
   }
 
   /**
@@ -403,12 +409,13 @@ export class QueryImpl implements Query {
         // - String systemPrompt: include in init request
         // - Object/preset systemPrompt: don't include (handled differently)
         // - No systemPrompt: send empty string for cache token optimization
-        systemPrompt: typeof options.systemPrompt === 'string'
-          ? options.systemPrompt
-          : options.systemPrompt === undefined
-            ? ''
-            : undefined
-      }
+        systemPrompt:
+          typeof options.systemPrompt === 'string'
+            ? options.systemPrompt
+            : options.systemPrompt === undefined
+              ? ''
+              : undefined,
+      },
     };
 
     // Register hooks if configured
@@ -427,7 +434,7 @@ export class QueryImpl implements Query {
 
           return {
             matcher: matcher.matcher,
-            hookCallbackIds
+            hookCallbackIds,
           };
         });
       }
@@ -450,12 +457,12 @@ export class QueryImpl implements Query {
         content: [
           {
             type: 'text',
-            text: prompt
-          }
-        ]
+            text: prompt,
+          },
+        ],
       },
       session_id: '', // Will be filled by CLI
-      parent_tool_use_id: null
+      parent_tool_use_id: null,
     };
 
     this.process.stdin?.write(`${JSON.stringify(initialMessage)}\n`);
@@ -466,9 +473,7 @@ export class QueryImpl implements Query {
    * Each yielded message is sent to stdin as it arrives
    * This enables the official SDK's recommended pattern for multi-turn conversations
    */
-  private async consumeInputGenerator(
-    generator: AsyncIterable<SDKUserMessage>
-  ): Promise<void> {
+  private async consumeInputGenerator(generator: AsyncIterable<SDKUserMessage>): Promise<void> {
     try {
       for await (const userMsg of generator) {
         // Write each message to stdin as it's yielded by the generator

@@ -47,7 +47,7 @@ async function generateResume(personName: string) {
       cwd: process.cwd(),
       model: 'sonnet',
       allowedTools: ['Skill', 'WebSearch', 'WebFetch', 'Bash', 'Write', 'Read', 'Glob'],
-      settingSources: ['project'],  // Load skills from .claude/skills/
+      settingSources: ['project'], // Load skills from .claude/skills/
       systemPrompt: SYSTEM_PROMPT,
     },
   });
@@ -59,7 +59,12 @@ async function generateResume(personName: string) {
           console.log(block.text);
         }
         if (block.type === 'tool_use') {
-          if (block.name === 'WebSearch' && block.input && typeof block.input === 'object' && 'query' in block.input) {
+          if (
+            block.name === 'WebSearch' &&
+            block.input &&
+            typeof block.input === 'object' &&
+            'query' in block.input
+          ) {
             console.log(`\n🔍 Searching: "${block.input.query}"`);
           } else {
             console.log(`\n🔧 Using tool: ${block.name}`);

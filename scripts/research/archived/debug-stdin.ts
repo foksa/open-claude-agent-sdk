@@ -4,8 +4,8 @@
  * Debug script to capture stdin messages sent to CLI
  */
 
-import { query as liteQuery } from '../../src/api/query.ts';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
+import { query as liteQuery } from '../../src/api/query.ts';
 
 async function testSDK(sdk: 'lite' | 'official') {
   console.log(`\n${'='.repeat(60)}`);

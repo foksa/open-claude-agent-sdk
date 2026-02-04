@@ -26,9 +26,11 @@ export const DEFAULT_SETTING_SOURCES: string[] = [];
  * Note: Official SDK does NOT use --print flag
  */
 export const REQUIRED_CLI_FLAGS = [
-  '--output-format', 'stream-json',
-  '--input-format', 'stream-json',
-  '--verbose',  // Required for stream-json format
+  '--output-format',
+  'stream-json',
+  '--input-format',
+  'stream-json',
+  '--verbose', // Required for stream-json format
 ] as const;
 
 /**

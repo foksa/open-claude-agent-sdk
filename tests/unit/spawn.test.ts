@@ -2,7 +2,7 @@
  * Unit tests for spawn.ts - CLI argument building
  */
 
-import { test, expect, describe } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { buildCliArgs } from '../../src/core/spawn.ts';
 
 describe('buildCliArgs', () => {
@@ -78,7 +78,7 @@ describe('buildCliArgs', () => {
   test('includes --json-schema for json_schema output format', () => {
     const schema = { type: 'object', properties: { name: { type: 'string' } } };
     const args = buildCliArgs({
-      outputFormat: { type: 'json_schema', schema }
+      outputFormat: { type: 'json_schema', schema },
     });
 
     expect(args).toContain('--json-schema');

@@ -36,7 +36,7 @@ log('');
 
 // Spawn real CLI with same args
 const realCli = spawn(REAL_CLI, process.argv.slice(2), {
-  stdio: ['pipe', 'pipe', process.stderr] // stderr goes directly through
+  stdio: ['pipe', 'pipe', process.stderr], // stderr goes directly through
 });
 
 // Log stdin (what SDK sends to CLI)
@@ -48,8 +48,11 @@ process.stdin.on('data', (chunk) => {
   log(`STDIN #${stdinMessageCount}:`);
 
   // Try to parse and pretty-print JSON
-  const lines = data.trim().split('\n').filter(l => l);
-  lines.forEach(line => {
+  const lines = data
+    .trim()
+    .split('\n')
+    .filter((l) => l);
+  lines.forEach((line) => {
     try {
       const parsed = JSON.parse(line);
       log(JSON.stringify(parsed, null, 2));
@@ -75,8 +78,11 @@ realCli.stdout.on('data', (chunk) => {
   const data = chunk.toString();
 
   // Only log message types, not full content (too verbose)
-  const lines = data.trim().split('\n').filter(l => l);
-  lines.forEach(line => {
+  const lines = data
+    .trim()
+    .split('\n')
+    .filter((l) => l);
+  lines.forEach((line) => {
     try {
       const parsed = JSON.parse(line);
       const summary = `${parsed.type}${parsed.subtype ? `:${parsed.subtype}` : ''}`;
@@ -88,7 +94,9 @@ realCli.stdout.on('data', (chunk) => {
         log('');
       } else if (parsed.type === 'result') {
         const usage = parsed.usage || {};
-        log(`STDOUT #${stdoutMessageCount}: ${summary} (cache_creation=${usage.cache_creation_input_tokens}, cache_read=${usage.cache_read_input_tokens})`);
+        log(
+          `STDOUT #${stdoutMessageCount}: ${summary} (cache_creation=${usage.cache_creation_input_tokens}, cache_read=${usage.cache_read_input_tokens})`
+        );
       } else if (parsed.type === 'system' && parsed.subtype === 'init') {
         log(`STDOUT #${stdoutMessageCount}: ${summary} (tools=${parsed.tools?.length || 0})`);
       } else {

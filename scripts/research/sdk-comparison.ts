@@ -11,8 +11,8 @@
  * This demonstrates whether Lite SDK has parity with Official SDK.
  */
 
-import { query as liteQuery } from '../../src/api/query.ts';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
+import { query as liteQuery } from '../../src/api/query.ts';
 import type { SDKMessage } from '../../src/types/index.ts';
 
 interface SDKResult {
@@ -93,7 +93,7 @@ async function testWithSDK(
         cacheReadTokens,
         inputTokens,
         outputTokens,
-        messageCount
+        messageCount,
       };
     }
   }
@@ -102,15 +102,15 @@ async function testWithSDK(
 }
 
 async function main() {
-  console.log('=' .repeat(70));
+  console.log('='.repeat(70));
   console.log('SDK COMPARISON: Lite vs Official');
-  console.log('=' .repeat(70));
+  console.log('='.repeat(70));
   console.log('\nTest Plan:');
   console.log('1. Official SDK + Embedded CLI (baseline)');
   console.log('2. Lite SDK + Embedded CLI (should match #1)');
   console.log('3. Official SDK + Local CLI (may load user config)');
   console.log('4. Lite SDK + Local CLI (may load user config)');
-  console.log('=' .repeat(70));
+  console.log('='.repeat(70));
 
   const testPrompt = 'Calculate 2+2 and explain in one sentence';
 
@@ -153,9 +153,9 @@ async function main() {
   }
 
   // Print comparison table
-  console.log('\n' + '=' .repeat(70));
+  console.log('\n' + '='.repeat(70));
   console.log('RESULTS COMPARISON');
-  console.log('=' .repeat(70));
+  console.log('='.repeat(70));
 
   console.log('\n| SDK | CLI Type | First Token | Total Time | Cost | Messages |');
   console.log('|-----|----------|-------------|------------|------|----------|');
@@ -163,11 +163,11 @@ async function main() {
   for (const result of results) {
     console.log(
       `| ${result.sdk.padEnd(8)} ` +
-      `| ${result.cliType.padEnd(8)} ` +
-      `| ${(result.timeToFirstToken || 0).toString().padEnd(11)}ms ` +
-      `| ${result.totalTime.toString().padEnd(10)}ms ` +
-      `| $${result.totalCost.toFixed(4)} ` +
-      `| ${result.messageCount.toString().padEnd(8)} |`
+        `| ${result.cliType.padEnd(8)} ` +
+        `| ${(result.timeToFirstToken || 0).toString().padEnd(11)}ms ` +
+        `| ${result.totalTime.toString().padEnd(10)}ms ` +
+        `| $${result.totalCost.toFixed(4)} ` +
+        `| ${result.messageCount.toString().padEnd(8)} |`
     );
   }
 
@@ -178,29 +178,29 @@ async function main() {
   for (const result of results) {
     console.log(
       `| ${result.sdk.padEnd(8)} ` +
-      `| ${result.cliType.padEnd(8)} ` +
-      `| ${result.cacheCreationTokens.toString().padEnd(12)} ` +
-      `| ${result.cacheReadTokens.toString().padEnd(10)} ` +
-      `| ${result.inputTokens.toString().padEnd(5)} ` +
-      `| ${result.outputTokens.toString().padEnd(6)} |`
+        `| ${result.cliType.padEnd(8)} ` +
+        `| ${result.cacheCreationTokens.toString().padEnd(12)} ` +
+        `| ${result.cacheReadTokens.toString().padEnd(10)} ` +
+        `| ${result.inputTokens.toString().padEnd(5)} ` +
+        `| ${result.outputTokens.toString().padEnd(6)} |`
     );
   }
 
   // Calculate differences (embedded CLI only - apples to apples)
-  const officialEmbedded = results.find(r => r.sdk === 'official' && r.cliType === 'embedded');
-  const liteEmbedded = results.find(r => r.sdk === 'lite' && r.cliType === 'embedded');
+  const officialEmbedded = results.find((r) => r.sdk === 'official' && r.cliType === 'embedded');
+  const liteEmbedded = results.find((r) => r.sdk === 'lite' && r.cliType === 'embedded');
 
   if (officialEmbedded && liteEmbedded) {
-    console.log('\n' + '=' .repeat(70));
+    console.log('\n' + '='.repeat(70));
     console.log('EMBEDDED CLI COMPARISON (Apples-to-Apples)');
-    console.log('=' .repeat(70));
+    console.log('='.repeat(70));
 
     const timeDiff = liteEmbedded.totalTime - officialEmbedded.totalTime;
-    const timeDiffPercent = (timeDiff / officialEmbedded.totalTime * 100).toFixed(1);
+    const timeDiffPercent = ((timeDiff / officialEmbedded.totalTime) * 100).toFixed(1);
     const timeSymbol = timeDiff > 0 ? '+' : '';
 
     const costDiff = liteEmbedded.totalCost - officialEmbedded.totalCost;
-    const costDiffPercent = (costDiff / officialEmbedded.totalCost * 100).toFixed(1);
+    const costDiffPercent = ((costDiff / officialEmbedded.totalCost) * 100).toFixed(1);
     const costSymbol = costDiff > 0 ? '+' : '';
 
     console.log(`\n⏱️  Time Difference:`);
@@ -211,7 +211,9 @@ async function main() {
     console.log(`\n💰 Cost Difference:`);
     console.log(`   Official: $${officialEmbedded.totalCost.toFixed(4)}`);
     console.log(`   Lite:     $${liteEmbedded.totalCost.toFixed(4)}`);
-    console.log(`   Diff:     ${costSymbol}$${costDiff.toFixed(4)} (${costSymbol}${costDiffPercent}%)`);
+    console.log(
+      `   Diff:     ${costSymbol}$${costDiff.toFixed(4)} (${costSymbol}${costDiffPercent}%)`
+    );
 
     console.log(`\n📊 Token Differences:`);
     const cacheDiff = liteEmbedded.cacheCreationTokens - officialEmbedded.cacheCreationTokens;
@@ -220,11 +222,14 @@ async function main() {
     console.log(`   Cache Read:     ${cacheReadDiff > 0 ? '+' : ''}${cacheReadDiff} tokens`);
 
     // Verdict
-    console.log('\n' + '=' .repeat(70));
+    console.log('\n' + '='.repeat(70));
     if (Math.abs(parseFloat(timeDiffPercent)) < 5 && Math.abs(parseFloat(costDiffPercent)) < 5) {
       console.log('✅ VERDICT: Lite SDK has PARITY with Official SDK');
       console.log('   Performance and cost are within 5% margin.');
-    } else if (Math.abs(parseFloat(timeDiffPercent)) < 20 && Math.abs(parseFloat(costDiffPercent)) < 20) {
+    } else if (
+      Math.abs(parseFloat(timeDiffPercent)) < 20 &&
+      Math.abs(parseFloat(costDiffPercent)) < 20
+    ) {
       console.log('⚠️  VERDICT: Lite SDK is CLOSE to Official SDK');
       console.log('   Minor differences detected (under 20%).');
     } else {
@@ -234,21 +239,23 @@ async function main() {
   }
 
   // Compare local vs embedded (for each SDK)
-  const officialLocal = results.find(r => r.sdk === 'official' && r.cliType === 'local');
-  const liteLocal = results.find(r => r.sdk === 'lite' && r.cliType === 'local');
+  const officialLocal = results.find((r) => r.sdk === 'official' && r.cliType === 'local');
+  const liteLocal = results.find((r) => r.sdk === 'lite' && r.cliType === 'local');
 
   if (officialEmbedded && officialLocal) {
-    console.log('\n' + '=' .repeat(70));
+    console.log('\n' + '='.repeat(70));
     console.log('OFFICIAL SDK: Embedded vs Local CLI');
-    console.log('=' .repeat(70));
+    console.log('='.repeat(70));
 
     const costDiff = officialLocal.totalCost - officialEmbedded.totalCost;
-    const costDiffPercent = (costDiff / officialEmbedded.totalCost * 100).toFixed(1);
+    const costDiffPercent = ((costDiff / officialEmbedded.totalCost) * 100).toFixed(1);
 
     console.log(`\n💰 Cost Impact of Local CLI:`);
     console.log(`   Embedded: $${officialEmbedded.totalCost.toFixed(4)}`);
     console.log(`   Local:    $${officialLocal.totalCost.toFixed(4)}`);
-    console.log(`   Diff:     ${costDiff > 0 ? '+' : ''}$${costDiff.toFixed(4)} (${costDiff > 0 ? '+' : ''}${costDiffPercent}%)`);
+    console.log(
+      `   Diff:     ${costDiff > 0 ? '+' : ''}$${costDiff.toFixed(4)} (${costDiff > 0 ? '+' : ''}${costDiffPercent}%)`
+    );
 
     if (Math.abs(parseFloat(costDiffPercent)) > 10) {
       console.log('\n⚠️  WARNING: Local CLI has significantly different cost!');
@@ -257,17 +264,19 @@ async function main() {
   }
 
   if (liteEmbedded && liteLocal) {
-    console.log('\n' + '=' .repeat(70));
+    console.log('\n' + '='.repeat(70));
     console.log('LITE SDK: Embedded vs Local CLI');
-    console.log('=' .repeat(70));
+    console.log('='.repeat(70));
 
     const costDiff = liteLocal.totalCost - liteEmbedded.totalCost;
-    const costDiffPercent = (costDiff / liteEmbedded.totalCost * 100).toFixed(1);
+    const costDiffPercent = ((costDiff / liteEmbedded.totalCost) * 100).toFixed(1);
 
     console.log(`\n💰 Cost Impact of Local CLI:`);
     console.log(`   Embedded: $${liteEmbedded.totalCost.toFixed(4)}`);
     console.log(`   Local:    $${liteLocal.totalCost.toFixed(4)}`);
-    console.log(`   Diff:     ${costDiff > 0 ? '+' : ''}$${costDiff.toFixed(4)} (${costDiff > 0 ? '+' : ''}${costDiffPercent}%)`);
+    console.log(
+      `   Diff:     ${costDiff > 0 ? '+' : ''}$${costDiff.toFixed(4)} (${costDiff > 0 ? '+' : ''}${costDiffPercent}%)`
+    );
 
     if (Math.abs(parseFloat(costDiffPercent)) > 10) {
       console.log('\n⚠️  WARNING: Local CLI has significantly different cost!');
@@ -275,9 +284,9 @@ async function main() {
     }
   }
 
-  console.log('\n' + '=' .repeat(70));
+  console.log('\n' + '='.repeat(70));
   console.log('KEY FINDINGS');
-  console.log('=' .repeat(70));
+  console.log('='.repeat(70));
   console.log('\n1. Cache Token Variance:');
   console.log('   - First runs show high cache creation variance (3000+ tokens)');
   console.log('   - Subsequent runs stabilize (cache reads used instead)');
@@ -295,9 +304,9 @@ async function main() {
   console.log('\n💡 RECOMMENDATION:');
   console.log('   Run this script multiple times to see cache behavior variations.');
   console.log('   The extra cache read tokens need further investigation.');
-  console.log('\n' + '=' .repeat(70));
+  console.log('\n' + '='.repeat(70));
   console.log('✅ Comparison complete');
-  console.log('=' .repeat(70));
+  console.log('='.repeat(70));
 }
 
 main().catch(console.error);

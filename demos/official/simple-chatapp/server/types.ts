@@ -1,4 +1,4 @@
-import type { WebSocket } from "ws";
+import type { WebSocket } from 'ws';
 
 // WebSocket client with session data
 export interface WSClient extends WebSocket {
@@ -18,20 +18,20 @@ export interface Chat {
 export interface ChatMessage {
   id: string;
   chatId: string;
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
   timestamp: string;
 }
 
 // WebSocket incoming messages
 export interface WSChatMessage {
-  type: "chat";
+  type: 'chat';
   content: string;
   chatId: string;
 }
 
 export interface WSSubscribeMessage {
-  type: "subscribe";
+  type: 'subscribe';
   chatId: string;
 }
 

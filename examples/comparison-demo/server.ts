@@ -3,10 +3,10 @@
  * Now with 100% API compatibility!
  */
 
-import index from "./index.html";
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as ourQuery } from '../../src/index.ts';
-import type { SDKMessage, SDKUserMessage, Query } from '../../src/types/index.ts';
+import type { Query, SDKMessage, SDKUserMessage } from '../../src/types/index.ts';
+import index from './index.html';
 
 const PORT = 3000;
 
@@ -38,7 +38,7 @@ class MessageChannel {
       if (this.queue.length > 0) {
         yield this.queue.shift()!;
       } else if (!this.done) {
-        const result = await new Promise<IteratorResult<SDKUserMessage>>(resolve => {
+        const result = await new Promise<IteratorResult<SDKUserMessage>>((resolve) => {
           this.resolvers.push(resolve);
         });
         if (result.done) return;
@@ -72,14 +72,14 @@ Bun.serve({
 
       if (transpiled.outputs.length > 0) {
         return new Response(transpiled.outputs[0], {
-          headers: { "Content-Type": "application/javascript" },
+          headers: { 'Content-Type': 'application/javascript' },
         });
       }
     }
 
     // Serve HTML
-    return new Response(Bun.file("./index.html"), {
-      headers: { "Content-Type": "text/html" },
+    return new Response(Bun.file('./index.html'), {
+      headers: { 'Content-Type': 'text/html' },
     });
   },
   websocket: {
@@ -93,10 +93,12 @@ Bun.serve({
         const { prompt, sdk, continue: isContinue, sessionId } = data;
 
         if (!prompt || !sdk) {
-          ws.send(JSON.stringify({
-            sdk,
-            error: 'Missing prompt or sdk parameter'
-          }));
+          ws.send(
+            JSON.stringify({
+              sdk,
+              error: 'Missing prompt or sdk parameter',
+            })
+          );
           return;
         }
 
@@ -108,10 +110,12 @@ Bun.serve({
 
           const channel = messageChannels.get(channelKey);
           if (!channel) {
-            ws.send(JSON.stringify({
-              sdk,
-              error: 'No active query. Please start a new query first.'
-            }));
+            ws.send(
+              JSON.stringify({
+                sdk,
+                error: 'No active query. Please start a new query first.',
+              })
+            );
             return;
           }
 
@@ -120,10 +124,10 @@ Bun.serve({
             type: 'user',
             message: {
               role: 'user',
-              content: prompt
+              content: prompt,
             },
             session_id: sessionId,
-            parent_tool_use_id: null
+            parent_tool_use_id: null,
           });
 
           console.log(`[${sdk.toUpperCase()}] Message pushed to channel`);
@@ -149,10 +153,10 @@ Bun.serve({
           type: 'user',
           message: {
             role: 'user',
-            content: prompt
+            content: prompt,
           },
           session_id: '',
-          parent_tool_use_id: null
+          parent_tool_use_id: null,
         });
 
         // Choose SDK
@@ -167,17 +171,21 @@ Bun.serve({
                 permissionMode: 'bypassPermissions',
                 allowDangerouslySkipPermissions: true,
                 maxTurns: 20,
-              }
+              },
             });
 
             // Stream responses
             for await (const msg of q) {
-              ws.send(JSON.stringify({
-                sdk,
-                message: msg
-              }));
+              ws.send(
+                JSON.stringify({
+                  sdk,
+                  message: msg,
+                })
+              );
 
-              console.log(`[${sdk.toUpperCase()}] ${msg.type}${msg.subtype ? `:${msg.subtype}` : ''}`);
+              console.log(
+                `[${sdk.toUpperCase()}] ${msg.type}${msg.subtype ? `:${msg.subtype}` : ''}`
+              );
 
               if (msg.type === 'result') {
                 console.log(`[${sdk.toUpperCase()}] Result received (waiting for more input...)`);
@@ -187,23 +195,25 @@ Bun.serve({
             // Query ended
             console.log(`[${sdk.toUpperCase()}] Query ended`);
             messageChannels.delete(channelKey);
-
           } catch (error: any) {
             console.error(`[${sdk.toUpperCase()}] Query error:`, error);
-            ws.send(JSON.stringify({
-              sdk,
-              error: error.message || 'Query failed'
-            }));
+            ws.send(
+              JSON.stringify({
+                sdk,
+                error: error.message || 'Query failed',
+              })
+            );
             messageChannels.delete(channelKey);
           }
         })();
-
       } catch (error: any) {
         console.error('Message parsing error:', error);
-        ws.send(JSON.stringify({
-          sdk: 'unknown',
-          error: 'Invalid message format'
-        }));
+        ws.send(
+          JSON.stringify({
+            sdk: 'unknown',
+            error: 'Invalid message format',
+          })
+        );
       }
     },
 
@@ -218,12 +228,12 @@ Bun.serve({
 
     error(ws, error) {
       console.error('WebSocket error:', error);
-    }
+    },
   },
   development: {
     hmr: true,
     console: true,
-  }
+  },
 });
 
 console.log(`

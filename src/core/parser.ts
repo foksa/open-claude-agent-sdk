@@ -28,12 +28,10 @@ import type { SDKMessage } from '../types/index.ts';
  * @param stream Readable stream (stdout from CLI process)
  * @yields SDKMessage objects parsed from NDJSON
  */
-export async function* parseNDJSON(
-  stream: Readable
-): AsyncIterableIterator<SDKMessage> {
+export async function* parseNDJSON(stream: Readable): AsyncIterableIterator<SDKMessage> {
   const rl = createInterface({
     input: stream,
-    crlfDelay: Infinity  // Treat \r\n as single line break
+    crlfDelay: Infinity, // Treat \r\n as single line break
   });
 
   try {

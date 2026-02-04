@@ -2,11 +2,11 @@
  * Unit tests for detection.ts - CLI binary detection
  */
 
-import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
-import { detectClaudeBinary } from '../../src/core/detection.ts';
-import { writeFileSync, unlinkSync, chmodSync } from 'node:fs';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { chmodSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { detectClaudeBinary } from '../../src/core/detection.ts';
 
 describe('detectClaudeBinary', () => {
   let tempFile: string | null = null;

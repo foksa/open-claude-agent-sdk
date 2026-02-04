@@ -20,20 +20,26 @@ async function captureWithDirectSpawn(label: string): Promise<CapturedData> {
 
     const args = [
       '--print',
-      '--output-format', 'stream-json',
-      '--input-format', 'stream-json',
+      '--output-format',
+      'stream-json',
+      '--input-format',
+      'stream-json',
       '--verbose',
-      '--permission-mode', 'bypassPermissions',
-      '--model', 'haiku',
-      '--max-turns', '1',
-      '--setting-sources', ''
+      '--permission-mode',
+      'bypassPermissions',
+      '--model',
+      'haiku',
+      '--max-turns',
+      '1',
+      '--setting-sources',
+      '',
     ];
 
     console.log(`\n${label}:`);
     console.log('Args:', args.join(' '));
 
     const proc = spawn(embeddedCli, args, {
-      stdio: ['pipe', 'pipe', 'inherit']
+      stdio: ['pipe', 'pipe', 'inherit'],
     });
 
     const stdinMessages: any[] = [];
@@ -41,7 +47,7 @@ async function captureWithDirectSpawn(label: string): Promise<CapturedData> {
 
     // Monitor stdin
     const originalWrite = proc.stdin!.write.bind(proc.stdin!);
-    proc.stdin!.write = function(chunk: any, ...rest: any[]): boolean {
+    proc.stdin!.write = function (chunk: any, ...rest: any[]): boolean {
       const msg = chunk.toString().trim();
       try {
         const parsed = JSON.parse(msg);
@@ -54,7 +60,7 @@ async function captureWithDirectSpawn(label: string): Promise<CapturedData> {
     // Monitor stdout
     const rl = createInterface({
       input: proc.stdout!,
-      crlfDelay: Infinity
+      crlfDelay: Infinity,
     });
 
     rl.on('line', (line) => {
@@ -66,7 +72,7 @@ async function captureWithDirectSpawn(label: string): Promise<CapturedData> {
           resolve({
             cliArgs: args,
             stdinMessages,
-            firstResultUsage
+            firstResultUsage,
           });
         }
       } catch {}
@@ -76,12 +82,14 @@ async function captureWithDirectSpawn(label: string): Promise<CapturedData> {
 
     // Send user message after CLI is ready
     setTimeout(() => {
-      proc.stdin!.write(JSON.stringify({
-        type: 'user',
-        message: { role: 'user', content: 'Hi' },
-        session_id: '',
-        parent_tool_use_id: null
-      }) + '\n');
+      proc.stdin!.write(
+        JSON.stringify({
+          type: 'user',
+          message: { role: 'user', content: 'Hi' },
+          session_id: '',
+          parent_tool_use_id: null,
+        }) + '\n'
+      );
     }, 100);
 
     setTimeout(() => reject(new Error('Timeout')), 10000);
@@ -100,16 +108,16 @@ async function captureSDK(sdk: 'official' | 'lite'): Promise<CapturedData> {
     let captured: CapturedData = {
       cliArgs: [],
       stdinMessages: [],
-      firstResultUsage: null
+      firstResultUsage: null,
     };
 
     // Intercept child_process
-    Module.prototype.require = function(id: string) {
+    Module.prototype.require = function (id: string) {
       if (id === 'node:child_process' || id === 'child_process') {
         const cp = originalRequire.apply(this, arguments);
         const originalSpawn = cp.spawn;
 
-        cp.spawn = function(command: string, args: string[], ...rest: any[]) {
+        cp.spawn = function (command: string, args: string[], ...rest: any[]) {
           console.log('CLI command:', command);
           console.log('CLI args:', args.join(' '));
           captured.cliArgs = args;
@@ -118,12 +126,14 @@ async function captureSDK(sdk: 'official' | 'lite'): Promise<CapturedData> {
 
           if (proc.stdin) {
             const origWrite = proc.stdin.write.bind(proc.stdin);
-            proc.stdin.write = function(chunk: any, ...rest: any[]): boolean {
+            proc.stdin.write = function (chunk: any, ...rest: any[]): boolean {
               const msg = chunk.toString().trim();
               try {
                 const parsed = JSON.parse(msg);
                 captured.stdinMessages.push(parsed);
-                console.log(`  → stdin: ${parsed.type}${parsed.subtype ? ':' + parsed.subtype : ''}`);
+                console.log(
+                  `  → stdin: ${parsed.type}${parsed.subtype ? ':' + parsed.subtype : ''}`
+                );
               } catch {}
               return origWrite(chunk, ...rest);
             } as any;
@@ -179,7 +189,7 @@ async function main() {
   console.log('='.repeat(70));
 
   const officialData = await captureSDK('official');
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise((r) => setTimeout(r, 500));
 
   const liteData = await captureSDK('lite');
 
@@ -203,7 +213,11 @@ async function main() {
   console.log('Official:', officialData.stdinMessages.length, 'messages');
   console.log('Lite:', liteData.stdinMessages.length, 'messages');
 
-  for (let i = 0; i < Math.max(officialData.stdinMessages.length, liteData.stdinMessages.length); i++) {
+  for (
+    let i = 0;
+    i < Math.max(officialData.stdinMessages.length, liteData.stdinMessages.length);
+    i++
+  ) {
     const oMsg = officialData.stdinMessages[i];
     const lMsg = liteData.stdinMessages[i];
 
@@ -226,10 +240,12 @@ async function main() {
 
   console.log('\n📋 Usage (First Result):');
   if (officialData.firstResultUsage && liteData.firstResultUsage) {
-    const oCache = officialData.firstResultUsage.cache_creation_input_tokens +
-                   officialData.firstResultUsage.cache_read_input_tokens;
-    const lCache = liteData.firstResultUsage.cache_creation_input_tokens +
-                   liteData.firstResultUsage.cache_read_input_tokens;
+    const oCache =
+      officialData.firstResultUsage.cache_creation_input_tokens +
+      officialData.firstResultUsage.cache_read_input_tokens;
+    const lCache =
+      liteData.firstResultUsage.cache_creation_input_tokens +
+      liteData.firstResultUsage.cache_read_input_tokens;
 
     console.log(`Official: ${oCache} cache tokens`);
     console.log(`Lite: ${lCache} cache tokens`);

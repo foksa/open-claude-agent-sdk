@@ -5,8 +5,8 @@
  * This will show us if tool definitions or other config differ
  */
 
-import { query as liteQuery } from '../../src/api/query.ts';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
+import { query as liteQuery } from '../../src/api/query.ts';
 
 async function captureSystemInit(sdk: 'lite' | 'official') {
   const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
@@ -106,8 +106,8 @@ async function main() {
   console.log(`  Official: ${officialKeys.join(', ')}`);
   console.log(`  Lite: ${liteKeys.join(', ')}`);
 
-  const extraInLite = liteKeys.filter(k => !officialKeys.includes(k));
-  const missingInLite = officialKeys.filter(k => !liteKeys.includes(k));
+  const extraInLite = liteKeys.filter((k) => !officialKeys.includes(k));
+  const missingInLite = officialKeys.filter((k) => !liteKeys.includes(k));
 
   if (extraInLite.length > 0) {
     console.log(`\n⚠️  Extra fields in Lite:`, extraInLite);

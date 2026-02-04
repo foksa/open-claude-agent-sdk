@@ -18,10 +18,7 @@ interface ResultMetrics {
   resultData: any; // Full result message for inspection
 }
 
-async function testWithMetrics(
-  mode: string,
-  extraArgs: string[]
-): Promise<ResultMetrics> {
+async function testWithMetrics(mode: string, extraArgs: string[]): Promise<ResultMetrics> {
   const start = Date.now();
   let firstTokenTime: number | null = null;
   let resultData: any = null;
@@ -34,8 +31,8 @@ async function testWithMetrics(
       maxTurns: 1,
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
-      _testCliArgs: extraArgs
-    } as any
+      _testCliArgs: extraArgs,
+    } as any,
   })) {
     if (!firstTokenTime && msg.type === 'assistant') {
       firstTokenTime = Date.now() - start;
@@ -52,8 +49,8 @@ async function testWithMetrics(
       console.log(`      - subtype: ${msg.subtype}`);
 
       // Check for cost/usage fields
-      const fields = Object.keys(msg).filter(k =>
-        k !== 'type' && k !== 'subtype' && k !== 'session_id'
+      const fields = Object.keys(msg).filter(
+        (k) => k !== 'type' && k !== 'subtype' && k !== 'session_id'
       );
 
       for (const field of fields) {
@@ -64,7 +61,7 @@ async function testWithMetrics(
         mode,
         timeToFirstToken: firstTokenTime,
         totalTime,
-        resultData: msg
+        resultData: msg,
       };
     }
   }
@@ -85,7 +82,8 @@ async function main() {
     '--disable-slash-commands',
     '--strict-mcp-config',
     '--no-session-persistence',
-    '--setting-sources', ''
+    '--setting-sources',
+    '',
   ]);
 
   // Comparison
@@ -96,7 +94,9 @@ async function main() {
   console.log('\n📊 Performance:');
   console.log(`   Default: ${defaultResult.totalTime}ms`);
   console.log(`   Minimal: ${minimalResult.totalTime}ms`);
-  console.log(`   Speedup: ${((1 - minimalResult.totalTime / defaultResult.totalTime) * 100).toFixed(1)}%`);
+  console.log(
+    `   Speedup: ${((1 - minimalResult.totalTime / defaultResult.totalTime) * 100).toFixed(1)}%`
+  );
 
   // Check for cost fields
   console.log('\n💰 Cost Data (from result message):');

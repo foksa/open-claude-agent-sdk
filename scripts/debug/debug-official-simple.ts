@@ -14,11 +14,11 @@ const hooks: Record<string, HookCallbackMatcher[]> = {
         async (input, toolUseId, context) => {
           console.log('[DEBUG] PreToolUse hook called!', { tool_name: input.tool_name, toolUseId });
           hookCalls.push('PreToolUse-Read');
-          return {};  // Return empty object as per examples
-        }
-      ]
-    }
-  ]
+          return {}; // Return empty object as per examples
+        },
+      ],
+    },
+  ],
 };
 
 const options: Options = {
@@ -28,7 +28,7 @@ const options: Options = {
   allowDangerouslySkipPermissions: true,
   settingSources: [],
   pathToClaudeCodeExecutable: './tests/utils/proxy-cli.cjs',
-  hooks
+  hooks,
 };
 
 console.log('[DEBUG] Starting query with options:', JSON.stringify(options, null, 2));
