@@ -722,4 +722,30 @@ describe('stdin message compatibility', () => {
     },
     { timeout: 30000 }
   );
+
+  test.concurrent(
+    'outputFormat json_schema args match official SDK',
+    async () => {
+      const schema = {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      };
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { outputFormat: { type: 'json_schema', schema } }),
+        capture(officialQuery, 'test', { outputFormat: { type: 'json_schema', schema } }),
+      ]);
+
+      expect(lite.args).toContain('--json-schema');
+      expect(official.args).toContain('--json-schema');
+
+      // Find and compare the schema values
+      const liteIdx = lite.args.indexOf('--json-schema');
+      const officialIdx = official.args.indexOf('--json-schema');
+      expect(JSON.parse(lite.args[liteIdx + 1])).toEqual(JSON.parse(official.args[officialIdx + 1]));
+
+      console.log('   outputFormat json_schema args match');
+    },
+    { timeout: 30000 }
+  );
 });

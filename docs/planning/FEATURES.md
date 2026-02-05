@@ -44,7 +44,7 @@
 | toggleMcpServer() | ⚠️ Stub | ✅ | LOW | 1 day |
 | setMcpServers() | ⚠️ Stub | ✅ | LOW | 2-3 days |
 | **Advanced Features** |
-| Structured outputs | ❌ | ✅ | HIGH | 2-3 days |
+| Structured outputs | ✅ | ✅ | HIGH | Complete |
 | Extended thinking | ⚠️ Partial | ✅ | HIGH | 1 day |
 | Skills/commands | ❌ | ✅ | HIGH | 2-3 days |
 | Budget tracking | ⚠️ Partial | ✅ | HIGH | 2-3 days |
@@ -183,7 +183,7 @@ for await (const event of session.stream()) {
 
 | Option | Lite SDK | Official SDK | CLI Flag | Priority |
 |--------|----------|--------------|----------|----------|
-| `outputFormat` | ❌ | ✅ | `--json-schema` | HIGH |
+| `outputFormat` | ✅ | ✅ | `--json-schema` | Complete |
 | `settingSources` | ✅ Tested | ✅ | `--setting-sources` | - |
 
 ### Phase 2 Options (Advanced)

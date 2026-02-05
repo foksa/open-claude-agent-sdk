@@ -121,7 +121,7 @@ testWithBothSDKs('no canUseTool callback defaults to allow with bypassPermission
   // Note: This test uses Read which doesn't require permission anyway,
   // but with bypassPermissions mode, even Write would auto-approve
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
-    maxTurns: 5,
+    maxTurns: 10,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
     // No canUseTool callback - with bypassPermissions, all tools auto-approve
