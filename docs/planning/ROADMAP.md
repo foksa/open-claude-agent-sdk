@@ -120,28 +120,18 @@ await q.setMaxThinkingTokens(5000);
 
 ---
 
-### 1.3 Skills & Commands Loader (2-3 days) 🎯 HIGH
+### 1.3 Skills & Commands Loader ✅ COMPLETE
 
 **What:** Load project-specific skills and commands from `.claude/` directory
 
-**Why:** Essential for project-specific workflows, custom prompts
-
-**CLI Support:** `--setting-sources <sources>`
+**Status:** ✅ Implemented
 
 **Implementation:**
-```typescript
-// In buildCliArgs():
-if (options.settingSources) {
-  args.push('--setting-sources', options.settingSources.join(','));
-}
-
-// Optional: Pre-load and validate
-async function loadSkills(cwd: string): Promise<string[]> {
-  const skillsDir = path.join(cwd, '.claude', 'skills');
-  const files = await readdir(skillsDir);
-  return files.filter(f => f.endsWith('.md'));
-}
-```
+- ✅ `--setting-sources` CLI flag for loading settings from project/user directories
+- ✅ `--allowedTools` CLI flag for specifying allowed tools (including `Skill`)
+- ✅ `--disallowedTools` CLI flag for blocking specific tools
+- ✅ Integration tests for skills loading and invocation
+- ✅ Integration tests for custom commands
 
 **Usage Example:**
 ```typescript
@@ -149,21 +139,19 @@ query({
   prompt: 'Use my custom workflow',
   options: {
     settingSources: ['project', 'user'], // Load from .claude/
+    allowedTools: ['Skill', 'Read', 'Write'], // Enable Skill tool
     cwd: '/path/to/project'
   }
 });
 ```
 
-**Tests Required:**
-- Load skills from .claude/skills/*.md
-- Load commands from .claude/commands/*.md
-- Validate skill injection
-- Handle missing .claude/ directory
-
-**Files to Modify:**
-- `src/core/spawn.ts` - Add --setting-sources flag
-- `tests/integration/skills.test.ts` - New test file
-- `tests/fixtures/.claude/skills/test-skill.md` - Test fixture
+**Files Modified:**
+- `src/core/argBuilder.ts` - Add --disallowedTools flag
+- `tests/integration/skills.test.ts` - Skills integration tests
+- `tests/integration/commands.test.ts` - Commands integration tests
+- `tests/fixtures/.claude/skills/greeting/SKILL.md` - Test skill fixture
+- `tests/fixtures/.claude/commands/hello.md` - Test command fixture
+- `tests/fixtures/.claude/commands/greet.md` - Test command with arguments
 
 ---
 
@@ -232,11 +220,11 @@ for await (const msg of q) {
 
 ✅ **Structured Outputs** - JSON schema validation (PR #11)
 ✅ **Extended Thinking** - maxThinkingTokens option (PR #10)
-⏳ **Skills/Commands** - settingSources partially implemented
+✅ **Skills/Commands** - settingSources, allowedTools, disallowedTools
 ⏳ **Budget Tracking** - Token/cost monitoring
 
-**Completed so far:** 2 of 4 major features
-**Remaining:** Skills/Commands, Budget Tracking
+**Completed so far:** 3 of 4 major features
+**Remaining:** Budget Tracking
 
 ---
 
@@ -520,7 +508,7 @@ src/
 
 - [x] Structured outputs work with JSON schema
 - [x] Extended thinking via maxThinkingTokens
-- [ ] Skills/commands load from .claude/
+- [x] Skills/commands load from .claude/
 - [ ] Budget tracking shows real-time costs
 - [ ] All integration tests pass (16+ tests total)
 - [ ] Demo showcases all features
@@ -592,8 +580,9 @@ src/
 6. ✅ Implement `resume` option for session continuation
 7. ✅ Implement `sandbox` option via --settings
 8. ✅ Implement `abortController` for cancellation
-9. 🚀 Complete Phase 1 (Skills/Commands, Budget Tracking)
-10. 📦 Ship v1.0.0 with production features
+9. ✅ Implement Skills/Commands (settingSources, allowedTools, disallowedTools)
+10. 🚀 Complete Phase 1 (Budget Tracking)
+11. 📦 Ship v1.0.0 with production features
 
 ---
 

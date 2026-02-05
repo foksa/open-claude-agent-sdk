@@ -3,11 +3,15 @@
  */
 
 import { describe, test } from 'bun:test';
+import path from 'node:path';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as liteQuery } from '../../src/api/query.ts';
 import type { Options, SDKMessage } from '../../src/types/index.ts';
 
 export type SDKType = 'lite' | 'official';
+
+// Absolute path to embedded CLI - needed when tests use custom cwd
+const CLI_PATH = path.resolve('./node_modules/@anthropic-ai/claude-agent-sdk/cli.js');
 
 // ============================================================================
 // Test Wrapper Utilities
@@ -91,10 +95,11 @@ export async function runWithSDK(
   // Use Haiku by default for tests unless model is explicitly specified
   // Use empty settingSources for isolation (matches official SDK default)
   // Use embedded CLI from official SDK to ensure identical behavior
+  // Note: CLI_PATH must be absolute for tests that use custom cwd
   const testOptions: Options = {
     model: 'haiku',
     settingSources: [], // No filesystem settings - faster & cheaper
-    pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+    pathToClaudeCodeExecutable: CLI_PATH,
     ...options,
   };
 
