@@ -332,7 +332,10 @@ describe('stdin message compatibility', () => {
           Array.isArray(officialUser.message.content)
         );
 
-        if (Array.isArray(liteUser.message.content) && Array.isArray(officialUser.message.content)) {
+        if (
+          Array.isArray(liteUser.message.content) &&
+          Array.isArray(officialUser.message.content)
+        ) {
           expect(liteUser.message.content.length).toBe(officialUser.message.content.length);
 
           // First content item should be text with same content
