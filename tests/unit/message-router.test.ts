@@ -4,8 +4,8 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Readable, Writable } from 'node:stream';
-import { ControlProtocolHandler } from '../../src/core/control.ts';
 import { MessageRouter } from '../../src/api/MessageRouter.ts';
+import { ControlProtocolHandler } from '../../src/core/control.ts';
 import type { SDKMessage } from '../../src/types/index.ts';
 
 // Helper to create a readable stream from lines
@@ -143,12 +143,15 @@ describe('MessageRouter', () => {
   });
 
   test('close stops the readline interface', async () => {
-    const stdout = createReadableFromLines([
-      JSON.stringify({ type: 'system', message: 'Hello' }),
-    ]);
+    const stdout = createReadableFromLines([JSON.stringify({ type: 'system', message: 'Hello' })]);
 
     const controlHandler = new ControlProtocolHandler(createMockWritable(), {});
-    const router = new MessageRouter(stdout, controlHandler, () => {}, () => {});
+    const router = new MessageRouter(
+      stdout,
+      controlHandler,
+      () => {},
+      () => {}
+    );
 
     // Start reading (async)
     const readPromise = router.startReading();

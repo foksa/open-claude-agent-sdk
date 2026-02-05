@@ -4,10 +4,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import type { ChildProcess } from 'node:child_process';
-import {
-  DefaultProcessFactory,
-  type ProcessFactory,
-} from '../../src/api/ProcessFactory.ts';
+import { DefaultProcessFactory, type ProcessFactory } from '../../src/api/ProcessFactory.ts';
 
 describe('ProcessFactory interface', () => {
   test('can create mock implementation', () => {
