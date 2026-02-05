@@ -1,8 +1,8 @@
 /**
- * Unit tests for QueryImpl AsyncGenerator methods
+ * Integration tests for QueryImpl AsyncGenerator methods
  *
  * Tests the throw() and return() methods for proper AsyncGenerator compliance.
- * These are integration-style tests that spawn real Claude CLI processes.
+ * These tests spawn real Claude CLI processes.
  */
 
 import { describe, expect, test } from 'bun:test';

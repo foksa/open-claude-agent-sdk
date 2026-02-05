@@ -145,7 +145,6 @@ All integration tests depend on Claude API availability.
 | Module | Tests | Coverage |
 |--------|-------|----------|
 | tests/unit/control.test.ts | 13 | ~80% of control.ts |
-| tests/unit/query-impl.test.ts | 4 | AsyncGenerator methods |
 | tests/unit/detection.test.ts | 4 | CLI detection |
 | tests/unit/spawn.test.ts | 5 | Process spawning |
 | tests/unit/message-queue.test.ts | 8 | Message queue |
@@ -159,6 +158,7 @@ All integration tests depend on Claude API availability.
 
 | Module | Tests | Notes |
 |--------|-------|-------|
+| tests/integration/query-impl.test.ts | 4 | AsyncGenerator methods |
 | tests/integration/basic.test.ts | 4 | Core query functionality |
 | tests/integration/hooks.test.ts | 10 | Hook system |
 | tests/integration/permissions.test.ts | 7 | canUseTool callback |
