@@ -46,7 +46,7 @@
 | **Advanced Features** |
 | Structured outputs | ✅ | ✅ | - | Complete |
 | Extended thinking | ✅ | ✅ | - | Complete |
-| Skills/commands | ⚠️ Partial | ✅ | HIGH | 2-3 days |
+| Skills/commands | ✅ | ✅ | - | Complete |
 | Budget tracking | ⚠️ Partial | ✅ | HIGH | 2-3 days |
 | Session management | ✅ Resume | ✅ | MEDIUM | Fork pending |
 | File checkpointing | ❌ | ✅ | LOW | 5-7 days |
@@ -184,7 +184,7 @@ for await (const event of session.stream()) {
 | Option | Lite SDK | Official SDK | CLI Flag | Priority |
 |--------|----------|--------------|----------|----------|
 | `outputFormat` | ✅ | ✅ | `--json-schema` | Complete |
-| `settingSources` | ✅ Tested | ✅ | `--setting-sources` | - |
+| `settingSources` | ✅ | ✅ | `--setting-sources` | Complete |
 
 ### Phase 2 Options (Advanced)
 
@@ -195,8 +195,8 @@ for await (const event of session.stream()) {
 | `sandbox` | ✅ | ✅ | `--settings` | Complete |
 | `abortController` | ✅ | ✅ | (signal handler) | Complete |
 | `systemPrompt` | ✅ | ✅ | stdin init message | Complete |
-| `allowedTools` | ❌ | ✅ | `--allowed-tools` | MEDIUM |
-| `disallowedTools` | ❌ | ✅ | `--disallowed-tools` | MEDIUM |
+| `allowedTools` | ✅ | ✅ | `--allowedTools` | Complete |
+| `disallowedTools` | ✅ | ✅ | `--disallowedTools` | Complete |
 | `mcpServers` | ❌ | ✅ | `--mcp-config` | LOW |
 | `agents` | ❌ | ✅ | (programmatic) | LOW |
 | `enableFileCheckpointing` | ❌ | ✅ | `--enable-checkpointing` | LOW |
@@ -486,7 +486,7 @@ for await (const msg of query({ prompt: 'Hello', options: {} })) {
 ✅ **Sandbox Config:** Complete
 ✅ **AbortController:** Complete
 ✅ **systemPrompt:** Complete
-⚠️ **Remaining Phase 1:** Skills/Commands, Budget Tracking
+⚠️ **Remaining Phase 1:** Budget Tracking
 
 ### Next Steps
 

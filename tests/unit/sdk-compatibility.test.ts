@@ -290,6 +290,60 @@ describe('CLI arguments compatibility', () => {
     },
     { timeout: 30000 }
   );
+
+  test.concurrent(
+    'allowedTools option args match official SDK',
+    async () => {
+      const allowedTools = ['Read', 'Write', 'Bash'];
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { allowedTools }),
+        capture(officialQuery, 'test', { allowedTools }),
+      ]);
+
+      expect(lite.args).toContain('--allowedTools');
+      expect(official.args).toContain('--allowedTools');
+
+      // Find the allowedTools value
+      const liteIdx = lite.args.indexOf('--allowedTools');
+      const officialIdx = official.args.indexOf('--allowedTools');
+
+      // Values should match (order may differ)
+      const liteValue = lite.args[liteIdx + 1].split(',').sort().join(',');
+      const officialValue = official.args[officialIdx + 1].split(',').sort().join(',');
+
+      expect(liteValue).toBe(officialValue);
+
+      console.log('   allowedTools args match');
+    },
+    { timeout: 30000 }
+  );
+
+  test.concurrent(
+    'disallowedTools option args match official SDK',
+    async () => {
+      const disallowedTools = ['Bash', 'Write'];
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { disallowedTools }),
+        capture(officialQuery, 'test', { disallowedTools }),
+      ]);
+
+      expect(lite.args).toContain('--disallowedTools');
+      expect(official.args).toContain('--disallowedTools');
+
+      // Find the disallowedTools value
+      const liteIdx = lite.args.indexOf('--disallowedTools');
+      const officialIdx = official.args.indexOf('--disallowedTools');
+
+      // Values should match (order may differ)
+      const liteValue = lite.args[liteIdx + 1].split(',').sort().join(',');
+      const officialValue = official.args[officialIdx + 1].split(',').sort().join(',');
+
+      expect(liteValue).toBe(officialValue);
+
+      console.log('   disallowedTools args match');
+    },
+    { timeout: 30000 }
+  );
 });
 
 // ============================================================================

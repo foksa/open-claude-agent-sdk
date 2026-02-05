@@ -86,6 +86,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--allowedTools', options.allowedTools.join(','));
   }
 
+  // Disallowed tools - pass to CLI if specified
+  if (options.disallowedTools && options.disallowedTools.length > 0) {
+    args.push('--disallowedTools', options.disallowedTools.join(','));
+  }
+
   // Setting sources (for skills/commands)
   // Official SDK default: [] (empty array) = no settings loaded
   // CLI default when flag omitted: loads all settings (user+project+local)
