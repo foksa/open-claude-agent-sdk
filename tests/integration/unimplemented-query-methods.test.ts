@@ -242,7 +242,7 @@ testWithBothSDKsTodo('setMcpServers() configures MCP servers dynamically', async
 // STUB: initializationResult() method
 // =============================================================================
 
-testWithBothSDKsTodo('initializationResult() returns initialization data', async (sdk) => {
+testWithBothSDKs('initializationResult() returns initialization data', async (sdk) => {
   /**
    * Official SDK docs (implied from Query interface):
    * "initializationResult(): Returns init data including commands, models, account info"
@@ -272,7 +272,7 @@ testWithBothSDKsTodo('initializationResult() returns initialization data', async
   expect(initResult).toBeDefined();
   expect(initResult).toHaveProperty('commands');
   expect(initResult).toHaveProperty('models');
-  expect(initResult).toHaveProperty('accountInfo');
+  expect(initResult).toHaveProperty('account');
 
   for await (const msg of q) {
     if (msg.type === 'result') break;

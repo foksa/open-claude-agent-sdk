@@ -32,6 +32,10 @@ export type SetMaxThinkingTokensRequest = {
   max_thinking_tokens: number | null;
 };
 
+export type McpStatusRequest = {
+  subtype: 'mcp_status';
+};
+
 /**
  * Union of all outbound control request types (sent from SDK to CLI)
  */
@@ -39,7 +43,8 @@ export type OutboundControlRequest =
   | InterruptRequest
   | SetPermissionModeRequest
   | SetModelRequest
-  | SetMaxThinkingTokensRequest;
+  | SetMaxThinkingTokensRequest
+  | McpStatusRequest;
 
 // ============================================================================
 // Type-safe Request Builders
@@ -84,5 +89,12 @@ export const ControlRequests = {
   setMaxThinkingTokens: (tokens: number | null): SetMaxThinkingTokensRequest => ({
     subtype: 'set_max_thinking_tokens',
     max_thinking_tokens: tokens,
+  }),
+
+  /**
+   * Create MCP server status request
+   */
+  mcpStatus: (): McpStatusRequest => ({
+    subtype: 'mcp_status',
   }),
 };

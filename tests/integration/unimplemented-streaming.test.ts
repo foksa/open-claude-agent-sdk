@@ -338,7 +338,7 @@ testWithBothSDKsTodo('interrupt() cancels in-progress streaming', async (sdk) =>
 // STUBS: Query control methods
 // =============================================================================
 
-testWithBothSDKsTodo('supportedCommands() returns available slash commands', async (sdk) => {
+testWithBothSDKs('supportedCommands() returns available slash commands', async (sdk) => {
   /**
    * Official SDK docs:
    * "supportedCommands(): Returns available slash commands"
@@ -378,7 +378,7 @@ testWithBothSDKsTodo('supportedCommands() returns available slash commands', asy
   console.log(`   [${sdk}] Got ${commands.length} supported commands`);
 });
 
-testWithBothSDKsTodo('supportedModels() returns available models', async (sdk) => {
+testWithBothSDKs('supportedModels() returns available models', async (sdk) => {
   /**
    * Official SDK docs:
    * "supportedModels(): Returns available models with display info"
@@ -417,7 +417,7 @@ testWithBothSDKsTodo('supportedModels() returns available models', async (sdk) =
   console.log(`   [${sdk}] Got ${models.length} supported models`);
 });
 
-testWithBothSDKsTodo('mcpServerStatus() returns MCP server status', async (sdk) => {
+testWithBothSDKs('mcpServerStatus() returns MCP server status', async (sdk) => {
   /**
    * Official SDK docs:
    * "mcpServerStatus(): Returns status of connected MCP servers"
@@ -452,7 +452,7 @@ testWithBothSDKsTodo('mcpServerStatus() returns MCP server status', async (sdk) 
   console.log(`   [${sdk}] Got ${status.length} MCP servers`);
 });
 
-testWithBothSDKsTodo('accountInfo() returns account information', async (sdk) => {
+testWithBothSDKs('accountInfo() returns account information', async (sdk) => {
   /**
    * Official SDK docs:
    * "accountInfo(): Returns account information"
