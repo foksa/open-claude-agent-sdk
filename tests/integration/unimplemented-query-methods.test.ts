@@ -62,7 +62,7 @@ testWithBothSDKsTodo('rewindFiles() restores files to checkpoint state', async (
   for await (const msg of q) {
     // Capture first user message UUID for rewind target
     if (msg.type === 'user' && !firstUserMessageUuid) {
-      firstUserMessageUuid = (msg as any).uuid;
+      firstUserMessageUuid = (msg as unknown as { uuid: string }).uuid;
     }
     if (msg.type === 'result') break;
   }
@@ -150,8 +150,8 @@ testWithBothSDKs('reconnectMcpServer() sends mcp_reconnect control request', asy
   // CLI returns error because no server named 'test-server' is configured
   try {
     await q.reconnectMcpServer('test-server');
-  } catch (e: any) {
-    expect(e.message).toContain('Server not found');
+  } catch (e: unknown) {
+    expect(e instanceof Error ? e.message : '').toContain('Server not found');
   }
 
   for await (const msg of q) {
@@ -181,8 +181,8 @@ testWithBothSDKs('toggleMcpServer() sends mcp_toggle control request', async (sd
   // CLI returns error because no server named 'test-server' is configured
   try {
     await q.toggleMcpServer('test-server', false);
-  } catch (e: any) {
-    expect(e.message).toContain('Server not found');
+  } catch (e: unknown) {
+    expect(e instanceof Error ? e.message : '').toContain('Server not found');
   }
 
   for await (const msg of q) {
@@ -379,7 +379,7 @@ testWithBothSDKs('supports using await with async dispose', async (sdk) => {
   });
 
   // Verify Symbol.asyncDispose exists
-  expect(typeof (q as any)[Symbol.asyncDispose]).toBe('function');
+  expect(typeof (q as unknown as Record<symbol, unknown>)[Symbol.asyncDispose]).toBe('function');
 
   // Clean up normally
   for await (const msg of q) {

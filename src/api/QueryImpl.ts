@@ -15,18 +15,21 @@ import { ControlRequests, type OutboundControlRequest } from '../core/controlReq
 import { buildHookConfig } from '../core/hookConfig.ts';
 import type {
   AccountInfo,
+  McpServerConfig,
   McpServerStatus,
+  McpSetServersResult,
   ModelInfo,
   Options,
   PermissionMode,
   Query,
+  RewindFilesResult,
   SDKControlInitializeResponse,
   SDKMessage,
   SDKUserMessage,
   SlashCommand,
 } from '../types/index.ts';
 import { MessageQueue } from './MessageQueue.ts';
-import { MessageRouter } from './MessageRouter.ts';
+import { type ControlResponsePayload, MessageRouter } from './MessageRouter.ts';
 import { DefaultProcessFactory, type ProcessFactory } from './ProcessFactory.ts';
 
 export class QueryImpl implements Query {
@@ -171,8 +174,7 @@ export class QueryImpl implements Query {
    * Handle control_response messages from CLI
    * Routes to init promise or pending request/response handlers
    */
-  // biome-ignore lint/suspicious/noExplicitAny: control_response shape is not in SDK types
-  private handleControlResponse(response: any): void {
+  private handleControlResponse(response: ControlResponsePayload): void {
     if (!response) return;
 
     const requestId = response.request_id;
@@ -208,18 +210,18 @@ export class QueryImpl implements Query {
     return this.messageQueue.next();
   }
 
-  async return(_value?: any): Promise<IteratorResult<SDKMessage>> {
+  async return(_value?: unknown): Promise<IteratorResult<SDKMessage>> {
     this.close();
-    return { value: undefined as any, done: true };
+    return { value: undefined as unknown as SDKMessage, done: true };
   }
 
-  async throw(e?: any): Promise<IteratorResult<SDKMessage>> {
+  async throw(e?: unknown): Promise<IteratorResult<SDKMessage>> {
     this.close();
     throw e;
   }
 
   [Symbol.asyncIterator](): AsyncGenerator<SDKMessage, void> {
-    return this as any;
+    return this as unknown as AsyncGenerator<SDKMessage, void>;
   }
 
   async [Symbol.asyncDispose](): Promise<void> {
@@ -296,7 +298,10 @@ export class QueryImpl implements Query {
     return init.account;
   }
 
-  async rewindFiles(_userMessageId: string, _options?: { dryRun?: boolean }): Promise<any> {
+  async rewindFiles(
+    _userMessageId: string,
+    _options?: { dryRun?: boolean }
+  ): Promise<RewindFilesResult> {
     throw new Error('rewindFiles() not implemented in Baby Step 5');
   }
 
@@ -308,7 +313,7 @@ export class QueryImpl implements Query {
     await this.sendControlRequestWithResponse(ControlRequests.mcpToggle(serverName, enabled));
   }
 
-  async setMcpServers(servers: Record<string, any>): Promise<any> {
+  async setMcpServers(servers: Record<string, McpServerConfig>): Promise<McpSetServersResult> {
     return this.sendControlRequestWithResponse(ControlRequests.mcpSetServers(servers));
   }
 
@@ -421,10 +426,11 @@ export class QueryImpl implements Query {
       for await (const userMsg of generator) {
         this.process.stdin?.write(`${JSON.stringify(userMsg)}\n`);
       }
-    } catch (error: any) {
-      console.error('[QueryImpl] Error consuming input generator:', error);
+    } catch (error: unknown) {
+      const wrappedError = error instanceof Error ? error : new Error(String(error));
+      console.error('[QueryImpl] Error consuming input generator:', wrappedError);
       if (!this.messageQueue.isDone()) {
-        this.messageQueue.complete(error);
+        this.messageQueue.complete(wrappedError);
       }
     }
   }

@@ -17,8 +17,15 @@ import type { SDKMessage } from '../types/index.ts';
 
 export type MessageCallback = (msg: SDKMessage) => void;
 export type DoneCallback = (error?: Error) => void;
-// biome-ignore lint/suspicious/noExplicitAny: control_response shape is not in SDK types
-export type ControlResponseCallback = (response: any) => void;
+export type ControlResponsePayload = {
+  subtype: string;
+  request_id: string;
+  response?: Record<string, unknown>;
+  error?: string;
+};
+export type ControlResponseCallback = (response: ControlResponsePayload) => void;
+
+type RawMessage = StdoutMessage | { type: 'control_response'; response: ControlResponsePayload };
 
 export class MessageRouter {
   private readline: Interface | null = null;
@@ -51,7 +58,7 @@ export class MessageRouter {
         }
 
         try {
-          const msg = JSON.parse(line) as StdoutMessage;
+          const msg = JSON.parse(line) as RawMessage;
 
           // Debug: log message type
           if (process.env.DEBUG_HOOKS) {
@@ -60,19 +67,17 @@ export class MessageRouter {
 
           if (msg.type === 'control_request') {
             if (process.env.DEBUG_HOOKS) {
-              // biome-ignore lint/suspicious/noExplicitAny: control_request has request.subtype
-              console.error('[DEBUG] !!! CONTROL REQUEST !!!:', (msg as any).request?.subtype);
+              console.error('[DEBUG] !!! CONTROL REQUEST !!!:', msg.request?.subtype);
             }
             // Handle control request internally (don't yield to user)
             await this.controlHandler.handleControlRequest(msg);
-            // biome-ignore lint/suspicious/noExplicitAny: control_response isn't in StdoutMessage union
-          } else if ((msg as any).type === 'control_response') {
+          } else if (msg.type === 'control_response') {
             // Route control_response to callback if provided, otherwise filter silently
             if (process.env.DEBUG_HOOKS) {
               console.error('[DEBUG] control_response received');
             }
             if (this.onControlResponse) {
-              this.onControlResponse((msg as any).response);
+              this.onControlResponse(msg.response);
             }
           } else {
             // Regular message - pass to callback

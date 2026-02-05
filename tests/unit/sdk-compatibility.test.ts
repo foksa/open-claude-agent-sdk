@@ -12,16 +12,18 @@ import { describe, expect, test } from 'bun:test';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as liteQuery } from '../../src/api/query.ts';
-import type { HookCallbackMatcher } from '../../src/types/index.ts';
+import type { HookCallbackMatcher, Query } from '../../src/types/index.ts';
 
 const CAPTURE_CLI = './src/tools/capture-cli.cjs';
 
 // Global counter to ensure unique file names even in parallel
 let captureCounter = 0;
 
+type StdinMessage = Record<string, unknown>;
+
 type CaptureResult = {
   args: string[];
-  stdin: any[];
+  stdin: StdinMessage[];
 };
 
 /**
@@ -30,7 +32,7 @@ type CaptureResult = {
 async function capture(
   queryFn: typeof liteQuery,
   prompt: string,
-  options: Record<string, any> = {}
+  options: Record<string, unknown> = {}
 ): Promise<CaptureResult> {
   // Use counter + random for uniqueness even in parallel tests
   const uniqueId = `${Date.now()}-${++captureCounter}-${Math.random().toString(36).slice(2)}`;
@@ -90,10 +92,8 @@ CAPTURE_OUTPUT_FILE="${outputFile}" exec node "${process.cwd()}/${CAPTURE_CLI}" 
 async function captureWithQuery(
   queryFn: typeof liteQuery,
   prompt: string,
-  // biome-ignore lint/suspicious/noExplicitAny: query method varies
-  queryCallback: (q: any) => Promise<void>,
-  // biome-ignore lint/suspicious/noExplicitAny: options are flexible
-  options: Record<string, any> = {}
+  queryCallback: (q: Query) => Promise<void>,
+  options: Record<string, unknown> = {}
 ): Promise<CaptureResult> {
   const uniqueId = `${Date.now()}-${++captureCounter}-${Math.random().toString(36).slice(2)}`;
   const outputFile = `/tmp/capture-${uniqueId}.json`;
@@ -147,8 +147,8 @@ CAPTURE_OUTPUT_FILE="${outputFile}" exec node "${process.cwd()}/${CAPTURE_CLI}" 
 /**
  * Normalize messages for comparison (remove dynamic fields)
  */
-function normalizeMessage(msg: any): any {
-  const clone = JSON.parse(JSON.stringify(msg));
+function normalizeMessage(msg: StdinMessage): StdinMessage {
+  const clone = JSON.parse(JSON.stringify(msg)) as Record<string, Record<string, unknown>>;
 
   // Remove dynamic fields that will differ
   delete clone.request_id;
@@ -161,7 +161,9 @@ function normalizeMessage(msg: any): any {
 
   // Normalize hook callback IDs (they're generated dynamically)
   if (clone.request?.hooks) {
-    for (const [_event, matchers] of Object.entries(clone.request.hooks as Record<string, any[]>)) {
+    for (const [_event, matchers] of Object.entries(
+      clone.request.hooks as Record<string, Array<{ hookCallbackIds?: string[] }>>
+    )) {
       for (const matcher of matchers) {
         if (matcher.hookCallbackIds) {
           // Replace with placeholder to show structure is same
@@ -548,7 +550,10 @@ describe('stdin message compatibility', () => {
       ]);
 
       // Extract message types in order
-      const getType = (m: any) => (m.type === 'control_request' ? m.request?.subtype : m.type);
+      const getType = (m: StdinMessage) =>
+        m.type === 'control_request'
+          ? (m.request as Record<string, unknown> | undefined)?.subtype
+          : m.type;
 
       const liteTypes = lite.stdin.map(getType);
       const officialTypes = official.stdin.map(getType);

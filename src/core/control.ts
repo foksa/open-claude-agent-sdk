@@ -67,10 +67,14 @@ export class ControlProtocolHandler {
           this.sendSuccess(req.request_id, {});
           break;
         default:
-          this.sendError(req.request_id, `Unknown request type: ${(req.request as any).subtype}`);
+          this.sendError(
+            req.request_id,
+            `Unknown request type: ${(req.request as { subtype: string }).subtype}`
+          );
       }
-    } catch (error: any) {
-      this.sendError(req.request_id, error.message || 'Unknown error');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.sendError(req.request_id, message);
     }
   }
 
@@ -147,8 +151,9 @@ export class ControlProtocolHandler {
       });
 
       this.sendSuccess(req.request_id, result);
-    } catch (error: any) {
-      this.sendError(req.request_id, error.message || 'Hook execution failed');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Hook execution failed';
+      this.sendError(req.request_id, message);
     }
   }
 

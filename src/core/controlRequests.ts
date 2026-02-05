@@ -7,7 +7,7 @@
  * @internal
  */
 
-import type { PermissionMode } from '../types/index.ts';
+import type { McpServerConfig, PermissionMode } from '../types/index.ts';
 
 // ============================================================================
 // Control Request Types
@@ -49,8 +49,7 @@ export type McpToggleRequest = {
 
 export type McpSetServersRequest = {
   subtype: 'mcp_set_servers';
-  // biome-ignore lint/suspicious/noExplicitAny: server config shape varies
-  servers: Record<string, any>;
+  servers: Record<string, McpServerConfig>;
 };
 
 /**
@@ -138,8 +137,7 @@ export const ControlRequests = {
   /**
    * Create MCP set servers request
    */
-  // biome-ignore lint/suspicious/noExplicitAny: server config shape varies
-  mcpSetServers: (servers: Record<string, any>): McpSetServersRequest => ({
+  mcpSetServers: (servers: Record<string, McpServerConfig>): McpSetServersRequest => ({
     subtype: 'mcp_set_servers',
     servers,
   }),
