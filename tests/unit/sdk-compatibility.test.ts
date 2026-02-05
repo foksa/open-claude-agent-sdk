@@ -742,7 +742,9 @@ describe('stdin message compatibility', () => {
       // Find and compare the schema values
       const liteIdx = lite.args.indexOf('--json-schema');
       const officialIdx = official.args.indexOf('--json-schema');
-      expect(JSON.parse(lite.args[liteIdx + 1])).toEqual(JSON.parse(official.args[officialIdx + 1]));
+      expect(JSON.parse(lite.args[liteIdx + 1])).toEqual(
+        JSON.parse(official.args[officialIdx + 1])
+      );
 
       console.log('   outputFormat json_schema args match');
     },
