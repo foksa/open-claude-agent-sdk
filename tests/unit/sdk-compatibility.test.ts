@@ -867,6 +867,96 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'reconnectMcpServer sends mcp_reconnect control request matching official SDK',
+    async () => {
+      const [lite, official] = await Promise.all([
+        captureWithQuery(liteQuery, 'test', async (q) => {
+          await q.reconnectMcpServer('test-server');
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.reconnectMcpServer('test-server');
+        }),
+      ]);
+
+      const liteMcp = lite.stdin.find((m) => m.request?.subtype === 'mcp_reconnect');
+      const officialMcp = official.stdin.find((m) => m.request?.subtype === 'mcp_reconnect');
+
+      expect(liteMcp).toBeTruthy();
+      expect(officialMcp).toBeTruthy();
+
+      if (liteMcp && officialMcp) {
+        const liteNorm = normalizeMessage(liteMcp);
+        const officialNorm = normalizeMessage(officialMcp);
+        expect(liteNorm).toEqual(officialNorm);
+      }
+
+      console.log('   reconnectMcpServer stdin messages match');
+    },
+    { timeout: 30000 }
+  );
+
+  test.concurrent(
+    'toggleMcpServer sends mcp_toggle control request matching official SDK',
+    async () => {
+      const [lite, official] = await Promise.all([
+        captureWithQuery(liteQuery, 'test', async (q) => {
+          await q.toggleMcpServer('test-server', false);
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.toggleMcpServer('test-server', false);
+        }),
+      ]);
+
+      const liteMcp = lite.stdin.find((m) => m.request?.subtype === 'mcp_toggle');
+      const officialMcp = official.stdin.find((m) => m.request?.subtype === 'mcp_toggle');
+
+      expect(liteMcp).toBeTruthy();
+      expect(officialMcp).toBeTruthy();
+
+      if (liteMcp && officialMcp) {
+        const liteNorm = normalizeMessage(liteMcp);
+        const officialNorm = normalizeMessage(officialMcp);
+        expect(liteNorm).toEqual(officialNorm);
+      }
+
+      console.log('   toggleMcpServer stdin messages match');
+    },
+    { timeout: 30000 }
+  );
+
+  test.concurrent(
+    'setMcpServers sends mcp_set_servers control request matching official SDK',
+    async () => {
+      const servers = {
+        playwright: { command: 'npx', args: ['@playwright/mcp@latest'] },
+      };
+      const [lite, official] = await Promise.all([
+        captureWithQuery(liteQuery, 'test', async (q) => {
+          await q.setMcpServers(servers);
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.setMcpServers(servers);
+        }),
+      ]);
+
+      const liteMcp = lite.stdin.find((m) => m.request?.subtype === 'mcp_set_servers');
+      const officialMcp = official.stdin.find((m) => m.request?.subtype === 'mcp_set_servers');
+
+      expect(liteMcp).toBeTruthy();
+      expect(officialMcp).toBeTruthy();
+
+      if (liteMcp && officialMcp) {
+        const liteNorm = normalizeMessage(liteMcp);
+        const officialNorm = normalizeMessage(officialMcp);
+        expect(liteNorm).toEqual(officialNorm);
+      }
+
+      console.log('   setMcpServers stdin messages match');
+    },
+    { timeout: 30000 }
+  );
+
+  test.concurrent(
     'outputFormat json_schema args match official SDK',
     async () => {
       const schema = {

@@ -300,16 +300,16 @@ export class QueryImpl implements Query {
     throw new Error('rewindFiles() not implemented in Baby Step 5');
   }
 
-  async reconnectMcpServer(_serverName: string): Promise<void> {
-    throw new Error('reconnectMcpServer() not implemented in Baby Step 5');
+  async reconnectMcpServer(serverName: string): Promise<void> {
+    await this.sendControlRequestWithResponse(ControlRequests.mcpReconnect(serverName));
   }
 
-  async toggleMcpServer(_serverName: string, _enabled: boolean): Promise<void> {
-    throw new Error('toggleMcpServer() not implemented in Baby Step 5');
+  async toggleMcpServer(serverName: string, enabled: boolean): Promise<void> {
+    await this.sendControlRequestWithResponse(ControlRequests.mcpToggle(serverName, enabled));
   }
 
-  async setMcpServers(_servers: Record<string, any>): Promise<any> {
-    throw new Error('setMcpServers() not implemented in Baby Step 5');
+  async setMcpServers(servers: Record<string, any>): Promise<any> {
+    return this.sendControlRequestWithResponse(ControlRequests.mcpSetServers(servers));
   }
 
   // ============================================================================
