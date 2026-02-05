@@ -4,7 +4,7 @@ A lightweight wrapper around Claude CLI - we're building a thin SDK that re-uses
 
 ## What This Project Is
 
-**Goal:** 65x smaller alternative to `@anthropic-ai/claude-agent-sdk` (200KB vs 13MB).
+**Goal:** Compatible open source replacement for `@anthropic-ai/claude-agent-sdk`.
 
 **Strategy:** Thin wrapper that spawns Claude CLI as subprocess and manages stdin/stdout communication via NDJSON protocol. We re-export types from official SDK for 100% type compatibility.
 

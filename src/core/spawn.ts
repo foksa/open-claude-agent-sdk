@@ -102,9 +102,18 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--debug-to-stderr');
   }
 
+  // Resume session
+  if (options.resume) {
+    args.push('--resume', options.resume);
+  }
+
+  // Sandbox configuration (passed via --settings JSON)
+  if (options.sandbox) {
+    args.push('--settings', JSON.stringify({ sandbox: options.sandbox }));
+  }
+
   // TODO: Add in future steps:
   // - --mcp-config
-  // - --resume
 
   // Baby Step 5: With --input-format stream-json, prompt is sent via stdin
   // NOT as CLI argument. The prompt will be sent as first user message on stdin.
