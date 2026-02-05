@@ -184,8 +184,9 @@ export class QueryImpl implements Query {
     }
 
     // Check if there's a pending request/response handler
-    if (requestId && this.pendingControlResponses.has(requestId)) {
-      const { resolve, reject } = this.pendingControlResponses.get(requestId)!;
+    const pending = requestId ? this.pendingControlResponses.get(requestId) : undefined;
+    if (pending) {
+      const { resolve, reject } = pending;
       this.pendingControlResponses.delete(requestId);
       if (response.subtype === 'success') {
         resolve(response.response);
@@ -316,7 +317,7 @@ export class QueryImpl implements Query {
    */
   private rejectPendingPromises(error: Error): void {
     this.initReject?.(error);
-    for (const [id, { reject }] of this.pendingControlResponses) {
+    for (const [, { reject }] of this.pendingControlResponses) {
       reject(error);
     }
     this.pendingControlResponses.clear();
