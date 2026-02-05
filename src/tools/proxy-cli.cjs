@@ -1,20 +1,40 @@
 #!/usr/bin/env node
 
 /**
- * Proxy CLI that logs all input/output and passes through to real CLI
+ * Proxy CLI - Intercepts all stdin/stdout communication between SDK and CLI
  *
- * Usage: Replace pathToClaudeCodeExecutable with this proxy
+ * This tool is essential for debugging and reverse-engineering the Claude CLI protocol.
+ * It sits between the SDK and the real CLI, logging all messages while passing them through.
+ *
+ * @example
+ * ```typescript
+ * import { query } from 'lite-claude-agent-sdk';
+ *
+ * const result = query({
+ *   prompt: 'Hello',
+ *   options: {
+ *     pathToClaudeCodeExecutable: './src/tools/proxy-cli.cjs'
+ *   }
+ * });
+ * ```
+ *
+ * Then check the logs:
+ * ```bash
+ * cat tests/research/logs/proxy-*.log
+ * ```
+ *
+ * @see docs/guides/REVERSE_ENGINEERING.md for full usage guide
  */
 
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
-// Real CLI location
+// Real CLI location (relative to project root)
 const REAL_CLI = path.join(__dirname, '../../node_modules/@anthropic-ai/claude-agent-sdk/cli.js');
 
-// Log file (saved in tests/research/logs/)
-const logDir = path.join(__dirname, '../research/logs');
+// Log file directory (in tests/research/logs/)
+const logDir = path.join(__dirname, '../../tests/research/logs');
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }

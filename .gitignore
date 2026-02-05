@@ -52,3 +52,4 @@ tests/output/
 
 # Playwright screenshots
 .playwright-mcp/
+.research/

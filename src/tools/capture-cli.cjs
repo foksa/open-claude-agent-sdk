@@ -1,15 +1,47 @@
 #!/usr/bin/env node
+
 /**
- * Capture CLI - Mock CLI that captures stdin messages AND CLI args for unit testing
+ * Capture CLI - Mock CLI that captures stdin messages and CLI args for unit testing
  *
- * Usage: node capture-cli.cjs [args...]
+ * This tool is used for unit tests to verify that the SDK sends correct CLI arguments
+ * and stdin messages without actually running the real CLI.
  *
- * Captures:
- * - All CLI arguments (process.argv)
- * - All stdin messages
+ * @example
+ * ```typescript
+ * import { query } from 'lite-claude-agent-sdk';
  *
- * Output file: Uses CAPTURE_OUTPUT_FILE env var or /tmp/capture-<pid>.json
- * Format: { args: [...], stdin: [...] }
+ * const outputFile = `/tmp/capture-${Date.now()}.json`;
+ * process.env.CAPTURE_OUTPUT_FILE = outputFile;
+ *
+ * const result = query({
+ *   prompt: 'Hello',
+ *   options: {
+ *     pathToClaudeCodeExecutable: './src/tools/capture-cli.cjs'
+ *   }
+ * });
+ *
+ * for await (const msg of result) {
+ *   if (msg.type === 'result') break;
+ * }
+ *
+ * // Check captured data
+ * const captured = JSON.parse(fs.readFileSync(outputFile, 'utf-8'));
+ * console.log(captured.args);   // CLI arguments
+ * console.log(captured.stdin);  // Stdin messages
+ * ```
+ *
+ * Output file format:
+ * ```json
+ * {
+ *   "args": ["--model", "sonnet", "--max-turns", "5", ...],
+ *   "stdin": [
+ *     { "type": "control_request", "request": { "subtype": "initialize", ... } },
+ *     { "type": "user", "message": { ... } }
+ *   ]
+ * }
+ * ```
+ *
+ * @see tests/unit/sdk-compatibility.test.ts for usage examples
  */
 
 const readline = require('node:readline');
