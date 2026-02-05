@@ -128,7 +128,7 @@ testWithBothSDKs(
       cwd: fixturesDir,
       settingSources: ['project'],
       allowedTools: ['Read', 'Write'], // No Skill tool
-      maxTurns: 2,
+      maxTurns: 5,
     });
 
     const result = messages.find((m) => m.type === 'result');

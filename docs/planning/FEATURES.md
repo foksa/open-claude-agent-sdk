@@ -35,10 +35,10 @@
 | setMaxThinkingTokens() | ✅ | ✅ | - | Complete |
 | streamInput() | ✅ | ✅ | - | Complete |
 | close() | ✅ | ✅ | - | Complete |
-| supportedCommands() | ⚠️ Stub | ✅ | LOW | 1 day |
-| supportedModels() | ⚠️ Stub | ✅ | LOW | 1 day |
-| mcpServerStatus() | ⚠️ Stub | ✅ | LOW | 2-3 days |
-| accountInfo() | ⚠️ Stub | ✅ | HIGH | 2-3 days |
+| supportedCommands() | ✅ | ✅ | - | Complete |
+| supportedModels() | ✅ | ✅ | - | Complete |
+| mcpServerStatus() | ✅ | ✅ | - | Complete |
+| accountInfo() | ✅ | ✅ | - | Complete |
 | rewindFiles() | ⚠️ Stub | ✅ | LOW | 5-7 days |
 | reconnectMcpServer() | ⚠️ Stub | ✅ | LOW | 2 days |
 | toggleMcpServer() | ⚠️ Stub | ✅ | LOW | 1 day |
@@ -368,10 +368,10 @@ These features are handled by Claude CLI or not needed for our use case:
    - Hook composition
    - Hook testing
 
-3. **Model Management** (1 day)
-   - Query available models
-   - Model metadata
-   - Version info
+3. **Model Management** ✅ Complete
+   - ✅ Query available models (supportedModels)
+   - ✅ Model metadata (initializationResult)
+   - ✅ Account info (accountInfo)
 
 4. **Sandbox Config** ✅ Complete
    - ✅ Sandbox enabled flag

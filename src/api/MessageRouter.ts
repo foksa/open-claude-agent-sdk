@@ -17,6 +17,8 @@ import type { SDKMessage } from '../types/index.ts';
 
 export type MessageCallback = (msg: SDKMessage) => void;
 export type DoneCallback = (error?: Error) => void;
+// biome-ignore lint/suspicious/noExplicitAny: control_response shape is not in SDK types
+export type ControlResponseCallback = (response: any) => void;
 
 export class MessageRouter {
   private readline: Interface | null = null;
@@ -25,7 +27,8 @@ export class MessageRouter {
     private stdout: Readable,
     private controlHandler: ControlProtocolHandler,
     private onMessage: MessageCallback,
-    private onDone: DoneCallback
+    private onDone: DoneCallback,
+    private onControlResponse?: ControlResponseCallback
   ) {}
 
   /**
@@ -64,10 +67,12 @@ export class MessageRouter {
             await this.controlHandler.handleControlRequest(msg);
             // biome-ignore lint/suspicious/noExplicitAny: control_response isn't in StdoutMessage union
           } else if ((msg as any).type === 'control_response') {
-            // Filter out control_response - internal protocol message
-            // Don't yield to user (use 'as any' since control_response isn't in SDKMessage union)
+            // Route control_response to callback if provided, otherwise filter silently
             if (process.env.DEBUG_HOOKS) {
-              console.error('[DEBUG] control_response received (filtered)');
+              console.error('[DEBUG] control_response received');
+            }
+            if (this.onControlResponse) {
+              this.onControlResponse((msg as any).response);
             }
           } else {
             // Regular message - pass to callback
