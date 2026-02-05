@@ -11,6 +11,8 @@
 
 import type { ChildProcess } from 'node:child_process';
 import { ControlProtocolHandler } from '../core/control.ts';
+import { ControlRequests, type OutboundControlRequest } from '../core/controlRequests.ts';
+import { buildHookConfig } from '../core/hookConfig.ts';
 import type {
   Options,
   PermissionMode,
@@ -164,22 +166,19 @@ export class QueryImpl implements Query {
   // ============================================================================
 
   async interrupt(): Promise<void> {
-    this.sendControlRequest({ subtype: 'interrupt' });
+    this.sendControlRequest(ControlRequests.interrupt());
   }
 
   async setPermissionMode(mode: PermissionMode): Promise<void> {
-    this.sendControlRequest({ subtype: 'set_permission_mode', mode });
+    this.sendControlRequest(ControlRequests.setPermissionMode(mode));
   }
 
   async setModel(model?: string): Promise<void> {
-    this.sendControlRequest({ subtype: 'set_model', model });
+    this.sendControlRequest(ControlRequests.setModel(model));
   }
 
   async setMaxThinkingTokens(maxThinkingTokens: number | null): Promise<void> {
-    this.sendControlRequest({
-      subtype: 'set_max_thinking_tokens',
-      max_thinking_tokens: maxThinkingTokens,
-    });
+    this.sendControlRequest(ControlRequests.setMaxThinkingTokens(maxThinkingTokens));
   }
 
   async streamInput(stream: AsyncIterable<SDKUserMessage>): Promise<void> {
@@ -244,7 +243,7 @@ export class QueryImpl implements Query {
   // Private helpers
   // ============================================================================
 
-  private sendControlRequest(request: any): void {
+  private sendControlRequest(request: OutboundControlRequest): void {
     const requestId = this.generateRequestId();
     this.process.stdin?.write(
       `${JSON.stringify({
@@ -262,7 +261,15 @@ export class QueryImpl implements Query {
   private async sendControlProtocolInit(options: Options): Promise<void> {
     const requestId = `init_${Date.now()}`;
 
-    const init: any = {
+    const init: {
+      type: 'control_request';
+      request_id: string;
+      request: {
+        subtype: 'initialize';
+        systemPrompt?: string;
+        hooks?: ReturnType<typeof buildHookConfig>;
+      };
+    } = {
       type: 'control_request',
       request_id: requestId,
       request: {
@@ -278,25 +285,7 @@ export class QueryImpl implements Query {
 
     // Register hooks if configured
     if (options.hooks) {
-      const hooksConfig: Record<string, any> = {};
-      let callbackId = 0;
-
-      for (const [eventName, matchers] of Object.entries(options.hooks)) {
-        hooksConfig[eventName] = matchers.map((matcher) => {
-          const hookCallbackIds = matcher.hooks.map((hookFn) => {
-            const id = `hook_${callbackId++}`;
-            this.controlHandler.registerCallback(id, hookFn);
-            return id;
-          });
-
-          return {
-            matcher: matcher.matcher,
-            hookCallbackIds,
-          };
-        });
-      }
-
-      init.request.hooks = hooksConfig;
+      init.request.hooks = buildHookConfig(options.hooks, this.controlHandler);
     }
 
     if (process.env.DEBUG_HOOKS) {

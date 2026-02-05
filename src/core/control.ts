@@ -8,11 +8,11 @@
  */
 
 import type { Writable } from 'node:stream';
-import type { ControlRequest, ControlResponse } from '../types/control.ts';
+import type { ControlRequest, ControlResponse, InternalHookCallback } from '../types/control.ts';
 import type { Options, PermissionResult } from '../types/index.ts';
 
 export class ControlProtocolHandler {
-  private callbackMap: Map<string, any> = new Map();
+  private callbackMap: Map<string, InternalHookCallback> = new Map();
 
   constructor(
     private stdin: Writable,
@@ -22,7 +22,7 @@ export class ControlProtocolHandler {
   /**
    * Register a callback function with its ID
    */
-  registerCallback(id: string, callback: any): void {
+  registerCallback(id: string, callback: InternalHookCallback): void {
     this.callbackMap.set(id, callback);
   }
 
