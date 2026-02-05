@@ -1,8 +1,8 @@
 # Lite Claude Agent SDK - Development Roadmap
 
-**Last Updated:** 2026-02-03
-**Current Status:** Baby Steps 1-5 Complete ✅ | Phase 0.5 (Validation) Complete ✅
-**Next Phase:** Phase 1 (Production Features)
+**Last Updated:** 2026-02-05
+**Current Status:** Baby Steps 1-5 Complete ✅ | Phase 0.5 (Validation) Complete ✅ | Phase 1 Partial ✅
+**Next Phase:** Phase 1 Remaining Items (Skills/Commands, Budget Tracking)
 
 ---
 
@@ -61,24 +61,16 @@ interface Query extends AsyncGenerator<SDKMessage> {
 
 **Goal:** Essential features for production use cases
 
-### 1.1 Structured Outputs (2-3 days) 🎯 HIGH
+### 1.1 Structured Outputs ✅ COMPLETE
 
 **What:** JSON schema validation for structured responses
 
-**Why:** Production apps need reliable, typed responses for data extraction, form filling, API responses
-
-**CLI Support:** `--json-schema <schema>`
+**Status:** ✅ Implemented in PR #11
 
 **Implementation:**
-```typescript
-// Add to Options type (already exported from SDK)
-export type { OutputFormat, JsonSchemaOutputFormat } from '@anthropic-ai/claude-agent-sdk'
-
-// In buildCliArgs():
-if (options.outputFormat?.type === 'json_schema') {
-  args.push('--json-schema', JSON.stringify(options.outputFormat.schema));
-}
-```
+- ✅ `src/types/index.ts` - Export OutputFormat types
+- ✅ `src/core/spawn.ts` - Add --json-schema flag
+- ✅ `tests/integration/structured-outputs.test.ts` - Integration tests
 
 **Usage Example:**
 ```typescript
@@ -100,60 +92,31 @@ const query = query({
 });
 ```
 
-**Tests Required:**
-- Simple object extraction
-- Array of objects
-- Nested structures
-- Schema validation errors
-
-**Files to Modify:**
-- ✅ `src/types/index.ts` - Export OutputFormat types
-- `src/core/spawn.ts` - Add --json-schema flag
-- `tests/integration/structured-outputs.test.ts` - New test file
-
 ---
 
-### 1.2 Extended Thinking Parser (1 day) 🎯 HIGH
+### 1.2 Extended Thinking ✅ COMPLETE
 
-**What:** Parse and stream thinking blocks (step-by-step reasoning)
+**What:** Enable extended thinking via `maxThinkingTokens` option
 
-**Why:** Helps developers debug agent behavior, understand decision-making
-
-**CLI Support:** Already included in stream_event messages
+**Status:** ✅ Implemented in PR #10
 
 **Implementation:**
-```typescript
-// In QueryImpl.startReading():
-if (msg.type === 'stream_event') {
-  // Parse thinking blocks from message
-  if (msg.thinking) {
-    // Yield thinking block to user
-    this.messageQueue.push({
-      type: 'thinking',
-      content: msg.thinking
-    });
-  }
-}
-```
+- ✅ `src/core/spawn.ts` - Add --max-thinking-tokens flag
+- ✅ `src/api/QueryImpl.ts` - setMaxThinkingTokens() method
+- ✅ `tests/integration/extended-thinking.test.ts` - Integration tests
 
 **Usage Example:**
 ```typescript
-for await (const msg of query({ ... })) {
-  if (msg.type === 'thinking') {
-    console.log('🤔 Thinking:', msg.content);
+const q = query({
+  prompt: 'Solve this complex problem',
+  options: {
+    maxThinkingTokens: 10000
   }
-}
+});
+
+// Or dynamically:
+await q.setMaxThinkingTokens(5000);
 ```
-
-**Tests Required:**
-- Thinking blocks present in output
-- Multiple thinking steps
-- Thinking + regular messages interleaved
-
-**Files to Modify:**
-- `src/api/QueryImpl.ts` - Parse thinking field
-- `src/types/index.ts` - Add ThinkingMessage type if needed
-- `tests/integration/thinking.test.ts` - New test file
 
 ---
 
@@ -267,14 +230,13 @@ for await (const msg of q) {
 
 ### Phase 1 Deliverables
 
-✅ **4 major features** implemented
-✅ **12+ integration tests** passing
-✅ **Updated README** with examples
-✅ **Demo app** showcasing new features
-✅ **Bundle size** still < 500KB
-✅ **Documentation** complete
+✅ **Structured Outputs** - JSON schema validation (PR #11)
+✅ **Extended Thinking** - maxThinkingTokens option (PR #10)
+⏳ **Skills/Commands** - settingSources partially implemented
+⏳ **Budget Tracking** - Token/cost monitoring
 
-**Estimated Timeline:** 8-10 days total
+**Completed so far:** 2 of 4 major features
+**Remaining:** Skills/Commands, Budget Tracking
 
 ---
 
@@ -282,14 +244,19 @@ for await (const msg of q) {
 
 **Goal:** Feature parity with official SDK for power users
 
-### 2.1 Session Management (3-5 days) ⚠️ MEDIUM
+### 2.1 Session Management ✅ Partial / ⚠️ MEDIUM
 
 **What:** Resume and fork sessions
+
+**Status:**
+- ✅ `resume` option - Implemented and tested
+- ❌ `forkSession` option - Not yet implemented
 
 **CLI Support:** `--resume <session-id>`, `--fork <session-id>`
 
 **Implementation:**
 ```typescript
+// Resume - ✅ Working
 query({
   prompt: 'Continue from before',
   options: {
@@ -297,6 +264,7 @@ query({
   }
 });
 
+// Fork - ❌ Not yet implemented
 query({
   prompt: 'Try alternative approach',
   options: {
@@ -305,12 +273,8 @@ query({
 });
 ```
 
-**Complexity:** Requires session state management, persistence
-
-**Files to Modify:**
-- `src/core/spawn.ts` - Add --resume flag
-- `src/api/QueryImpl.ts` - Handle session resumption
-- `tests/integration/sessions.test.ts` - New test file
+**Remaining:**
+- `forkSession` option implementation
 
 ---
 
@@ -368,11 +332,11 @@ async supportedModels(): Promise<Model[]> {
 
 ---
 
-### 2.4 Sandbox Configuration (2-3 days) ⚠️ MEDIUM
+### 2.4 Sandbox Configuration ✅ COMPLETE
 
 **What:** Configure command execution sandboxing
 
-**CLI Support:** Pass-through to CLI sandbox flags
+**Status:** ✅ Implemented - passed via --settings flag
 
 **Implementation:**
 ```typescript
@@ -380,26 +344,25 @@ query({
   options: {
     sandbox: {
       enabled: true,
-      allowedCommands: ['npm', 'git'],
-      blockedPaths: ['/etc', '/var']
+      autoAllowBash: false
     }
   }
 });
 ```
 
-**Files to Modify:**
-- `src/core/spawn.ts` - Add sandbox flags
-- `tests/integration/sandbox.test.ts` - New test file
+**Notes:**
+- Sandbox configuration passed via `--settings` JSON flag
+- CLI handles actual sandbox enforcement
 
 ---
 
 ### Phase 2 Deliverables
 
-✅ **Session management** working
-✅ **All hook events** supported
-✅ **Model querying** implemented
-✅ **Sandbox config** pass-through
-✅ **Tests** for all features
+✅ **Session resume** - Working (fork not yet)
+⏳ **All hook events** - 4/11 implemented
+⏳ **Model querying** - Stub only
+✅ **Sandbox config** - Complete
+⏳ **Tests** - Ongoing
 
 **Estimated Timeline:** 7-11 days total
 
@@ -555,21 +518,21 @@ src/
 
 ### Phase 1 Success Criteria
 
-- [ ] Structured outputs work with JSON schema
-- [ ] Thinking blocks parsed and displayed
+- [x] Structured outputs work with JSON schema
+- [x] Extended thinking via maxThinkingTokens
 - [ ] Skills/commands load from .claude/
 - [ ] Budget tracking shows real-time costs
 - [ ] All integration tests pass (16+ tests total)
 - [ ] Demo showcases all features
 - [ ] README updated with examples
-- [ ] Bundle size < 500KB
+- [x] Bundle size < 500KB
 
 ### Phase 2 Success Criteria
 
-- [ ] Sessions resume and fork correctly
+- [x] Sessions resume correctly (fork pending)
 - [ ] All 11 hook events supported
 - [ ] Models queryable at runtime
-- [ ] Sandbox configuration works
+- [x] Sandbox configuration works
 - [ ] 25+ integration tests passing
 
 ### Overall Success Metrics
@@ -624,10 +587,15 @@ src/
 1. ✅ Clean up documentation (delete obsolete files)
 2. ✅ Phase 0.5: Validation complete (canUseTool & hooks tested)
 3. ✅ Implement `systemPrompt` option - Pass via stdin init message
-4. 🚀 Begin Phase 1 implementation
-5. 📦 Ship v1.0.0 with production features
+4. ✅ Implement Structured Outputs (PR #11)
+5. ✅ Implement Extended Thinking (PR #10)
+6. ✅ Implement `resume` option for session continuation
+7. ✅ Implement `sandbox` option via --settings
+8. ✅ Implement `abortController` for cancellation
+9. 🚀 Complete Phase 1 (Skills/Commands, Budget Tracking)
+10. 📦 Ship v1.0.0 with production features
 
 ---
 
-**Last Updated:** 2026-02-02
+**Last Updated:** 2026-02-05
 **Maintainer:** lite-claude-agent-sdk team

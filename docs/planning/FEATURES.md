@@ -1,6 +1,6 @@
 # Feature Comparison: Lite SDK vs Official SDK
 
-**Last Updated:** 2026-02-04
+**Last Updated:** 2026-02-05
 **Purpose:** Comprehensive feature matrix showing what we have, what we need, and what we don't need
 
 ---
@@ -44,11 +44,11 @@
 | toggleMcpServer() | ⚠️ Stub | ✅ | LOW | 1 day |
 | setMcpServers() | ⚠️ Stub | ✅ | LOW | 2-3 days |
 | **Advanced Features** |
-| Structured outputs | ✅ | ✅ | HIGH | Complete |
-| Extended thinking | ⚠️ Partial | ✅ | HIGH | 1 day |
-| Skills/commands | ❌ | ✅ | HIGH | 2-3 days |
+| Structured outputs | ✅ | ✅ | - | Complete |
+| Extended thinking | ✅ | ✅ | - | Complete |
+| Skills/commands | ⚠️ Partial | ✅ | HIGH | 2-3 days |
 | Budget tracking | ⚠️ Partial | ✅ | HIGH | 2-3 days |
-| Session management | ❌ | ✅ | MEDIUM | 3-5 days |
+| Session management | ✅ Resume | ✅ | MEDIUM | Fork pending |
 | File checkpointing | ❌ | ✅ | LOW | 5-7 days |
 | Context compaction | ❌ | ✅ | LOW | 5-7 days |
 | Plugins system | ❌ | ✅ | LOW | 5-7 days |
@@ -188,13 +188,13 @@ for await (const event of session.stream()) {
 
 ### Phase 2 Options (Advanced)
 
-| Option | Lite SDK | Official SDK | CLI Flag | Priority |
-|--------|----------|--------------|----------|----------|
-| `resume` | ✅ | ✅ | `--resume` | - |
+| Option | Lite SDK | Official SDK | CLI Flag | Status |
+|--------|----------|--------------|----------|--------|
+| `resume` | ✅ | ✅ | `--resume` | Complete |
 | `forkSession` | ❌ | ✅ | `--fork` | MEDIUM |
-| `sandbox` | ✅ | ✅ | `--settings` | - |
-| `abortController` | ✅ | ✅ | (signal handler) | - |
-| `systemPrompt` | ✅ | ✅ | stdin init message | - | Complete |
+| `sandbox` | ✅ | ✅ | `--settings` | Complete |
+| `abortController` | ✅ | ✅ | (signal handler) | Complete |
+| `systemPrompt` | ✅ | ✅ | stdin init message | Complete |
 | `allowedTools` | ❌ | ✅ | `--allowed-tools` | MEDIUM |
 | `disallowedTools` | ❌ | ✅ | `--disallowed-tools` | MEDIUM |
 | `mcpServers` | ❌ | ✅ | `--mcp-config` | LOW |
@@ -358,10 +358,10 @@ These features are handled by Claude CLI or not needed for our use case:
 
 **Nice to Have:**
 
-1. **Session Management** (3-5 days)
+1. **Session Management** ✅ Partial
    - ✅ Resume sessions (implemented)
-   - Fork sessions
-   - Session state
+   - ❌ Fork sessions (pending)
+   - Session state (via CLI)
 
 2. **Advanced Hooks** (1-2 days)
    - All 11 hook events
@@ -373,7 +373,7 @@ These features are handled by Claude CLI or not needed for our use case:
    - Model metadata
    - Version info
 
-4. **Sandbox Config** ✅ (Implemented)
+4. **Sandbox Config** ✅ Complete
    - ✅ Sandbox enabled flag
    - ✅ Auto-allow bash option
    - Command restrictions (CLI feature)
@@ -480,11 +480,17 @@ for await (const msg of query({ prompt: 'Hello', options: {} })) {
 ✅ **Type Safety:** 100% compatible
 ✅ **Bundle Size:** 65x smaller
 ✅ **Multi-turn:** Fully working
-⚠️ **Advanced Features:** 4 to implement
+✅ **Structured Outputs:** Complete (PR #11)
+✅ **Extended Thinking:** Complete (PR #10)
+✅ **Session Resume:** Complete
+✅ **Sandbox Config:** Complete
+✅ **AbortController:** Complete
+✅ **systemPrompt:** Complete
+⚠️ **Remaining Phase 1:** Skills/Commands, Budget Tracking
 
 ### Next Steps
 
-1. Implement Phase 1 features (1-2 weeks)
+1. Complete remaining Phase 1 features (Skills/Commands, Budget Tracking)
 2. Ship v1.0.0 for production use
 3. Gather user feedback
 4. Implement Phase 2 based on demand
@@ -504,5 +510,5 @@ for await (const msg of query({ prompt: 'Hello', options: {} })) {
 
 ---
 
-**Last Updated:** 2026-02-04
+**Last Updated:** 2026-02-05
 **See Also:** [ROADMAP.md](./ROADMAP.md) for implementation timeline
