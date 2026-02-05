@@ -102,12 +102,12 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--debug-to-stderr');
   }
 
-  // Resume session
+  // Resume session (pass existing session ID to continue conversation)
   if (options.resume) {
     args.push('--resume', options.resume);
   }
 
-  // Sandbox configuration (passed via --settings JSON)
+  // Sandbox configuration - passed via --settings flag as JSON (matches official SDK)
   if (options.sandbox) {
     args.push('--settings', JSON.stringify({ sandbox: options.sandbox }));
   }

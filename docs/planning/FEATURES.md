@@ -1,6 +1,6 @@
 # Feature Comparison: Lite SDK vs Official SDK
 
-**Last Updated:** 2026-02-02
+**Last Updated:** 2026-02-04
 **Purpose:** Comprehensive feature matrix showing what we have, what we need, and what we don't need
 
 ---
@@ -190,9 +190,10 @@ for await (const event of session.stream()) {
 
 | Option | Lite SDK | Official SDK | CLI Flag | Priority |
 |--------|----------|--------------|----------|----------|
-| `resume` | ❌ | ✅ | `--resume` | MEDIUM |
+| `resume` | ✅ | ✅ | `--resume` | - |
 | `forkSession` | ❌ | ✅ | `--fork` | MEDIUM |
-| `sandbox` | ❌ | ✅ | `--sandbox-*` | MEDIUM |
+| `sandbox` | ✅ | ✅ | `--settings` | - |
+| `abortController` | ✅ | ✅ | (signal handler) | - |
 | `systemPrompt` | ✅ | ✅ | stdin init message | - | Complete |
 | `allowedTools` | ❌ | ✅ | `--allowed-tools` | MEDIUM |
 | `disallowedTools` | ❌ | ✅ | `--disallowed-tools` | MEDIUM |
@@ -358,7 +359,7 @@ These features are handled by Claude CLI or not needed for our use case:
 **Nice to Have:**
 
 1. **Session Management** (3-5 days)
-   - Resume sessions
+   - ✅ Resume sessions (implemented)
    - Fork sessions
    - Session state
 
@@ -372,10 +373,11 @@ These features are handled by Claude CLI or not needed for our use case:
    - Model metadata
    - Version info
 
-4. **Sandbox Config** (2-3 days)
-   - Command restrictions
-   - Path restrictions
-   - Security controls
+4. **Sandbox Config** ✅ (Implemented)
+   - ✅ Sandbox enabled flag
+   - ✅ Auto-allow bash option
+   - Command restrictions (CLI feature)
+   - Path restrictions (CLI feature)
 
 **Deliverables:**
 - Session persistence
@@ -502,5 +504,5 @@ for await (const msg of query({ prompt: 'Hello', options: {} })) {
 
 ---
 
-**Last Updated:** 2026-02-02
+**Last Updated:** 2026-02-04
 **See Also:** [ROADMAP.md](./ROADMAP.md) for implementation timeline
