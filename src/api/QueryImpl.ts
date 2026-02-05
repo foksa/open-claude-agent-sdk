@@ -24,18 +24,30 @@ import { MessageRouter } from './MessageRouter.ts';
 import { DefaultProcessFactory, type ProcessFactory } from './ProcessFactory.ts';
 
 export class QueryImpl implements Query {
-  private process: ChildProcess;
-  private controlHandler: ControlProtocolHandler;
-  private messageQueue: MessageQueue<SDKMessage>;
-  private router: MessageRouter;
-  private isSingleUserTurn: boolean;
+  private process!: ChildProcess;
+  private controlHandler!: ControlProtocolHandler;
+  private messageQueue!: MessageQueue<SDKMessage>;
+  private router!: MessageRouter;
+  private isSingleUserTurn = false;
   private closed = false;
+  private abortHandler: (() => void) | null = null; // Handler for abortController cleanup
+  private abortController: AbortController | undefined; // Store for cleanup
 
   constructor(
     params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options },
     processFactory: ProcessFactory = new DefaultProcessFactory()
   ) {
     const { prompt, options = {} } = params;
+
+    // Check for pre-aborted signal BEFORE spawning process (save resources)
+    if (options.abortController?.signal.aborted) {
+      this.closed = true;
+      // Mark as aborted - the iterator will return done immediately
+      // Initialize with empty values to satisfy TypeScript
+      this.messageQueue = new MessageQueue<SDKMessage>();
+      this.messageQueue.complete();
+      return;
+    }
 
     // Determine if single-turn or multi-turn
     this.isSingleUserTurn = typeof prompt === 'string';
@@ -89,6 +101,15 @@ export class QueryImpl implements Query {
         this.messageQueue.complete(err);
       }
     });
+
+    // 9. Setup abort controller listener if provided
+    if (options.abortController) {
+      this.abortController = options.abortController;
+      this.abortHandler = () => {
+        this.interrupt();
+      };
+      this.abortController.signal.addEventListener('abort', this.abortHandler);
+    }
   }
 
   /**
@@ -170,8 +191,13 @@ export class QueryImpl implements Query {
   close(): void {
     if (!this.closed) {
       this.closed = true;
-      this.router.close();
-      this.process.kill();
+      // Clean up abort controller listener
+      if (this.abortController && this.abortHandler) {
+        this.abortController.signal.removeEventListener('abort', this.abortHandler);
+        this.abortHandler = null;
+      }
+      this.router?.close();
+      this.process?.kill();
       if (!this.messageQueue.isDone()) {
         this.messageQueue.complete();
       }
