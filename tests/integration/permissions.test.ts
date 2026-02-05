@@ -9,22 +9,9 @@
  * See: https://code.claude.com/docs/en/settings
  */
 
-import { describe, expect, test } from 'bun:test';
+import { expect } from 'bun:test';
 import type { PermissionResult } from '../../src/types/index.ts';
-import type { SDKType } from './comparison-utils.ts';
-import { runWithSDKPermissions } from './comparison-utils.ts';
-
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    // Run lite and official tests in parallel
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
+import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
 const _testWithBothSDKsSkip = (
   name: string,
@@ -40,7 +27,7 @@ const _testWithBothSDKsSkip = (
 testWithBothSDKs('canUseTool callback allows tool execution', async (sdk) => {
   const allowedTools: string[] = [];
 
-  const messages = await runWithSDKPermissions(
+  const messages = await runWithSDK(
     sdk,
     'Write the text "hello world" to /tmp/permission-test.txt', // Write requires permission
     {
@@ -66,7 +53,7 @@ testWithBothSDKs('canUseTool callback allows tool execution', async (sdk) => {
 testWithBothSDKs('canUseTool callback denies tool execution', async (sdk) => {
   const deniedTools: string[] = [];
 
-  const messages = await runWithSDKPermissions(
+  const messages = await runWithSDK(
     sdk,
     'Write the text "test" to /tmp/permission-deny-test.txt', // Write requires permission
     {
@@ -91,7 +78,7 @@ testWithBothSDKs('canUseTool callback receives correct parameters', async (sdk) 
   let capturedInput: any = null;
   let capturedContext: any = null;
 
-  await runWithSDKPermissions(
+  await runWithSDK(
     sdk,
     'Write the text "params test" to /tmp/permission-params-test.txt', // Write requires permission
     {
@@ -119,7 +106,7 @@ testWithBothSDKs('canUseTool callback receives correct parameters', async (sdk) 
 testWithBothSDKs('canUseTool callback with selective filtering', async (sdk) => {
   const toolsRequested: string[] = [];
 
-  await runWithSDKPermissions(
+  await runWithSDK(
     sdk,
     'Create a file at /tmp/selective-test.txt with "hello" then run: echo "done"', // Write and Bash require permission
     {
@@ -144,7 +131,7 @@ testWithBothSDKs('canUseTool callback with selective filtering', async (sdk) => 
 testWithBothSDKs('no canUseTool callback defaults to allow with bypassPermissions', async (sdk) => {
   // Note: This test uses Read which doesn't require permission anyway,
   // but with bypassPermissions mode, even Write would auto-approve
-  const messages = await runWithSDKPermissions(sdk, 'Read the package.json file', {
+  const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -161,7 +148,7 @@ testWithBothSDKs('no canUseTool callback defaults to allow with bypassPermission
 testWithBothSDKs('canUseTool callback with async operations', async (sdk) => {
   const delays: number[] = [];
 
-  await runWithSDKPermissions(
+  await runWithSDK(
     sdk,
     'Write the text "async test" to /tmp/permission-async-test.txt', // Write requires permission
     {
@@ -184,7 +171,7 @@ testWithBothSDKs('canUseTool callback with async operations', async (sdk) => {
 testWithBothSDKs('canUseTool callback can return permission updates', async (sdk) => {
   let callbackCalled = false;
 
-  await runWithSDKPermissions(
+  await runWithSDK(
     sdk,
     'Write the text "updates test" to /tmp/permission-updates-test.txt', // Write requires permission
     {

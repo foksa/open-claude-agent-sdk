@@ -14,31 +14,8 @@
  * - cache token tracking (cache_creation_input_tokens, cache_read_input_tokens)
  */
 
-import { describe, expect, test } from 'bun:test';
-import type { SDKType } from './comparison-utils.ts';
-import { runWithSDK } from './comparison-utils.ts';
-
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
-
-const testWithBothSDKsTodo = (
-  name: string,
-  _testFn: (sdk: SDKType) => Promise<void>,
-  _timeout = 60000
-) => {
-  describe(name, () => {
-    test.todo(`[lite] ${name}`);
-    test.todo(`[official] ${name}`);
-  });
-};
+import { describe, expect } from 'bun:test';
+import { runWithSDK, testWithBothSDKs, testWithBothSDKsTodo } from './comparison-utils.ts';
 
 // =============================================================================
 // Basic Usage Tracking

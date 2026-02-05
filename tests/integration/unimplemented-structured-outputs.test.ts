@@ -13,20 +13,8 @@
  * - Support for Zod schema conversion (z.toJSONSchema)
  */
 
-import { describe, expect, test } from 'bun:test';
-import type { SDKType } from './comparison-utils.ts';
-import { runWithSDK } from './comparison-utils.ts';
-
-const testWithBothSDKsTodo = (
-  name: string,
-  _testFn: (sdk: SDKType) => Promise<void>,
-  _timeout = 60000
-) => {
-  describe(name, () => {
-    test.todo(`[lite] ${name}`);
-    test.todo(`[official] ${name}`);
-  });
-};
+import { describe, expect } from 'bun:test';
+import { runWithSDK, testWithBothSDKsTodo } from './comparison-utils.ts';
 
 // =============================================================================
 // Basic Structured Outputs

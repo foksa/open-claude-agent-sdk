@@ -3,22 +3,9 @@
  * Same tests run with both lite and official SDKs
  */
 
-import { describe, expect, test } from 'bun:test';
+import { expect } from 'bun:test';
 import type { HookCallbackMatcher } from '../../src/types/index.ts';
-import type { SDKType } from './comparison-utils.ts';
-import { runWithSDK, runWithSDKPermissions } from './comparison-utils.ts';
-
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    // Run lite and official tests in parallel
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
+import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
 const _testWithBothSDKsSkip = (
   name: string,
@@ -79,7 +66,7 @@ testWithBothSDKs('PostToolUse hook is called after tool execution', async (sdk) 
   };
 
   // Use non-bypass mode - PostToolUse may not fire in bypass mode
-  await runWithSDKPermissions(sdk, 'Read the package.json file', {
+  await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
     hooks,
   });

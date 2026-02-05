@@ -17,43 +17,9 @@
  * - Notification (TypeScript only) - fires for agent status messages
  */
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect } from 'bun:test';
 import type { HookCallbackMatcher } from '../../src/types/index.ts';
-import type { SDKType } from './comparison-utils.ts';
-import { runWithSDK } from './comparison-utils.ts';
-
-const _testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
-
-const _testWithBothSDKsSkip = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe.skip(name, () => {
-    test(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
-
-const testWithBothSDKsTodo = (
-  name: string,
-  _testFn: (sdk: SDKType) => Promise<void>,
-  _timeout = 60000
-) => {
-  describe(name, () => {
-    test.todo(`[lite] ${name}`);
-    test.todo(`[official] ${name}`);
-  });
-};
+import { runWithSDK, testWithBothSDKsTodo } from './comparison-utils.ts';
 
 // =============================================================================
 // PostToolUseFailure Hook

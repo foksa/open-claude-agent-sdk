@@ -3,21 +3,8 @@
  * Tests that systemPrompt option is passed correctly to the CLI
  */
 
-import { describe, expect, test } from 'bun:test';
-import type { SDKType } from './comparison-utils.ts';
-import { runWithSDK } from './comparison-utils.ts';
-
-// Run each test with both SDKs in parallel
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 45000
-) => {
-  describe(name, () => {
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
+import { expect } from 'bun:test';
+import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
 testWithBothSDKs('systemPrompt injects context that model can reference', async (sdk) => {
   const messages = await runWithSDK(sdk, 'What is my name? Answer in one word only.', {

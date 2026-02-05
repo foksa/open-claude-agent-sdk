@@ -14,31 +14,8 @@
  * - Tool input context (suggestions, blockedPath, etc.)
  */
 
-import { describe, expect, test } from 'bun:test';
-import type { SDKType } from './comparison-utils.ts';
-import { runWithSDKPermissions } from './comparison-utils.ts';
-
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
-
-const testWithBothSDKsTodo = (
-  name: string,
-  _testFn: (sdk: SDKType) => Promise<void>,
-  _timeout = 60000
-) => {
-  describe(name, () => {
-    test.todo(`[lite] ${name}`);
-    test.todo(`[official] ${name}`);
-  });
-};
+import { describe, expect } from 'bun:test';
+import { runWithSDK, testWithBothSDKs, testWithBothSDKsTodo } from './comparison-utils.ts';
 
 // =============================================================================
 // canUseTool Callback - Basic
@@ -54,7 +31,7 @@ describe('canUseTool - Basic approval', () => {
   testWithBothSDKs('should receive canUseTool callback', async (sdk) => {
     const toolRequests: Array<{ toolName: string; input: any }> = [];
 
-    await runWithSDKPermissions(sdk, 'Read the package.json file', {
+    await runWithSDK(sdk, 'Read the package.json file', {
       maxTurns: 5,
       canUseTool: async (toolName, input) => {
         toolRequests.push({ toolName, input });
@@ -69,7 +46,7 @@ describe('canUseTool - Basic approval', () => {
   testWithBothSDKs('should allow tool execution with allow behavior', async (sdk) => {
     let wasAllowed = false;
 
-    const messages = await runWithSDKPermissions(sdk, 'Read the package.json file', {
+    const messages = await runWithSDK(sdk, 'Read the package.json file', {
       maxTurns: 5,
       canUseTool: async (toolName, input) => {
         if (toolName === 'Read') {
@@ -88,7 +65,7 @@ describe('canUseTool - Basic approval', () => {
     let _wasDenied = false;
     let deniedToolName: string | null = null;
 
-    await runWithSDKPermissions(sdk, 'Read the package.json file', {
+    await runWithSDK(sdk, 'Read the package.json file', {
       maxTurns: 3,
       canUseTool: async (toolName, _input) => {
         _wasDenied = true;
@@ -115,7 +92,7 @@ describe('canUseTool - Input modification', () => {
     let originalCommand: string | null = null;
     let modifiedCommand: string | null = null;
 
-    await runWithSDKPermissions(sdk, 'Run the command: echo "hello"', {
+    await runWithSDK(sdk, 'Run the command: echo "hello"', {
       maxTurns: 5,
       canUseTool: async (toolName, input) => {
         if (toolName === 'Bash') {
@@ -138,7 +115,7 @@ describe('canUseTool - Input modification', () => {
   testWithBothSDKsTodo('should redirect file paths via updatedInput', async (sdk) => {
     let redirectedPath: string | null = null;
 
-    await runWithSDKPermissions(sdk, 'Write "test" to /tmp/test-file.txt', {
+    await runWithSDK(sdk, 'Write "test" to /tmp/test-file.txt', {
       maxTurns: 5,
       canUseTool: async (toolName, input) => {
         if (toolName === 'Write') {
@@ -169,7 +146,7 @@ describe('canUseTool - Context information', () => {
   testWithBothSDKsTodo('should receive context with AbortSignal', async (sdk) => {
     let hasSignal = false;
 
-    await runWithSDKPermissions(sdk, 'Read package.json', {
+    await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
       canUseTool: async (_toolName, input, context) => {
         if (context?.signal) {
@@ -185,7 +162,7 @@ describe('canUseTool - Context information', () => {
   testWithBothSDKsTodo('should receive toolUseID for correlation', async (sdk) => {
     let receivedToolUseID: string | null = null;
 
-    await runWithSDKPermissions(sdk, 'Read package.json', {
+    await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
       canUseTool: async (_toolName, input, context) => {
         receivedToolUseID = context?.toolUseID || null;
@@ -199,7 +176,7 @@ describe('canUseTool - Context information', () => {
   testWithBothSDKsTodo('should receive permission_suggestions', async (sdk) => {
     let receivedSuggestions: any = null;
 
-    await runWithSDKPermissions(sdk, 'Write "test" to /tmp/test.txt', {
+    await runWithSDK(sdk, 'Write "test" to /tmp/test.txt', {
       maxTurns: 3,
       canUseTool: async (_toolName, input, context) => {
         receivedSuggestions = context?.suggestions;
@@ -227,7 +204,7 @@ describe('AskUserQuestion - Clarifying questions', () => {
   testWithBothSDKsTodo('should detect AskUserQuestion tool', async (sdk) => {
     let askUserQuestionReceived = false;
 
-    await runWithSDKPermissions(sdk, 'Help me decide on the tech stack for a new mobile app', {
+    await runWithSDK(sdk, 'Help me decide on the tech stack for a new mobile app', {
       maxTurns: 10,
       permissionMode: 'plan', // Plan mode encourages clarifying questions
       canUseTool: async (toolName, input) => {
@@ -253,7 +230,7 @@ describe('AskUserQuestion - Clarifying questions', () => {
   testWithBothSDKsTodo('should handle questions array structure', async (sdk) => {
     let questionsReceived: any[] = [];
 
-    await runWithSDKPermissions(sdk, 'Help me decide how to structure my project', {
+    await runWithSDK(sdk, 'Help me decide how to structure my project', {
       maxTurns: 10,
       permissionMode: 'plan',
       canUseTool: async (toolName, input) => {
@@ -287,7 +264,7 @@ describe('AskUserQuestion - Clarifying questions', () => {
   testWithBothSDKsTodo('should support multiSelect questions', async (sdk) => {
     let multiSelectQuestion: any = null;
 
-    await runWithSDKPermissions(sdk, 'Help me decide which features to include in my app', {
+    await runWithSDK(sdk, 'Help me decide which features to include in my app', {
       maxTurns: 10,
       permissionMode: 'plan',
       canUseTool: async (toolName, input) => {
@@ -323,7 +300,7 @@ describe('AskUserQuestion - Clarifying questions', () => {
   });
 
   testWithBothSDKsTodo('should support free-text answers', async (sdk) => {
-    await runWithSDKPermissions(sdk, 'Help me name my project', {
+    await runWithSDK(sdk, 'Help me name my project', {
       maxTurns: 10,
       permissionMode: 'plan',
       canUseTool: async (toolName, input) => {
@@ -363,7 +340,7 @@ describe('canUseTool - Tool input types', () => {
   testWithBothSDKsTodo('should receive Bash tool input fields', async (sdk) => {
     let bashInput: any = null;
 
-    await runWithSDKPermissions(sdk, 'Run: echo hello', {
+    await runWithSDK(sdk, 'Run: echo hello', {
       maxTurns: 5,
       canUseTool: async (toolName, input) => {
         if (toolName === 'Bash') {
@@ -383,7 +360,7 @@ describe('canUseTool - Tool input types', () => {
   testWithBothSDKsTodo('should receive Write tool input fields', async (sdk) => {
     let writeInput: any = null;
 
-    await runWithSDKPermissions(sdk, 'Write "test" to /tmp/test.txt', {
+    await runWithSDK(sdk, 'Write "test" to /tmp/test.txt', {
       maxTurns: 5,
       canUseTool: async (toolName, input) => {
         if (toolName === 'Write') {
@@ -402,19 +379,15 @@ describe('canUseTool - Tool input types', () => {
   testWithBothSDKsTodo('should receive Edit tool input fields', async (sdk) => {
     let editInput: any = null;
 
-    await runWithSDKPermissions(
-      sdk,
-      'Edit package.json to change the version from current to 2.0.0',
-      {
-        maxTurns: 5,
-        canUseTool: async (toolName, input) => {
-          if (toolName === 'Edit') {
-            editInput = input;
-          }
-          return { behavior: 'allow', updatedInput: input };
-        },
-      }
-    );
+    await runWithSDK(sdk, 'Edit package.json to change the version from current to 2.0.0', {
+      maxTurns: 5,
+      canUseTool: async (toolName, input) => {
+        if (toolName === 'Edit') {
+          editInput = input;
+        }
+        return { behavior: 'allow', updatedInput: input };
+      },
+    });
 
     if (editInput) {
       expect(editInput.file_path).toBeTruthy();
@@ -426,7 +399,7 @@ describe('canUseTool - Tool input types', () => {
   testWithBothSDKsTodo('should receive Read tool input fields', async (sdk) => {
     let readInput: any = null;
 
-    await runWithSDKPermissions(sdk, 'Read the first 10 lines of package.json', {
+    await runWithSDK(sdk, 'Read the first 10 lines of package.json', {
       maxTurns: 5,
       canUseTool: async (toolName, input) => {
         if (toolName === 'Read') {
@@ -474,7 +447,7 @@ describe('canUseTool - Edge cases', () => {
   testWithBothSDKsTodo('should handle rapid tool requests', async (sdk) => {
     let toolCount = 0;
 
-    await runWithSDKPermissions(sdk, 'List all files in the current directory', {
+    await runWithSDK(sdk, 'List all files in the current directory', {
       maxTurns: 10,
       canUseTool: async (_toolName, input) => {
         toolCount++;
@@ -488,7 +461,7 @@ describe('canUseTool - Edge cases', () => {
   testWithBothSDKsTodo('should handle async operations in callback', async (sdk) => {
     let asyncComplete = false;
 
-    await runWithSDKPermissions(sdk, 'Read package.json', {
+    await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 5,
       canUseTool: async (_toolName, input) => {
         // Simulate async operation (e.g., external API call)
@@ -504,7 +477,7 @@ describe('canUseTool - Edge cases', () => {
   testWithBothSDKsTodo('should handle errors in callback gracefully', async (sdk) => {
     // What happens if canUseTool throws an error?
     try {
-      await runWithSDKPermissions(sdk, 'Read package.json', {
+      await runWithSDK(sdk, 'Read package.json', {
         maxTurns: 3,
         canUseTool: async (_toolName, _input) => {
           throw new Error('Simulated callback error');
