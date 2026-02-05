@@ -8,8 +8,6 @@ import { compareMessageStructures, runWithSDK, testWithBothSDKs } from './compar
 
 testWithBothSDKs('basic hello world query', async (sdk) => {
   const messages = await runWithSDK(sdk, 'Say hello in one word', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
   });
 
@@ -33,8 +31,6 @@ testWithBothSDKs('streaming with includePartialMessages', async (sdk) => {
     sdk,
     'Write a haiku about coding',
     {
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
       maxTurns: 1,
       includePartialMessages: true,
     },
@@ -70,8 +66,6 @@ testWithBothSDKs('plan mode', async (sdk) => {
 
 testWithBothSDKs('custom model', async (sdk) => {
   const messages = await runWithSDK(sdk, 'Say hi', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     model: 'claude-sonnet-4-5-20250929',
     maxTurns: 1,
   });
@@ -88,14 +82,10 @@ test(
   'structure comparison: both SDKs produce similar message flow',
   async () => {
     const liteMessages = await runWithSDK('lite', 'Say hello', {
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
       maxTurns: 1,
     });
 
     const officialMessages = await runWithSDK('official', 'Say hello', {
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
       maxTurns: 1,
     });
 

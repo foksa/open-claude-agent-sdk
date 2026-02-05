@@ -9,8 +9,6 @@ import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 testWithBothSDKs('resume option passes session ID to CLI', async (sdk) => {
   // First, run a query to get a session ID
   const messages = await runWithSDK(sdk, 'Say hello', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
   });
 
@@ -26,8 +24,6 @@ testWithBothSDKs('resume option passes session ID to CLI', async (sdk) => {
 
   // Now resume with that session ID
   const resumeMessages = await runWithSDK(sdk, 'What did I just say?', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
     resume: sessionId,
   });

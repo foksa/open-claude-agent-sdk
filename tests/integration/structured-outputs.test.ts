@@ -20,8 +20,6 @@ testWithBothSDKs('basic structured output with json_schema', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'What is 2+2? Return only the answer.', {
     outputFormat: { type: 'json_schema', schema },
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 5,
   });
 
@@ -44,8 +42,6 @@ testWithBothSDKs('structured output with string field', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Say hello in a friendly way.', {
     outputFormat: { type: 'json_schema', schema },
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 5,
   });
 
@@ -70,8 +66,6 @@ testWithBothSDKs('structured output with multiple fields', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Pick a random color and provide its hex code.', {
     outputFormat: { type: 'json_schema', schema },
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 5,
   });
 
@@ -87,8 +81,6 @@ testWithBothSDKs('structured output with multiple fields', async (sdk) => {
 
 testWithBothSDKs('without outputFormat returns no structured_output', async (sdk) => {
   const messages = await runWithSDK(sdk, 'Say hello.', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 5,
   });
 

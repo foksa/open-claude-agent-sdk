@@ -25,8 +25,6 @@ testWithBothSDKs('PreToolUse hook is called before tool execution', async (sdk) 
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     hooks,
   });
 
@@ -85,8 +83,6 @@ testWithBothSDKs('hooks receive correct input data', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     hooks,
   });
 
@@ -115,8 +111,6 @@ testWithBothSDKs('hook can cancel tool execution', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     hooks,
   });
 
@@ -142,8 +136,6 @@ testWithBothSDKs('UserPromptSubmit hook is called', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Say hello', {
     maxTurns: 2,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     hooks,
   });
 
@@ -173,8 +165,6 @@ testWithBothSDKs('hooks with tool name matcher filter correctly', async (sdk) =>
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     hooks,
   });
 
@@ -205,8 +195,6 @@ testWithBothSDKs('hook with async operations', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     hooks,
   });
 
@@ -222,8 +210,6 @@ testWithBothSDKs('hook with async operations', async (sdk) => {
 testWithBothSDKs('no hooks configured allows normal execution', async (sdk) => {
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     // No hooks configured
   });
 
@@ -264,8 +250,6 @@ testWithBothSDKs('matcher filters by tool name correctly', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     hooks,
   });
 
@@ -312,8 +296,6 @@ testWithBothSDKs('multiple matchers can coexist', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     hooks,
   });
 

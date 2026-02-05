@@ -15,8 +15,6 @@ testWithBothSDKs('multi-turn conversation via streamInput', async (sdk) => {
   const q = queryFn({
     prompt: 'Say hello in one word',
     options: {
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
       maxTurns: 5,
     },
   });
@@ -71,8 +69,6 @@ testWithBothSDKs('interrupt() stops query execution', async (sdk) => {
   const q = queryFn({
     prompt: 'Count from 1 to 100',
     options: {
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
       maxTurns: 10,
     },
   });
@@ -102,8 +98,6 @@ testWithBothSDKs('close() terminates query', async (sdk) => {
   const q = queryFn({
     prompt: 'Say hello',
     options: {
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
       maxTurns: 1,
     },
   });
@@ -165,8 +159,6 @@ testWithBothSDKs('setModel() changes model', async (sdk) => {
   const q = queryFn({
     prompt: 'Say hello',
     options: {
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
       model: 'claude-sonnet-4-5-20250929',
       maxTurns: 1,
     },
@@ -195,8 +187,6 @@ testWithBothSDKs('Query implements AsyncGenerator interface', async (sdk) => {
   const q = queryFn({
     prompt: 'Say hello',
     options: {
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
       maxTurns: 1,
     },
   });

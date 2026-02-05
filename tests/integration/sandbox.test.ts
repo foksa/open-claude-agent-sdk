@@ -15,8 +15,6 @@ testWithBothSDKs('sandbox option is accepted by CLI', async (sdk) => {
   // via --settings JSON flag (same as official SDK)
 
   const messages = await runWithSDK(sdk, 'Say hello', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
     sandbox: {
       enabled: true,
@@ -36,8 +34,6 @@ testWithBothSDKs('sandbox option is accepted by CLI', async (sdk) => {
 
 testWithBothSDKs('sandbox with autoAllowBashIfSandboxed=false is accepted', async (sdk) => {
   const messages = await runWithSDK(sdk, 'Say hello', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
     sandbox: {
       enabled: true,
