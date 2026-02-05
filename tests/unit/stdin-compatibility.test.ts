@@ -14,7 +14,7 @@ import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as liteQuery } from '../../src/api/query.ts';
 import type { HookCallbackMatcher } from '../../src/types/index.ts';
 
-const CAPTURE_CLI = './tests/utils/capture-cli.cjs';
+const CAPTURE_CLI = './src/tools/capture-cli.cjs';
 
 // Timeout for concurrent tests - needs to be generous when many processes compete
 const TEST_TIMEOUT = 30000;
