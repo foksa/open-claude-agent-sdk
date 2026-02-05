@@ -14,7 +14,7 @@ function createReadableFromLines(lines: string[]): Readable {
   return new Readable({
     read() {
       if (index < lines.length) {
-        this.push(lines[index++] + '\n');
+        this.push(`${lines[index++]}\n`);
       } else {
         this.push(null);
       }

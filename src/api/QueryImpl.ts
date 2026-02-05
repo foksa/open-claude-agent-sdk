@@ -43,15 +43,20 @@ export class QueryImpl implements Query {
     // 1. Spawn process via factory
     this.process = processFactory.spawn(options);
 
+    // Validate stdio streams exist (they should with stdio: 'pipe')
+    if (!this.process.stdin || !this.process.stdout) {
+      throw new Error('Process stdin/stdout not available');
+    }
+
     // 2. Initialize message queue
     this.messageQueue = new MessageQueue<SDKMessage>();
 
     // 3. Initialize control protocol handler
-    this.controlHandler = new ControlProtocolHandler(this.process.stdin!, options);
+    this.controlHandler = new ControlProtocolHandler(this.process.stdin, options);
 
     // 4. Initialize message router with callbacks
     this.router = new MessageRouter(
-      this.process.stdout!,
+      this.process.stdout,
       this.controlHandler,
       (msg) => this.handleMessage(msg),
       (error) => this.handleDone(error)
