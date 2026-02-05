@@ -7,17 +7,6 @@ import { expect } from 'bun:test';
 import type { HookCallbackMatcher } from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
-const _testWithBothSDKsSkip = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe.skip(name, () => {
-    test(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
-
 testWithBothSDKs('PreToolUse hook is called before tool execution', async (sdk) => {
   const preToolUseCalls: string[] = [];
 
