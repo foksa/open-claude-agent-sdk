@@ -3,22 +3,11 @@
  * Same tests run with both lite and official SDKs
  */
 
-import { describe, expect, test } from 'bun:test';
+import { expect } from 'bun:test';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as liteQuery } from '../../src/api/query.ts';
 import type { SDKUserMessage } from '../../src/types/index.ts';
-
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: 'lite' | 'official') => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    // Run lite and official tests in parallel
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
+import { testWithBothSDKs } from './comparison-utils.ts';
 
 testWithBothSDKs('multi-turn conversation via streamInput', async (sdk) => {
   const queryFn = sdk === 'lite' ? liteQuery : officialQuery;

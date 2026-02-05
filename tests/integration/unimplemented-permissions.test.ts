@@ -9,34 +9,9 @@
  * Tests are marked as .todo since the features aren't implemented yet.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { expect } from 'bun:test';
 import type { SDKResultSuccess } from '../../src/types/index.ts';
-import type { SDKType } from './comparison-utils.ts';
-import { runWithSDK, runWithSDKPermissions } from './comparison-utils.ts';
-
-// Helper for running tests with both SDKs
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
-
-// Helper for TODO tests (documenting expected behavior)
-const testWithBothSDKsTodo = (
-  name: string,
-  _testFn: (sdk: SDKType) => Promise<void>,
-  _timeout = 60000
-) => {
-  describe(name, () => {
-    test.todo(`[lite] ${name}`);
-    test.todo(`[official] ${name}`);
-  });
-};
+import { runWithSDK, testWithBothSDKs, testWithBothSDKsTodo } from './comparison-utils.ts';
 
 // =============================================================================
 // IMPLEMENTED: Permission modes
@@ -50,7 +25,7 @@ testWithBothSDKs('permissionMode default requires tool approval', async (sdk) =>
    */
   let callbackTriggered = false;
 
-  await runWithSDKPermissions(
+  await runWithSDK(
     sdk,
     'Write "test" to /tmp/perm-default-test.txt', // Write requires permission
     {
@@ -75,7 +50,7 @@ testWithBothSDKs('permissionMode bypassPermissions skips approval', async (sdk) 
    */
   let callbackTriggered = false;
 
-  await runWithSDKPermissions(sdk, 'Write "test" to /tmp/perm-bypass-test.txt', {
+  await runWithSDK(sdk, 'Write "test" to /tmp/perm-bypass-test.txt', {
     maxTurns: 3,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -99,7 +74,7 @@ testWithBothSDKs('permissionMode acceptEdits auto-approves file edits', async (s
   let writeApproved = false;
   let _bashApproved = false;
 
-  await runWithSDKPermissions(sdk, 'Write "test" to /tmp/perm-accept-edits.txt', {
+  await runWithSDK(sdk, 'Write "test" to /tmp/perm-accept-edits.txt', {
     maxTurns: 3,
     permissionMode: 'acceptEdits',
     canUseTool: async (toolName, input, _context) => {
@@ -223,7 +198,7 @@ testWithBothSDKsTodo('canUseTool receives permission suggestions', async (sdk) =
    */
   let receivedSuggestions = false;
 
-  await runWithSDKPermissions(sdk, 'Write "test" to /tmp/suggestions-test.txt', {
+  await runWithSDK(sdk, 'Write "test" to /tmp/suggestions-test.txt', {
     maxTurns: 3,
     permissionMode: 'default',
     canUseTool: async (_toolName, input, context) => {
@@ -251,7 +226,7 @@ testWithBothSDKsTodo('canUseTool can return updatedPermissions', async (sdk) => 
    */
   const _appliedPermissions = false;
 
-  await runWithSDKPermissions(sdk, 'Write "test" to /tmp/perm-update-test.txt', {
+  await runWithSDK(sdk, 'Write "test" to /tmp/perm-update-test.txt', {
     maxTurns: 3,
     permissionMode: 'default',
     canUseTool: async (_toolName, input, _context) => {
@@ -367,7 +342,7 @@ testWithBothSDKs('result includes permission_denials array', async (sdk) => {
    * Lists all tools that were denied permission during the query.
    */
 
-  const messages = await runWithSDKPermissions(sdk, 'Write "test" to /tmp/denial-test.txt', {
+  const messages = await runWithSDK(sdk, 'Write "test" to /tmp/denial-test.txt', {
     maxTurns: 3,
     permissionMode: 'default',
     canUseTool: async (_toolName, _input, _context) => {
@@ -413,7 +388,7 @@ testWithBothSDKsTodo(
     let hookCalled = false;
     let canUseToolCalled = false;
 
-    await runWithSDKPermissions(sdk, 'Write "test" to /tmp/eval-order-test.txt', {
+    await runWithSDK(sdk, 'Write "test" to /tmp/eval-order-test.txt', {
       maxTurns: 3,
       permissionMode: 'default',
       hooks: {

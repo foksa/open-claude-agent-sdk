@@ -7,21 +7,8 @@
  * Unit tests for CLI argument building are in tests/unit/sandbox.test.ts
  */
 
-import { describe, expect, test } from 'bun:test';
-import type { SDKType } from './comparison-utils.ts';
-import { runWithSDK } from './comparison-utils.ts';
-
-// Run each test with both SDKs in parallel
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
+import { expect } from 'bun:test';
+import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
 testWithBothSDKs('sandbox option is accepted by CLI', async (sdk) => {
   // This test verifies that the sandbox option is passed to CLI correctly

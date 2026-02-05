@@ -2,11 +2,44 @@
  * Utilities for running comparison tests between our SDK and official SDK
  */
 
+import { describe, test } from 'bun:test';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as liteQuery } from '../../src/api/query.ts';
 import type { Options, SDKMessage } from '../../src/types/index.ts';
 
 export type SDKType = 'lite' | 'official';
+
+// ============================================================================
+// Test Wrapper Utilities
+// ============================================================================
+
+/**
+ * Run the same test with both lite and official SDKs concurrently
+ */
+export const testWithBothSDKs = (
+  name: string,
+  testFn: (sdk: SDKType) => Promise<void>,
+  timeout = 60000
+) => {
+  describe(name, () => {
+    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
+    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
+  });
+};
+
+/**
+ * Mark tests as todo for both SDKs (unimplemented features)
+ */
+export const testWithBothSDKsTodo = (name: string, _testFn?: (sdk: SDKType) => Promise<void>) => {
+  describe(name, () => {
+    test.todo(`[lite] ${name}`);
+    test.todo(`[official] ${name}`);
+  });
+};
+
+// ============================================================================
+// Query Execution Utilities
+// ============================================================================
 
 /**
  * Run the same query with both SDKs and collect messages
@@ -61,36 +94,6 @@ export async function runWithSDK(
   const testOptions: Options = {
     model: 'haiku',
     settingSources: [], // No filesystem settings - faster & cheaper
-    pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
-    ...options,
-  };
-
-  for await (const msg of queryFn({ prompt, options: testOptions })) {
-    messages.push(msg);
-    if (callback) await callback(msg);
-    if (msg.type === 'result') break;
-  }
-
-  return messages;
-}
-
-/**
- * Run query with specific SDK - WITHOUT bypassPermissions
- * Use this for tests that need canUseTool callbacks to be triggered
- */
-export async function runWithSDKPermissions(
-  sdk: SDKType,
-  prompt: string,
-  options: Options,
-  callback?: (msg: SDKMessage) => void | Promise<void>
-): Promise<SDKMessage[]> {
-  const messages: SDKMessage[] = [];
-  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
-
-  // NO bypassPermissions - allows canUseTool and hooks to be properly triggered
-  const testOptions: Options = {
-    model: 'haiku',
-    settingSources: [],
     pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
     ...options,
   };

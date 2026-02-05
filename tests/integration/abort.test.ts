@@ -2,12 +2,11 @@
  * Integration tests for abort controller support
  */
 
-import { describe, expect, test } from 'bun:test';
+import { expect } from 'bun:test';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as liteQuery } from '../../src/api/query.ts';
 import type { Options, SDKMessage } from '../../src/types/index.ts';
-
-type SDKType = 'lite' | 'official';
+import { type SDKType, testWithBothSDKs } from './comparison-utils.ts';
 
 const runWithAbort = async (
   sdk: SDKType,
@@ -54,18 +53,6 @@ const runWithAbort = async (
   }
 
   return { messages, wasAborted };
-};
-
-// Run each test with both SDKs in parallel
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
 };
 
 testWithBothSDKs('abortController can interrupt long-running query', async (sdk) => {

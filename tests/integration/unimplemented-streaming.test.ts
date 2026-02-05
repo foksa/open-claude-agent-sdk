@@ -9,34 +9,9 @@
  * Tests are marked as .todo since the features aren't implemented yet.
  */
 
-import { describe, expect, test } from 'bun:test';
+import { expect } from 'bun:test';
 import type { SDKMessage, SDKPartialAssistantMessage } from '../../src/types/index.ts';
-import type { SDKType } from './comparison-utils.ts';
-import { runWithSDK } from './comparison-utils.ts';
-
-// Helper for running tests with both SDKs
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
-
-// Helper for TODO tests (documenting expected behavior)
-const testWithBothSDKsTodo = (
-  name: string,
-  _testFn: (sdk: SDKType) => Promise<void>,
-  _timeout = 60000
-) => {
-  describe(name, () => {
-    test.todo(`[lite] ${name}`);
-    test.todo(`[official] ${name}`);
-  });
-};
+import { runWithSDK, testWithBothSDKs, testWithBothSDKsTodo } from './comparison-utils.ts';
 
 // =============================================================================
 // IMPLEMENTED: includePartialMessages option

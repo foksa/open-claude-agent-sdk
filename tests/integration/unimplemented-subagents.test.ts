@@ -18,19 +18,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { runWithSDK, type SDKType } from './comparison-utils';
-
-// Test helper that runs tests with both SDKs
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
+import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
 // =============================================================================
 // Programmatic Agent Definition (agents option)

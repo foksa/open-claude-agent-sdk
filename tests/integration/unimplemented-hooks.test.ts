@@ -9,33 +9,8 @@
  * Tests are marked as .todo since the features aren't implemented yet.
  */
 
-import { describe, expect, test } from 'bun:test';
-import type { SDKType } from './comparison-utils.ts';
-import { runWithSDKPermissions } from './comparison-utils.ts';
-
-// Helper for running tests with both SDKs
-const testWithBothSDKs = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe(name, () => {
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
-
-// Helper for TODO tests (documenting expected behavior)
-const testWithBothSDKsTodo = (
-  name: string,
-  _testFn: (sdk: SDKType) => Promise<void>,
-  _timeout = 60000
-) => {
-  describe(name, () => {
-    test.todo(`[lite] ${name}`);
-    test.todo(`[official] ${name}`);
-  });
-};
+import { expect } from 'bun:test';
+import { runWithSDK, testWithBothSDKs, testWithBothSDKsTodo } from './comparison-utils.ts';
 
 // =============================================================================
 // IMPLEMENTED: PreToolUse hook
@@ -49,7 +24,7 @@ testWithBothSDKs('PreToolUse hook is called before tool execution', async (sdk) 
   let hookCalled = false;
   let capturedToolName = '';
 
-  await runWithSDKPermissions(sdk, 'Write "test" to /tmp/hook-pre-test.txt', {
+  await runWithSDK(sdk, 'Write "test" to /tmp/hook-pre-test.txt', {
     maxTurns: 3,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -85,7 +60,7 @@ testWithBothSDKs('PostToolUse hook is called after tool execution', async (sdk) 
   let hookCalled = false;
   let _capturedResult: any = null;
 
-  await runWithSDKPermissions(sdk, 'Write "test" to /tmp/hook-post-test.txt', {
+  await runWithSDK(sdk, 'Write "test" to /tmp/hook-post-test.txt', {
     maxTurns: 3,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -119,7 +94,7 @@ testWithBothSDKs('Stop hook is called when agent stops', async (sdk) => {
    */
   let stopHookCalled = false;
 
-  await runWithSDKPermissions(sdk, 'Say hello', {
+  await runWithSDK(sdk, 'Say hello', {
     maxTurns: 1,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -161,7 +136,7 @@ testWithBothSDKsTodo('PostToolUseFailure hook is called when tool fails', async 
   let failureHookCalled = false;
   let capturedError = '';
 
-  await runWithSDKPermissions(
+  await runWithSDK(
     sdk,
     'Read /nonexistent/path/that/does/not/exist.txt', // This should fail
     {
@@ -209,28 +184,24 @@ testWithBothSDKsTodo('SubagentStart hook is called when subagent starts', async 
   let subagentStartCalled = false;
   let capturedAgentId = '';
 
-  await runWithSDKPermissions(
-    sdk,
-    'Use the Task tool to have an agent research TypeScript best practices',
-    {
-      maxTurns: 5,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
-      hooks: {
-        SubagentStart: [
-          {
-            hooks: [
-              async (input: any) => {
-                subagentStartCalled = true;
-                capturedAgentId = input.agent_id;
-                return {};
-              },
-            ],
-          },
-        ],
-      },
-    }
-  );
+  await runWithSDK(sdk, 'Use the Task tool to have an agent research TypeScript best practices', {
+    maxTurns: 5,
+    permissionMode: 'bypassPermissions',
+    allowDangerouslySkipPermissions: true,
+    hooks: {
+      SubagentStart: [
+        {
+          hooks: [
+            async (input: any) => {
+              subagentStartCalled = true;
+              capturedAgentId = input.agent_id;
+              return {};
+            },
+          ],
+        },
+      ],
+    },
+  });
 
   expect(subagentStartCalled).toBe(true);
   expect(capturedAgentId).toBeTruthy();
@@ -253,7 +224,7 @@ testWithBothSDKsTodo('SubagentStop hook is called when subagent stops', async (s
    */
   let subagentStopCalled = false;
 
-  await runWithSDKPermissions(sdk, 'Use the Task tool to have an agent say hello', {
+  await runWithSDK(sdk, 'Use the Task tool to have an agent say hello', {
     maxTurns: 5,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -292,7 +263,7 @@ testWithBothSDKsTodo('SessionStart hook is called at session start', async (sdk)
   let sessionStartCalled = false;
   let capturedSource = '';
 
-  await runWithSDKPermissions(sdk, 'Say hello', {
+  await runWithSDK(sdk, 'Say hello', {
     maxTurns: 1,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -333,7 +304,7 @@ testWithBothSDKsTodo('SessionEnd hook is called at session end', async (sdk) => 
   let sessionEndCalled = false;
   let capturedReason = '';
 
-  await runWithSDKPermissions(sdk, 'Say hello', {
+  await runWithSDK(sdk, 'Say hello', {
     maxTurns: 1,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -375,7 +346,7 @@ testWithBothSDKsTodo('Notification hook receives agent notifications', async (sd
   let notificationCalled = false;
   let _capturedMessage = '';
 
-  await runWithSDKPermissions(sdk, 'Do a complex task that would generate notifications', {
+  await runWithSDK(sdk, 'Do a complex task that would generate notifications', {
     maxTurns: 5,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -420,7 +391,7 @@ testWithBothSDKsTodo('PermissionRequest hook handles permission prompts', async 
   let permissionRequestCalled = false;
   let capturedToolName = '';
 
-  await runWithSDKPermissions(sdk, 'Write "test" to /tmp/permission-request-test.txt', {
+  await runWithSDK(sdk, 'Write "test" to /tmp/permission-request-test.txt', {
     maxTurns: 3,
     permissionMode: 'default', // Need default mode to trigger permission requests
     hooks: {
@@ -465,7 +436,7 @@ testWithBothSDKsTodo('PreCompact hook is called before context compaction', asyn
 
   // Would need a very long conversation to trigger auto-compact
   // Or use /compact command to trigger manually
-  await runWithSDKPermissions(sdk, 'Generate a very long response that approaches context limits', {
+  await runWithSDK(sdk, 'Generate a very long response that approaches context limits', {
     maxTurns: 10,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -505,7 +476,7 @@ testWithBothSDKs('UserPromptSubmit hook is called for user messages', async (sdk
   let hookCalled = false;
   let capturedPrompt = '';
 
-  await runWithSDKPermissions(sdk, 'Say hello world', {
+  await runWithSDK(sdk, 'Say hello world', {
     maxTurns: 1,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -549,7 +520,7 @@ testWithBothSDKsTodo('hook matcher filters by tool name', async (sdk) => {
   let readHookCalled = false;
   let readToolName = '';
 
-  await runWithSDKPermissions(sdk, 'Read package.json', {
+  await runWithSDK(sdk, 'Read package.json', {
     maxTurns: 3,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -585,7 +556,7 @@ testWithBothSDKsTodo('hook matcher supports regex patterns', async (sdk) => {
   let fileOpHookCalled = false;
   const matchedTools: string[] = [];
 
-  await runWithSDKPermissions(sdk, 'Write "test" to /tmp/regex-test.txt', {
+  await runWithSDK(sdk, 'Write "test" to /tmp/regex-test.txt', {
     maxTurns: 3,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -626,7 +597,7 @@ testWithBothSDKsTodo('PreToolUse hook can deny tool execution', async (sdk) => {
    */
   let toolExecuted = false;
 
-  await runWithSDKPermissions(sdk, 'Write "test" to /tmp/hook-deny-test.txt', {
+  await runWithSDK(sdk, 'Write "test" to /tmp/hook-deny-test.txt', {
     maxTurns: 3,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -673,7 +644,7 @@ testWithBothSDKsTodo('PreToolUse hook can modify tool input', async (sdk) => {
    */
   let capturedContent = '';
 
-  await runWithSDKPermissions(sdk, 'Write "original" to /tmp/hook-modify-test.txt', {
+  await runWithSDK(sdk, 'Write "original" to /tmp/hook-modify-test.txt', {
     maxTurns: 3,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
