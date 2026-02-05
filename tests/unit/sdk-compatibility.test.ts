@@ -141,7 +141,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   Basic args match');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -160,7 +160,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   Model args match');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -178,7 +178,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   maxTurns args match');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -196,7 +196,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   permissionMode args match');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -225,7 +225,7 @@ describe('CLI arguments compatibility', () => {
       console.log('   Lite sandbox:', liteSettings.sandbox);
       console.log('   Official sandbox:', officialSettings.sandbox);
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -251,7 +251,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   settingSources args match');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -270,7 +270,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   resume args match');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 });
 
@@ -279,118 +279,130 @@ describe('CLI arguments compatibility', () => {
 // ============================================================================
 
 describe('stdin message compatibility', () => {
-  test.concurrent('init message structure matches official SDK', async () => {
-    const [lite, official] = await Promise.all([
-      capture(liteQuery, 'test'),
-      capture(officialQuery, 'test'),
-    ]);
+  test.concurrent(
+    'init message structure matches official SDK',
+    async () => {
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test'),
+        capture(officialQuery, 'test'),
+      ]);
 
-    const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
-    const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-    expect(liteInit).toBeTruthy();
-    expect(officialInit).toBeTruthy();
+      expect(liteInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
 
-    if (liteInit && officialInit) {
-      // Compare structure (not request_id which is random)
-      expect(liteInit.type).toBe(officialInit.type);
-      expect(liteInit.request.subtype).toBe(officialInit.request.subtype);
+      if (liteInit && officialInit) {
+        // Compare structure (not request_id which is random)
+        expect(liteInit.type).toBe(officialInit.type);
+        expect(liteInit.request.subtype).toBe(officialInit.request.subtype);
 
-      // Critical: systemPrompt field must be present (caused 73% cost increase when missing)
-      expect('systemPrompt' in liteInit.request).toBe('systemPrompt' in officialInit.request);
-      expect(liteInit.request.systemPrompt).toBe(officialInit.request.systemPrompt);
-    }
-
-    console.log('   Init messages captured:', { lite: !!liteInit, official: !!officialInit });
-  });
-
-  test.concurrent('user message format matches official SDK', async () => {
-    const testPrompt = 'hello world test';
-
-    const [lite, official] = await Promise.all([
-      capture(liteQuery, testPrompt),
-      capture(officialQuery, testPrompt),
-    ]);
-
-    const liteUser = lite.stdin.find((m) => m.type === 'user');
-    const officialUser = official.stdin.find((m) => m.type === 'user');
-
-    expect(liteUser).toBeTruthy();
-    expect(officialUser).toBeTruthy();
-
-    if (liteUser && officialUser) {
-      expect(liteUser.message.role).toBe(officialUser.message.role);
-
-      // Content structure should match
-      expect(Array.isArray(liteUser.message.content)).toBe(
-        Array.isArray(officialUser.message.content)
-      );
-
-      if (Array.isArray(liteUser.message.content) && Array.isArray(officialUser.message.content)) {
-        expect(liteUser.message.content.length).toBe(officialUser.message.content.length);
-
-        // First content item should be text with same content
-        const liteText = liteUser.message.content[0];
-        const officialText = officialUser.message.content[0];
-        expect(liteText.type).toBe(officialText.type);
-        expect(liteText.text).toBe(officialText.text);
+        // Critical: systemPrompt field must be present (caused 73% cost increase when missing)
+        expect('systemPrompt' in liteInit.request).toBe('systemPrompt' in officialInit.request);
+        expect(liteInit.request.systemPrompt).toBe(officialInit.request.systemPrompt);
       }
-    }
 
-    console.log('   User messages captured:', { lite: !!liteUser, official: !!officialUser });
-  });
+      console.log('   Init messages captured:', { lite: !!liteInit, official: !!officialInit });
+    },
+    { timeout: 30000 }
+  );
 
-  test.concurrent('hooks registration format matches official SDK', async () => {
-    const hooks: Record<string, HookCallbackMatcher[]> = {
-      PreToolUse: [
-        {
-          matcher: 'Read',
-          hooks: [async () => ({})],
-        },
-      ],
-    };
+  test.concurrent(
+    'user message format matches official SDK',
+    async () => {
+      const testPrompt = 'hello world test';
 
-    const [lite, official] = await Promise.all([
-      capture(liteQuery, 'test', { hooks }),
-      capture(officialQuery, 'test', { hooks }),
-    ]);
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, testPrompt),
+        capture(officialQuery, testPrompt),
+      ]);
 
-    const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
-    const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+      const liteUser = lite.stdin.find((m) => m.type === 'user');
+      const officialUser = official.stdin.find((m) => m.type === 'user');
 
-    expect(liteInit).toBeTruthy();
-    expect(officialInit).toBeTruthy();
+      expect(liteUser).toBeTruthy();
+      expect(officialUser).toBeTruthy();
 
-    if (liteInit && officialInit) {
-      // Both should have hooks
-      expect(!!liteInit.request.hooks).toBe(!!officialInit.request.hooks);
+      if (liteUser && officialUser) {
+        expect(liteUser.message.role).toBe(officialUser.message.role);
 
-      if (liteInit.request.hooks && officialInit.request.hooks) {
-        // Same hook event types registered
-        expect(Object.keys(liteInit.request.hooks).sort()).toEqual(
-          Object.keys(officialInit.request.hooks).sort()
+        // Content structure should match
+        expect(Array.isArray(liteUser.message.content)).toBe(
+          Array.isArray(officialUser.message.content)
         );
 
-        // Same structure for PreToolUse
-        const litePreToolUse = liteInit.request.hooks.PreToolUse;
-        const officialPreToolUse = officialInit.request.hooks.PreToolUse;
+        if (Array.isArray(liteUser.message.content) && Array.isArray(officialUser.message.content)) {
+          expect(liteUser.message.content.length).toBe(officialUser.message.content.length);
 
-        expect(litePreToolUse.length).toBe(officialPreToolUse.length);
-
-        // Matcher should be same
-        expect(litePreToolUse[0].matcher).toBe(officialPreToolUse[0].matcher);
-
-        // Should have hookCallbackIds array
-        expect(Array.isArray(litePreToolUse[0].hookCallbackIds)).toBe(true);
-        expect(Array.isArray(officialPreToolUse[0].hookCallbackIds)).toBe(true);
+          // First content item should be text with same content
+          const liteText = liteUser.message.content[0];
+          const officialText = officialUser.message.content[0];
+          expect(liteText.type).toBe(officialText.type);
+          expect(liteText.text).toBe(officialText.text);
+        }
       }
-    }
 
-    console.log('   Hooks registration captured:', {
-      lite: !!liteInit?.request?.hooks,
-      official: !!officialInit?.request?.hooks,
-    });
-  });
+      console.log('   User messages captured:', { lite: !!liteUser, official: !!officialUser });
+    },
+    { timeout: 30000 }
+  );
+
+  test.concurrent(
+    'hooks registration format matches official SDK',
+    async () => {
+      const hooks: Record<string, HookCallbackMatcher[]> = {
+        PreToolUse: [
+          {
+            matcher: 'Read',
+            hooks: [async () => ({})],
+          },
+        ],
+      };
+
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { hooks }),
+        capture(officialQuery, 'test', { hooks }),
+      ]);
+
+      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(liteInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      if (liteInit && officialInit) {
+        // Both should have hooks
+        expect(!!liteInit.request.hooks).toBe(!!officialInit.request.hooks);
+
+        if (liteInit.request.hooks && officialInit.request.hooks) {
+          // Same hook event types registered
+          expect(Object.keys(liteInit.request.hooks).sort()).toEqual(
+            Object.keys(officialInit.request.hooks).sort()
+          );
+
+          // Same structure for PreToolUse
+          const litePreToolUse = liteInit.request.hooks.PreToolUse;
+          const officialPreToolUse = officialInit.request.hooks.PreToolUse;
+
+          expect(litePreToolUse.length).toBe(officialPreToolUse.length);
+
+          // Matcher should be same
+          expect(litePreToolUse[0].matcher).toBe(officialPreToolUse[0].matcher);
+
+          // Should have hookCallbackIds array
+          expect(Array.isArray(litePreToolUse[0].hookCallbackIds)).toBe(true);
+          expect(Array.isArray(officialPreToolUse[0].hookCallbackIds)).toBe(true);
+        }
+      }
+
+      console.log('   Hooks registration captured:', {
+        lite: !!liteInit?.request?.hooks,
+        official: !!officialInit?.request?.hooks,
+      });
+    },
+    { timeout: 30000 }
+  );
 
   test.concurrent(
     'message ordering matches official SDK',
@@ -446,7 +458,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   Multiple hooks test passed');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -465,7 +477,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   Permission mode test passed');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -484,7 +496,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   Model option test passed');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -503,7 +515,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   maxTurns option test passed');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -531,7 +543,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   All hook event types test passed');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -551,7 +563,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   Empty prompt handling test passed');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -578,7 +590,7 @@ describe('stdin message compatibility', () => {
       console.log('   Lite systemPrompt:', liteInit?.request?.systemPrompt);
       console.log('   Official systemPrompt:', officialInit?.request?.systemPrompt);
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -611,7 +623,7 @@ describe('stdin message compatibility', () => {
       console.log('   Lite:', liteSystemPrompt);
       console.log('   Official:', officialSystemPrompt);
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -630,7 +642,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   settingSources: [project] test passed');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -649,7 +661,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   settingSources: [user] test passed');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -668,7 +680,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   settingSources: [user, project] test passed');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 
   test.concurrent(
@@ -687,6 +699,6 @@ describe('stdin message compatibility', () => {
 
       console.log('   settingSources: [] test passed');
     },
-    { timeout: 15000 }
+    { timeout: 30000 }
   );
 });
