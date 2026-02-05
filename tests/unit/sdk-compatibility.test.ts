@@ -14,7 +14,7 @@ import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as liteQuery } from '../../src/api/query.ts';
 import type { HookCallbackMatcher } from '../../src/types/index.ts';
 
-const CAPTURE_CLI = './tests/utils/capture-cli.cjs';
+const CAPTURE_CLI = './src/tools/capture-cli.cjs';
 
 // Global counter to ensure unique file names even in parallel
 let captureCounter = 0;
