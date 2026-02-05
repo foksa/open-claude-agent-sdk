@@ -12,6 +12,19 @@
 import type { HookInput, PermissionMode, SDKMessage } from './index.ts';
 
 /**
+ * Internal hook callback function type
+ *
+ * Used by ControlProtocolHandler to store and invoke hook callbacks.
+ * This mirrors the HookCallback from official SDK but is defined here
+ * for internal use to avoid circular dependencies.
+ */
+export type InternalHookCallback = (
+  input: Record<string, unknown>,
+  toolUseId: string | undefined,
+  options: { signal: AbortSignal }
+) => Promise<Record<string, unknown>>;
+
+/**
  * Messages from CLI stdout (can be regular messages OR control requests)
  */
 export type StdoutMessage = SDKMessage | ControlRequest;
