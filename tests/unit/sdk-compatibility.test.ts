@@ -778,6 +778,34 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'mcpServerStatus sends mcp_status control request matching official SDK',
+    async () => {
+      // Verify mcpServerStatus() sends correct control_request format
+      // The official SDK sends: { type: 'control_request', request_id: '...', request: { subtype: 'mcp_status' } }
+      // We verify both SDKs produce the same result in integration tests (both return [])
+      // Here we verify the request builder output matches expected format
+      const { ControlRequests } = await import('../../src/core/controlRequests.ts');
+      const request = ControlRequests.mcpStatus();
+
+      expect(request).toEqual({ subtype: 'mcp_status' });
+
+      // Verify it would be serialized correctly (same format official SDK uses)
+      const controlRequest = {
+        type: 'control_request',
+        request_id: 'test_123',
+        request,
+      };
+      const serialized = JSON.parse(JSON.stringify(controlRequest));
+      expect(serialized.type).toBe('control_request');
+      expect(serialized.request.subtype).toBe('mcp_status');
+      expect(Object.keys(serialized.request)).toEqual(['subtype']);
+
+      console.log('   mcpServerStatus control request format verified');
+    },
+    { timeout: 30000 }
+  );
+
+  test.concurrent(
     'outputFormat json_schema args match official SDK',
     async () => {
       const schema = {

@@ -42,11 +42,15 @@ export class QueryImpl implements Query {
   // Init response capture
   private initResponsePromise!: Promise<SDKControlInitializeResponse>;
   private initResolve!: (value: SDKControlInitializeResponse) => void;
+  private initReject!: (reason: Error) => void;
   private initRequestId!: string;
 
   // Pending control request/response map (for mcpServerStatus, etc.)
-  // biome-ignore lint/suspicious/noExplicitAny: response shape varies by request type
-  private pendingControlResponses = new Map<string, (value: any) => void>();
+  private pendingControlResponses = new Map<
+    string,
+    // biome-ignore lint/suspicious/noExplicitAny: response shape varies by request type
+    { resolve: (value: any) => void; reject: (reason: Error) => void }
+  >();
 
   constructor(
     params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options },
@@ -94,8 +98,9 @@ export class QueryImpl implements Query {
     this.router.startReading();
 
     // 6. Set up init response promise before sending init request
-    this.initResponsePromise = new Promise<SDKControlInitializeResponse>((resolve) => {
+    this.initResponsePromise = new Promise<SDKControlInitializeResponse>((resolve, reject) => {
       this.initResolve = resolve;
+      this.initReject = reject;
     });
 
     // 7. Send control protocol initialization
@@ -111,9 +116,12 @@ export class QueryImpl implements Query {
     // 9. Handle process exit/error
     this.process.on('exit', (code) => {
       if (code !== 0 && code !== null && !this.messageQueue.isDone()) {
-        this.messageQueue.complete(new Error(`Claude CLI exited with code ${code}`));
+        const error = new Error(`Claude CLI exited with code ${code}`);
+        this.messageQueue.complete(error);
+        this.rejectPendingPromises(error);
       } else if (!this.messageQueue.isDone()) {
         this.messageQueue.complete();
+        this.rejectPendingPromises(new Error('CLI exited before responding'));
       }
     });
 
@@ -121,6 +129,7 @@ export class QueryImpl implements Query {
       if (!this.messageQueue.isDone()) {
         this.messageQueue.complete(err);
       }
+      this.rejectPendingPromises(err);
     });
 
     // 10. Setup abort controller listener if provided
@@ -165,17 +174,23 @@ export class QueryImpl implements Query {
     const requestId = response.request_id;
 
     // Check if this is the init response
-    if (requestId === this.initRequestId && response.subtype === 'success') {
-      this.initResolve(response.response as SDKControlInitializeResponse);
+    if (requestId === this.initRequestId) {
+      if (response.subtype === 'success') {
+        this.initResolve(response.response as SDKControlInitializeResponse);
+      } else {
+        this.initReject(new Error(`Initialization failed: ${response.error || 'unknown error'}`));
+      }
       return;
     }
 
     // Check if there's a pending request/response handler
     if (requestId && this.pendingControlResponses.has(requestId)) {
-      const resolve = this.pendingControlResponses.get(requestId)!;
+      const { resolve, reject } = this.pendingControlResponses.get(requestId)!;
       this.pendingControlResponses.delete(requestId);
       if (response.subtype === 'success') {
         resolve(response.response);
+      } else {
+        reject(new Error(`Control request failed: ${response.error || 'unknown error'}`));
       }
     }
   }
@@ -245,6 +260,8 @@ export class QueryImpl implements Query {
       if (!this.messageQueue.isDone()) {
         this.messageQueue.complete();
       }
+      // Reject any pending control response promises
+      this.rejectPendingPromises(new Error('Query closed'));
     }
   }
 
@@ -294,6 +311,17 @@ export class QueryImpl implements Query {
   // Private helpers
   // ============================================================================
 
+  /**
+   * Reject initResponsePromise and all pending control response promises
+   */
+  private rejectPendingPromises(error: Error): void {
+    this.initReject?.(error);
+    for (const [id, { reject }] of this.pendingControlResponses) {
+      reject(error);
+    }
+    this.pendingControlResponses.clear();
+  }
+
   private sendControlRequest(request: OutboundControlRequest): void {
     const requestId = this.generateRequestId();
     this.process.stdin?.write(
@@ -311,8 +339,8 @@ export class QueryImpl implements Query {
   // biome-ignore lint/suspicious/noExplicitAny: response shape varies by request type
   private sendControlRequestWithResponse<T = any>(request: OutboundControlRequest): Promise<T> {
     const requestId = this.generateRequestId();
-    const promise = new Promise<T>((resolve) => {
-      this.pendingControlResponses.set(requestId, resolve);
+    const promise = new Promise<T>((resolve, reject) => {
+      this.pendingControlResponses.set(requestId, { resolve, reject });
     });
     this.process.stdin?.write(
       `${JSON.stringify({
