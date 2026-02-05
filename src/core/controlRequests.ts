@@ -7,7 +7,7 @@
  * @internal
  */
 
-import type { PermissionMode } from '../types/index.ts';
+import type { McpServerConfig, PermissionMode } from '../types/index.ts';
 
 // ============================================================================
 // Control Request Types
@@ -36,6 +36,22 @@ export type McpStatusRequest = {
   subtype: 'mcp_status';
 };
 
+export type McpReconnectRequest = {
+  subtype: 'mcp_reconnect';
+  serverName: string;
+};
+
+export type McpToggleRequest = {
+  subtype: 'mcp_toggle';
+  serverName: string;
+  enabled: boolean;
+};
+
+export type McpSetServersRequest = {
+  subtype: 'mcp_set_servers';
+  servers: Record<string, McpServerConfig>;
+};
+
 /**
  * Union of all outbound control request types (sent from SDK to CLI)
  */
@@ -44,7 +60,10 @@ export type OutboundControlRequest =
   | SetPermissionModeRequest
   | SetModelRequest
   | SetMaxThinkingTokensRequest
-  | McpStatusRequest;
+  | McpStatusRequest
+  | McpReconnectRequest
+  | McpToggleRequest
+  | McpSetServersRequest;
 
 // ============================================================================
 // Type-safe Request Builders
@@ -96,5 +115,30 @@ export const ControlRequests = {
    */
   mcpStatus: (): McpStatusRequest => ({
     subtype: 'mcp_status',
+  }),
+
+  /**
+   * Create MCP server reconnect request
+   */
+  mcpReconnect: (serverName: string): McpReconnectRequest => ({
+    subtype: 'mcp_reconnect',
+    serverName,
+  }),
+
+  /**
+   * Create MCP server toggle request
+   */
+  mcpToggle: (serverName: string, enabled: boolean): McpToggleRequest => ({
+    subtype: 'mcp_toggle',
+    serverName,
+    enabled,
+  }),
+
+  /**
+   * Create MCP set servers request
+   */
+  mcpSetServers: (servers: Record<string, McpServerConfig>): McpSetServersRequest => ({
+    subtype: 'mcp_set_servers',
+    servers,
   }),
 };

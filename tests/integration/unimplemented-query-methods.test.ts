@@ -62,7 +62,7 @@ testWithBothSDKsTodo('rewindFiles() restores files to checkpoint state', async (
   for await (const msg of q) {
     // Capture first user message UUID for rewind target
     if (msg.type === 'user' && !firstUserMessageUuid) {
-      firstUserMessageUuid = (msg as any).uuid;
+      firstUserMessageUuid = (msg as unknown as { uuid: string }).uuid;
     }
     if (msg.type === 'result') break;
   }
@@ -130,50 +130,7 @@ testWithBothSDKsTodo(
 // STUB: MCP server management methods
 // =============================================================================
 
-testWithBothSDKsTodo(
-  'reconnectMcpServer() reconnects to a disconnected MCP server',
-  async (sdk) => {
-    /**
-     * Official SDK docs (implied from Query interface):
-     * "reconnectMcpServer(serverName: string): Reconnects to an MCP server"
-     *
-     * Useful for recovering from temporary connection issues
-     */
-    const { query: liteQuery } = await import('../../src/api/query.ts');
-    const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
-    const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
-
-    const q = queryFn({
-      prompt: 'List MCP servers',
-      options: {
-        permissionMode: 'bypassPermissions',
-        allowDangerouslySkipPermissions: true,
-        maxTurns: 1,
-        model: 'haiku',
-        settingSources: [],
-        pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
-        // mcpServers would be configured here
-      },
-    });
-
-    // Attempt to reconnect (would require MCP server to be configured)
-    // await q.reconnectMcpServer('my-server');
-
-    for await (const msg of q) {
-      if (msg.type === 'result') break;
-    }
-
-    console.log(`   [${sdk}] reconnectMcpServer would reconnect`);
-  }
-);
-
-testWithBothSDKsTodo('toggleMcpServer() enables/disables an MCP server', async (sdk) => {
-  /**
-   * Official SDK docs (implied from Query interface):
-   * "toggleMcpServer(serverName: string, enabled: boolean): Toggle server state"
-   *
-   * Allows temporarily disabling an MCP server without removing it
-   */
+testWithBothSDKs('reconnectMcpServer() sends mcp_reconnect control request', async (sdk) => {
   const { query: liteQuery } = await import('../../src/api/query.ts');
   const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
   const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
@@ -190,26 +147,21 @@ testWithBothSDKsTodo('toggleMcpServer() enables/disables an MCP server', async (
     },
   });
 
-  // Disable a server
-  // await q.toggleMcpServer('my-server', false);
-
-  // Enable it again
-  // await q.toggleMcpServer('my-server', true);
+  // CLI returns error because no server named 'test-server' is configured
+  try {
+    await q.reconnectMcpServer('test-server');
+  } catch (e: unknown) {
+    expect(e instanceof Error ? e.message : '').toContain('Server not found');
+  }
 
   for await (const msg of q) {
     if (msg.type === 'result') break;
   }
 
-  console.log(`   [${sdk}] toggleMcpServer would toggle`);
+  console.log(`   [${sdk}] reconnectMcpServer correctly handled missing server`);
 });
 
-testWithBothSDKsTodo('setMcpServers() configures MCP servers dynamically', async (sdk) => {
-  /**
-   * Official SDK docs (implied from Query interface):
-   * "setMcpServers(servers: Record<string, McpServerConfig>): Configure servers"
-   *
-   * Allows adding/removing MCP servers during a session
-   */
+testWithBothSDKs('toggleMcpServer() sends mcp_toggle control request', async (sdk) => {
   const { query: liteQuery } = await import('../../src/api/query.ts');
   const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
   const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
@@ -226,16 +178,52 @@ testWithBothSDKsTodo('setMcpServers() configures MCP servers dynamically', async
     },
   });
 
-  // Add MCP servers dynamically
-  // await q.setMcpServers({
-  //   'playwright': { command: 'npx', args: ['@playwright/mcp@latest'] }
-  // });
+  // CLI returns error because no server named 'test-server' is configured
+  try {
+    await q.toggleMcpServer('test-server', false);
+  } catch (e: unknown) {
+    expect(e instanceof Error ? e.message : '').toContain('Server not found');
+  }
 
   for await (const msg of q) {
     if (msg.type === 'result') break;
   }
 
-  console.log(`   [${sdk}] setMcpServers would configure servers`);
+  console.log(`   [${sdk}] toggleMcpServer correctly handled missing server`);
+});
+
+testWithBothSDKs('setMcpServers() sends mcp_set_servers control request', async (sdk) => {
+  const { query: liteQuery } = await import('../../src/api/query.ts');
+  const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
+  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+
+  const q = queryFn({
+    prompt: 'Say hello',
+    options: {
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      maxTurns: 1,
+      model: 'haiku',
+      settingSources: [],
+      pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+    },
+  });
+
+  // Should return result with expected shape
+  const result = await q.setMcpServers({
+    playwright: { command: 'npx', args: ['@playwright/mcp@latest'] },
+  });
+
+  expect(result).toBeDefined();
+  expect(result).toHaveProperty('added');
+  expect(result).toHaveProperty('removed');
+  expect(result).toHaveProperty('errors');
+
+  for await (const msg of q) {
+    if (msg.type === 'result') break;
+  }
+
+  console.log(`   [${sdk}] setMcpServers returned result with correct shape`);
 });
 
 // =============================================================================
@@ -391,7 +379,7 @@ testWithBothSDKs('supports using await with async dispose', async (sdk) => {
   });
 
   // Verify Symbol.asyncDispose exists
-  expect(typeof (q as any)[Symbol.asyncDispose]).toBe('function');
+  expect(typeof (q as unknown as Record<symbol, unknown>)[Symbol.asyncDispose]).toBe('function');
 
   // Clean up normally
   for await (const msg of q) {

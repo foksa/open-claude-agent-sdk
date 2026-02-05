@@ -128,8 +128,8 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
 
   // Test support: Allow injecting extra CLI args for testing
   // Security: Only enabled in test environment to prevent misuse
-  if (process.env.NODE_ENV === 'test' && (options as any)._testCliArgs) {
-    args.push(...(options as any)._testCliArgs);
+  if (process.env.NODE_ENV === 'test' && (options as Record<string, unknown>)._testCliArgs) {
+    args.push(...((options as Record<string, unknown>)._testCliArgs as string[]));
   }
 
   // Debug: log args if DEBUG_HOOKS is set

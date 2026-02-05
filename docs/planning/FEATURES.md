@@ -40,9 +40,9 @@
 | mcpServerStatus() | ✅ | ✅ | - | Complete |
 | accountInfo() | ✅ | ✅ | - | Complete |
 | rewindFiles() | ⚠️ Stub | ✅ | LOW | 5-7 days |
-| reconnectMcpServer() | ⚠️ Stub | ✅ | LOW | 2 days |
-| toggleMcpServer() | ⚠️ Stub | ✅ | LOW | 1 day |
-| setMcpServers() | ⚠️ Stub | ✅ | LOW | 2-3 days |
+| reconnectMcpServer() | ✅ | ✅ | - | Complete |
+| toggleMcpServer() | ✅ | ✅ | - | Complete |
+| setMcpServers() | ✅ | ✅ | - | Complete |
 | **Advanced Features** |
 | Structured outputs | ✅ | ✅ | - | Complete |
 | Extended thinking | ✅ | ✅ | - | Complete |

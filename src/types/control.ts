@@ -9,7 +9,7 @@
  * @internal
  */
 
-import type { HookInput, PermissionMode, SDKMessage } from './index.ts';
+import type { HookInput, PermissionMode, PermissionUpdate, SDKMessage } from './index.ts';
 
 /**
  * Internal hook callback function type
@@ -64,7 +64,7 @@ export type CanUseToolRequest = {
   tool_name: string;
   input: Record<string, unknown>;
   tool_use_id: string;
-  permission_suggestions?: any[];
+  permission_suggestions?: PermissionUpdate[];
   blocked_path?: string;
   decision_reason?: string;
   agent_id?: string;
@@ -85,12 +85,12 @@ export type HookCallbackRequest = {
  */
 export type InitializeRequest = {
   subtype: 'initialize';
-  hooks?: Record<string, any>;
+  hooks?: Record<string, unknown>;
   sdkMcpServers?: string[];
   jsonSchema?: Record<string, unknown>;
   systemPrompt?: string;
   appendSystemPrompt?: string;
-  agents?: Record<string, any>;
+  agents?: Record<string, unknown>;
 };
 
 /**
@@ -137,7 +137,7 @@ export type McpStatusRequest = {
 export type McpMessageRequest = {
   subtype: 'mcp_message';
   server_name: string;
-  message: any;
+  message: Record<string, unknown>;
 };
 
 /**
@@ -154,7 +154,7 @@ export type RewindFilesRequest = {
  */
 export type McpSetServersRequest = {
   subtype: 'mcp_set_servers';
-  servers: Record<string, any>;
+  servers: Record<string, unknown>;
 };
 
 /**
