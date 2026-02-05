@@ -4,7 +4,7 @@ A lightweight wrapper around Claude CLI - we're building a thin SDK that re-uses
 
 ## What This Project Is
 
-**Goal:** 65x smaller alternative to `@anthropic-ai/claude-agent-sdk` (200KB vs 13MB).
+**Goal:** Compatible open source replacement for `@anthropic-ai/claude-agent-sdk`.
 
 **Strategy:** Thin wrapper that spawns Claude CLI as subprocess and manages stdin/stdout communication via NDJSON protocol. We re-export types from official SDK for 100% type compatibility.
 
@@ -21,19 +21,26 @@ src/
   │   ├── detection.ts       # Find Claude CLI binary
   │   ├── spawn.ts           # Build args, spawn subprocess
   │   └── control.ts         # Handle canUseTool, hooks
+  ├── tools/
+  │   ├── capture-cli.cjs    # Captures CLI args + stdin for testing
+  │   └── proxy-cli.cjs      # Proxy interceptor for debugging
   └── types/
       ├── index.ts           # Re-exports from official SDK
       └── control.ts         # Control protocol types
 
 tests/
   ├── integration/           # Real tests (run with: bun test)
+  ├── unit/                 # Unit tests (SDK compatibility)
   ├── scratch/              # Development experiments (not tests)
   └── snapshots/            # NDJSON expected outputs
 
 docs/
-  ├── planning/             # ROADMAP, FEATURES, strategy docs
+  ├── planning/             # ROADMAP, FEATURES, gap analysis
   ├── guides/               # IMPLEMENTATION_GUIDE, MIGRATION
-  └── research/             # Protocol research, findings
+  ├── research/             # Protocol research, findings
+  ├── official-agent-sdk-docs/  # Downloaded official SDK docs (reference)
+  ├── analysis/             # Codebase analysis (architecture, coverage)
+  └── api/                  # API documentation
 ```
 
 ## How to Work Here
@@ -68,23 +75,13 @@ bun run typecheck
 
 **Proxy CLI technique** - When behavior differs from Official SDK:
 
-1. Use the proxy CLI in `tests/utils/proxy-cli.js` to intercept messages
-2. Run both SDKs through proxy: `pathToClaudeCodeExecutable: './tests/utils/proxy-cli.js'`
-3. Compare logs in `tests/research/logs/` to see exact differences
-4. See `docs/guides/REVERSE_ENGINEERING.md` for full guide
+1. Use the proxy CLI in `src/tools/proxy-cli.cjs` to intercept messages
+2. Run both SDKs through proxy: `pathToClaudeCodeExecutable: './src/tools/proxy-cli.cjs'`
+3. Compare logs to see exact differences
 
-**Example:** This technique discovered the missing `systemPrompt: ""` field that caused 73% higher costs.
-
-```bash
-# Quick comparison
-bun tests/research/compare-with-proxy.ts
-```
-
-**Research Directory Structure:**
-- `tests/utils/proxy-cli.js` - The proxy interceptor (permanent tool)
-- `tests/research/` - Active comparison tests
-- `tests/research/archived/` - Historical one-off investigations
-- `tests/research/performance/` - Performance research scripts
+**Test utilities:**
+- `src/tools/capture-cli.cjs` - Captures CLI args + stdin for unit tests
+- `src/tools/proxy-cli.cjs` - Proxy interceptor for debugging protocol
 
 ### What NOT to Do
 
@@ -138,6 +135,4 @@ bun tests/research/compare-with-proxy.ts
 When documenting features:
 - Update `docs/planning/FEATURES.md` status (✅ ⚠️ ❌)
 - Follow existing format in docs/guides/
-- Don't create new docs without asking - we have a structure
-
-For more context, see `docs/README.md` (documentation hub).
+- Use existing directories (see Project Structure above)
