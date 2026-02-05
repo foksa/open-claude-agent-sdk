@@ -31,7 +31,7 @@ export class ControlProtocolHandler {
    * Routes to appropriate handler based on request subtype
    */
   async handleControlRequest(req: ControlRequest): Promise<void> {
-    // Debug logging (remove in production)
+    // Debug logging (enable via DEBUG_HOOKS env var)
     if (process.env.DEBUG_HOOKS) {
       console.error('[DEBUG] Control request:', JSON.stringify(req, null, 2));
       console.error('[DEBUG] Subtype:', req.request.subtype);

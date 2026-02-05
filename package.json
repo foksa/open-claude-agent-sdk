@@ -2,6 +2,16 @@
   "name": "@lite-claude/agent-sdk",
   "version": "0.0.0",
   "description": "A lightweight alternative to Claude Agent SDK - 70x smaller, uses local CLI",
+  "license": "MIT",
+  "author": "lite-claude contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/foksa/lite-claude-agent-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/foksa/lite-claude-agent-sdk/issues"
+  },
+  "homepage": "https://github.com/foksa/lite-claude-agent-sdk#readme",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -11,16 +21,6 @@
       "bun": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./tools": {
-      "bun": "./src/tools/index.ts",
-      "import": "./dist/tools/index.js",
-      "types": "./dist/tools/index.d.ts"
-    },
-    "./mcp": {
-      "bun": "./src/mcp/index.ts",
-      "import": "./dist/mcp/index.js",
-      "types": "./dist/mcp/index.d.ts"
     }
   },
   "files": [
@@ -31,7 +31,7 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm && bun run build:types",
-    "build:types": "tsc --emitDeclarationOnly --outDir dist",
+    "build:types": "tsc -p tsconfig.build.json",
     "test": "bun test",
     "test:unit": "bun test tests/unit/",
     "test:hooks": "bun test tests/integration/hooks.test.ts",
