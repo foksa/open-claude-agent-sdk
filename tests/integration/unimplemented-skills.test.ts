@@ -16,19 +16,6 @@
  */
 
 import { describe, test } from 'bun:test';
-import type { SDKType } from './comparison-utils.ts';
-
-// Helper for skipped comparison tests
-const _testWithBothSDKsSkip = (
-  name: string,
-  testFn: (sdk: SDKType) => Promise<void>,
-  timeout = 60000
-) => {
-  describe.skip(name, () => {
-    test(`[lite] ${name}`, () => testFn('lite'), { timeout });
-    test(`[official] ${name}`, () => testFn('official'), { timeout });
-  });
-};
 
 // =============================================================================
 // Skills Overview
