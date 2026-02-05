@@ -65,6 +65,10 @@ export class QueryImpl implements Query {
       // Initialize with empty values to satisfy TypeScript
       this.messageQueue = new MessageQueue<SDKMessage>();
       this.messageQueue.complete();
+      const abortError = new Error('Query was aborted before initialization');
+      this.initResponsePromise = Promise.reject(abortError);
+      this.initResponsePromise.catch(() => {}); // Prevent unhandled rejection
+      this.initReject = () => {};
       return;
     }
 
@@ -339,6 +343,9 @@ export class QueryImpl implements Query {
    */
   // biome-ignore lint/suspicious/noExplicitAny: response shape varies by request type
   private sendControlRequestWithResponse<T = any>(request: OutboundControlRequest): Promise<T> {
+    if (this.closed) {
+      return Promise.reject(new Error('Cannot send control request: query is closed'));
+    }
     const requestId = this.generateRequestId();
     const promise = new Promise<T>((resolve, reject) => {
       this.pendingControlResponses.set(requestId, { resolve, reject });

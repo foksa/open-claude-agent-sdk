@@ -778,27 +778,19 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
-    'mcpServerStatus sends mcp_status control request matching official SDK',
+    'mcpServerStatus control request format matches CLI protocol',
     async () => {
-      // Verify mcpServerStatus() sends correct control_request format
-      // The official SDK sends: { type: 'control_request', request_id: '...', request: { subtype: 'mcp_status' } }
-      // We verify both SDKs produce the same result in integration tests (both return [])
-      // Here we verify the request builder output matches expected format
+      // mcp_status is a mid-session control request (sent after init, not at startup)
+      // so the capture-cli approach can't intercept it. Instead we:
+      // 1. Verify the request builder produces the correct format here
+      // 2. Rely on integration tests (unimplemented-streaming.test.ts) for full
+      //    SDK parity — both SDKs return identical results from the real CLI
       const { ControlRequests } = await import('../../src/core/controlRequests.ts');
       const request = ControlRequests.mcpStatus();
 
+      // Must match CLI protocol: { subtype: 'mcp_status' } with no extra fields
       expect(request).toEqual({ subtype: 'mcp_status' });
-
-      // Verify it would be serialized correctly (same format official SDK uses)
-      const controlRequest = {
-        type: 'control_request',
-        request_id: 'test_123',
-        request,
-      };
-      const serialized = JSON.parse(JSON.stringify(controlRequest));
-      expect(serialized.type).toBe('control_request');
-      expect(serialized.request.subtype).toBe('mcp_status');
-      expect(Object.keys(serialized.request)).toEqual(['subtype']);
+      expect(Object.keys(request)).toEqual(['subtype']);
 
       console.log('   mcpServerStatus control request format verified');
     },
