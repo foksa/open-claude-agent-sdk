@@ -272,6 +272,24 @@ describe('CLI arguments compatibility', () => {
     },
     { timeout: 30000 }
   );
+
+  test.concurrent(
+    'maxThinkingTokens option args match official SDK',
+    async () => {
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { maxThinkingTokens: 10000 }),
+        capture(officialQuery, 'test', { maxThinkingTokens: 10000 }),
+      ]);
+
+      expect(lite.args).toContain('--max-thinking-tokens');
+      expect(lite.args).toContain('10000');
+      expect(official.args).toContain('--max-thinking-tokens');
+      expect(official.args).toContain('10000');
+
+      console.log('   maxThinkingTokens args match');
+    },
+    { timeout: 30000 }
+  );
 });
 
 // ============================================================================

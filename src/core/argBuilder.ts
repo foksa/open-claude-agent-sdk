@@ -50,6 +50,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--max-turns', String(options.maxTurns));
   }
 
+  // Max thinking tokens (extended thinking)
+  if (options.maxThinkingTokens !== undefined) {
+    args.push('--max-thinking-tokens', String(options.maxThinkingTokens));
+  }
+
   // Max budget USD
   if (options.maxBudgetUsd) {
     args.push('--max-budget-usd', String(options.maxBudgetUsd));
