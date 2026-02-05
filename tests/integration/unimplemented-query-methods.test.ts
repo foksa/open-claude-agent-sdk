@@ -130,39 +130,36 @@ testWithBothSDKsTodo(
 // STUB: MCP server management methods
 // =============================================================================
 
-testWithBothSDKs(
-  'reconnectMcpServer() sends mcp_reconnect control request',
-  async (sdk) => {
-    const { query: liteQuery } = await import('../../src/api/query.ts');
-    const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
-    const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+testWithBothSDKs('reconnectMcpServer() sends mcp_reconnect control request', async (sdk) => {
+  const { query: liteQuery } = await import('../../src/api/query.ts');
+  const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
+  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
 
-    const q = queryFn({
-      prompt: 'Say hello',
-      options: {
-        permissionMode: 'bypassPermissions',
-        allowDangerouslySkipPermissions: true,
-        maxTurns: 1,
-        model: 'haiku',
-        settingSources: [],
-        pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
-      },
-    });
+  const q = queryFn({
+    prompt: 'Say hello',
+    options: {
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      maxTurns: 1,
+      model: 'haiku',
+      settingSources: [],
+      pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+    },
+  });
 
-    // CLI returns error because no server named 'test-server' is configured
-    try {
-      await q.reconnectMcpServer('test-server');
-    } catch (e: any) {
-      expect(e.message).toContain('Server not found');
-    }
-
-    for await (const msg of q) {
-      if (msg.type === 'result') break;
-    }
-
-    console.log(`   [${sdk}] reconnectMcpServer correctly handled missing server`);
+  // CLI returns error because no server named 'test-server' is configured
+  try {
+    await q.reconnectMcpServer('test-server');
+  } catch (e: any) {
+    expect(e.message).toContain('Server not found');
   }
-);
+
+  for await (const msg of q) {
+    if (msg.type === 'result') break;
+  }
+
+  console.log(`   [${sdk}] reconnectMcpServer correctly handled missing server`);
+});
 
 testWithBothSDKs('toggleMcpServer() sends mcp_toggle control request', async (sdk) => {
   const { query: liteQuery } = await import('../../src/api/query.ts');
