@@ -51,8 +51,6 @@ exec node "${process.cwd()}/${COMPARE_CLI}" "$@"
     maxTurns: 3,
     settingSources: [],
     pathToClaudeCodeExecutable: wrapperScript,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     ...options,
   };
 

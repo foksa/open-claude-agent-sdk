@@ -15,8 +15,6 @@ describe('QueryImpl AsyncGenerator compliance', () => {
       prompt: 'Count from 1 to 100 slowly',
       options: {
         maxTurns: 10,
-        permissionMode: 'bypassPermissions',
-        allowDangerouslySkipPermissions: true,
         model: 'haiku',
         settingSources: [],
       },
@@ -46,8 +44,6 @@ describe('QueryImpl AsyncGenerator compliance', () => {
       prompt: 'Say hello',
       options: {
         maxTurns: 1,
-        permissionMode: 'bypassPermissions',
-        allowDangerouslySkipPermissions: true,
         model: 'haiku',
         settingSources: [],
       },
@@ -74,8 +70,6 @@ describe('QueryImpl AsyncGenerator compliance', () => {
       prompt: 'Say hello',
       options: {
         maxTurns: 1,
-        permissionMode: 'bypassPermissions',
-        allowDangerouslySkipPermissions: true,
         model: 'haiku',
         settingSources: [],
       },
@@ -101,8 +95,6 @@ describe('QueryImpl AsyncGenerator compliance', () => {
       prompt: 'Say hello',
       options: {
         maxTurns: 1,
-        permissionMode: 'bypassPermissions',
-        allowDangerouslySkipPermissions: true,
         model: 'haiku',
         settingSources: [],
       },

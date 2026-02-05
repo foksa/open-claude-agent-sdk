@@ -10,8 +10,6 @@ import { expectSuccessResult } from './test-helpers.ts';
 testWithBothSDKs('maxThinkingTokens option works', async (sdk) => {
   const messages = await runWithSDK(sdk, 'What is 2+2? Think step by step.', {
     maxThinkingTokens: 5000,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
   });
 

@@ -61,8 +61,6 @@ testWithBothSDKs('abortController can interrupt long-running query', async (sdk)
     sdk,
     'Write a very long essay about the history of computing, including all major developments from the abacus to modern quantum computers. Include at least 20 paragraphs.',
     {
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
       maxTurns: 1,
       includePartialMessages: true, // Get streaming to see progress
     },
@@ -95,8 +93,6 @@ testWithBothSDKs('abortController signal is respected immediately', async (sdk) 
     model: 'haiku',
     settingSources: [],
     pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
     abortController,
   };

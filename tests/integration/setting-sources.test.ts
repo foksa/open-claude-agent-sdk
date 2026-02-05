@@ -9,8 +9,6 @@ import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 testWithBothSDKs('settingSources accepts empty array (isolation mode)', async (sdk) => {
   // This is the default for tests - verify it works
   const messages = await runWithSDK(sdk, 'Say "hello" and nothing else.', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
     settingSources: [], // Explicit isolation - no filesystem settings
   });
@@ -33,8 +31,6 @@ testWithBothSDKs('settingSources accepts project source', async (sdk) => {
   // Note: This doesn't test actual skill loading (would need .claude/skills dir)
   // but verifies the option is passed correctly without error
   const messages = await runWithSDK(sdk, 'Say "hello" and nothing else.', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
     settingSources: ['project'], // Load project-level settings
   });
@@ -54,8 +50,6 @@ testWithBothSDKs('settingSources accepts project source', async (sdk) => {
 testWithBothSDKs('settingSources accepts user source', async (sdk) => {
   // Test that settingSources: ['user'] is accepted by CLI
   const messages = await runWithSDK(sdk, 'Say "hello" and nothing else.', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
     settingSources: ['user'], // Load user-level settings
   });
@@ -75,8 +69,6 @@ testWithBothSDKs('settingSources accepts user source', async (sdk) => {
 testWithBothSDKs('settingSources accepts multiple sources', async (sdk) => {
   // Test that multiple sources can be combined
   const messages = await runWithSDK(sdk, 'Say "hello" and nothing else.', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
     settingSources: ['project', 'user'], // Both sources
   });

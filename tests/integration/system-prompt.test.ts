@@ -8,8 +8,6 @@ import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
 testWithBothSDKs('systemPrompt injects context that model can reference', async (sdk) => {
   const messages = await runWithSDK(sdk, 'What is my name? Answer in one word only.', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
     systemPrompt: "The user's name is Marshall. Always remember this.",
   });
@@ -42,8 +40,6 @@ testWithBothSDKs('systemPrompt injects context that model can reference', async 
 
 testWithBothSDKs('systemPrompt can set assistant persona', async (sdk) => {
   const messages = await runWithSDK(sdk, 'Introduce yourself in one sentence.', {
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
     maxTurns: 1,
     systemPrompt: 'You are Captain Jack Sparrow. Always speak like a pirate.',
   });
