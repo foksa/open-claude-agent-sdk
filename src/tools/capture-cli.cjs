@@ -71,24 +71,50 @@ rl.on('line', (line) => {
     const msg = JSON.parse(line);
     stdinMessages.push(msg);
 
-    // If this is the init control_request, send response
-    if (
-      msg.type === 'control_request' &&
-      msg.request?.subtype === 'initialize' &&
-      !initResponseSent
-    ) {
-      initResponseSent = true;
-      // Send control_response for init
-      console.log(
-        JSON.stringify({
-          type: 'control_response',
-          response: {
-            subtype: 'success',
-            request_id: msg.request_id,
-            response: { commands: [] },
-          },
-        })
-      );
+    // Respond to control_requests so the SDK doesn't hang
+    if (msg.type === 'control_request') {
+      if (msg.request?.subtype === 'initialize' && !initResponseSent) {
+        initResponseSent = true;
+        console.log(
+          JSON.stringify({
+            type: 'control_response',
+            response: {
+              subtype: 'success',
+              request_id: msg.request_id,
+              response: {
+                commands: [],
+                models: [],
+                account: {},
+                output_style: 'text',
+                available_output_styles: ['text', 'json'],
+              },
+            },
+          })
+        );
+      } else if (msg.request?.subtype === 'mcp_status') {
+        console.log(
+          JSON.stringify({
+            type: 'control_response',
+            response: {
+              subtype: 'success',
+              request_id: msg.request_id,
+              response: { mcpServers: [] },
+            },
+          })
+        );
+      } else if (msg.request?.subtype !== 'initialize') {
+        // Generic success response for other control requests
+        console.log(
+          JSON.stringify({
+            type: 'control_response',
+            response: {
+              subtype: 'success',
+              request_id: msg.request_id,
+              response: {},
+            },
+          })
+        );
+      }
     }
   } catch (e) {
     stdinMessages.push({ raw: line, error: e.message });

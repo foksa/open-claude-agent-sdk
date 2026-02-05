@@ -85,6 +85,66 @@ CAPTURE_OUTPUT_FILE="${outputFile}" exec node "${process.cwd()}/${CAPTURE_CLI}" 
 }
 
 /**
+ * Run SDK query, call a method on the Query object, then consume and capture
+ */
+async function captureWithQuery(
+  queryFn: typeof liteQuery,
+  prompt: string,
+  // biome-ignore lint/suspicious/noExplicitAny: query method varies
+  queryCallback: (q: any) => Promise<void>,
+  // biome-ignore lint/suspicious/noExplicitAny: options are flexible
+  options: Record<string, any> = {}
+): Promise<CaptureResult> {
+  const uniqueId = `${Date.now()}-${++captureCounter}-${Math.random().toString(36).slice(2)}`;
+  const outputFile = `/tmp/capture-${uniqueId}.json`;
+
+  const wrapperScript = `/tmp/capture-wrapper-${uniqueId}.sh`;
+  const wrapperContent = `#!/bin/bash
+CAPTURE_OUTPUT_FILE="${outputFile}" exec node "${process.cwd()}/${CAPTURE_CLI}" "$@"
+`;
+  writeFileSync(wrapperScript, wrapperContent, { mode: 0o755 });
+
+  const opts = {
+    pathToClaudeCodeExecutable: wrapperScript,
+    settingSources: [],
+    maxTurns: 1,
+    ...options,
+  };
+
+  try {
+    const q = queryFn({ prompt, options: opts });
+    await queryCallback(q);
+    for await (const msg of q) {
+      if (msg.type === 'result') break;
+    }
+  } catch {
+    // May error on mock CLI closing, that's ok
+  }
+
+  await new Promise((r) => setTimeout(r, 300));
+
+  try {
+    unlinkSync(wrapperScript);
+  } catch {
+    // Ignore
+  }
+
+  if (existsSync(outputFile)) {
+    try {
+      const captured = JSON.parse(readFileSync(outputFile, 'utf-8'));
+      unlinkSync(outputFile);
+      return captured;
+    } catch (e) {
+      console.error('Failed to read capture file:', outputFile, e);
+      return { args: [], stdin: [] };
+    }
+  }
+
+  console.error('Capture file not found:', outputFile);
+  return { args: [], stdin: [] };
+}
+
+/**
  * Normalize messages for comparison (remove dynamic fields)
  */
 function normalizeMessage(msg: any): any {
@@ -778,21 +838,30 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
-    'mcpServerStatus control request format matches CLI protocol',
+    'mcpServerStatus sends mcp_status control request matching official SDK',
     async () => {
-      // mcp_status is a mid-session control request (sent after init, not at startup)
-      // so the capture-cli approach can't intercept it. Instead we:
-      // 1. Verify the request builder produces the correct format here
-      // 2. Rely on integration tests (unimplemented-streaming.test.ts) for full
-      //    SDK parity — both SDKs return identical results from the real CLI
-      const { ControlRequests } = await import('../../src/core/controlRequests.ts');
-      const request = ControlRequests.mcpStatus();
+      const [lite, official] = await Promise.all([
+        captureWithQuery(liteQuery, 'test', async (q) => {
+          await q.mcpServerStatus();
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.mcpServerStatus();
+        }),
+      ]);
 
-      // Must match CLI protocol: { subtype: 'mcp_status' } with no extra fields
-      expect(request).toEqual({ subtype: 'mcp_status' });
-      expect(Object.keys(request)).toEqual(['subtype']);
+      const liteMcp = lite.stdin.find((m) => m.request?.subtype === 'mcp_status');
+      const officialMcp = official.stdin.find((m) => m.request?.subtype === 'mcp_status');
 
-      console.log('   mcpServerStatus control request format verified');
+      expect(liteMcp).toBeTruthy();
+      expect(officialMcp).toBeTruthy();
+
+      if (liteMcp && officialMcp) {
+        const liteNorm = normalizeMessage(liteMcp);
+        const officialNorm = normalizeMessage(officialMcp);
+        expect(liteNorm).toEqual(officialNorm);
+      }
+
+      console.log('   mcpServerStatus stdin messages match');
     },
     { timeout: 30000 }
   );
