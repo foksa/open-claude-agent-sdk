@@ -734,12 +734,11 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
-    'systemPrompt with preset type matches official SDK',
+    'systemPrompt preset without append sends no systemPrompt fields',
     async () => {
       const systemPrompt = {
         type: 'preset' as const,
         preset: 'claude_code' as const,
-        appendSystemPrompt: 'Additional instructions here.',
       };
 
       const [lite, official] = await Promise.all([
@@ -753,15 +752,44 @@ describe('stdin message compatibility', () => {
       expect(liteInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
-      // Compare the systemPrompt structure
-      const liteSystemPrompt = liteInit?.request?.systemPrompt;
-      const officialSystemPrompt = officialInit?.request?.systemPrompt;
+      // Neither systemPrompt nor appendSystemPrompt should be present
+      expect(liteInit?.request?.systemPrompt).toBeUndefined();
+      expect(liteInit?.request?.appendSystemPrompt).toBeUndefined();
+      expect(officialInit?.request?.systemPrompt).toBeUndefined();
+      expect(officialInit?.request?.appendSystemPrompt).toBeUndefined();
 
-      expect(liteSystemPrompt).toEqual(officialSystemPrompt);
+      console.log('   systemPrompt preset (no append) test passed');
+    },
+    { timeout: 30000 }
+  );
 
-      console.log('   systemPrompt preset type test passed');
-      console.log('   Lite:', liteSystemPrompt);
-      console.log('   Official:', officialSystemPrompt);
+  test.concurrent(
+    'systemPrompt preset with append sends appendSystemPrompt matching official SDK',
+    async () => {
+      const systemPrompt = {
+        type: 'preset' as const,
+        preset: 'claude_code' as const,
+        append: 'Additional instructions here.',
+      };
+
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { systemPrompt }),
+        capture(officialQuery, 'test', { systemPrompt }),
+      ]);
+
+      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(liteInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      // Should have appendSystemPrompt, not systemPrompt
+      expect(liteInit?.request?.systemPrompt).toBeUndefined();
+      expect(liteInit?.request?.appendSystemPrompt).toBe('Additional instructions here.');
+      expect(officialInit?.request?.systemPrompt).toBeUndefined();
+      expect(officialInit?.request?.appendSystemPrompt).toBe('Additional instructions here.');
+
+      console.log('   systemPrompt preset with append test passed');
     },
     { timeout: 30000 }
   );
