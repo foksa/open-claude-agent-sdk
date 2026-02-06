@@ -4,8 +4,13 @@
  */
 
 import { expect } from 'bun:test';
-import type { HookCallbackMatcher } from '../../src/types/index.ts';
+import type { HookCallbackMatcher, HookInput } from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
+
+/** Auto-approve all tool usage (replaces bypassPermissions) */
+const autoApprove = async (_toolName: string, input: Record<string, unknown>) => {
+  return { behavior: 'allow' as const, updatedInput: input };
+};
 
 testWithBothSDKs('PreToolUse hook is called before tool execution', async (sdk) => {
   const preToolUseCalls: string[] = [];
@@ -25,6 +30,8 @@ testWithBothSDKs('PreToolUse hook is called before tool execution', async (sdk) 
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
+    permissionMode: 'default',
+    canUseTool: autoApprove,
     hooks,
   });
 
@@ -52,9 +59,10 @@ testWithBothSDKs('PostToolUse hook is called after tool execution', async (sdk) 
     ],
   };
 
-  // Use non-bypass mode - PostToolUse may not fire in bypass mode
   await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
+    permissionMode: 'default',
+    canUseTool: autoApprove,
     hooks,
   });
 
@@ -66,7 +74,7 @@ testWithBothSDKs('PostToolUse hook is called after tool execution', async (sdk) 
 });
 
 testWithBothSDKs('hooks receive correct input data', async (sdk) => {
-  let capturedInput: any = null;
+  let capturedInput: HookInput | null = null;
 
   const hooks: Record<string, HookCallbackMatcher[]> = {
     PreToolUse: [
@@ -83,6 +91,8 @@ testWithBothSDKs('hooks receive correct input data', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
+    permissionMode: 'default',
+    canUseTool: autoApprove,
     hooks,
   });
 
@@ -111,6 +121,8 @@ testWithBothSDKs('hook can cancel tool execution', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
+    permissionMode: 'default',
+    canUseTool: autoApprove,
     hooks,
   });
 
@@ -136,6 +148,8 @@ testWithBothSDKs('UserPromptSubmit hook is called', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Say hello', {
     maxTurns: 2,
+    permissionMode: 'default',
+    canUseTool: autoApprove,
     hooks,
   });
 
@@ -165,6 +179,8 @@ testWithBothSDKs('hooks with tool name matcher filter correctly', async (sdk) =>
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
+    permissionMode: 'default',
+    canUseTool: autoApprove,
     hooks,
   });
 
@@ -195,6 +211,8 @@ testWithBothSDKs('hook with async operations', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
+    permissionMode: 'default',
+    canUseTool: autoApprove,
     hooks,
   });
 
@@ -210,6 +228,8 @@ testWithBothSDKs('hook with async operations', async (sdk) => {
 testWithBothSDKs('no hooks configured allows normal execution', async (sdk) => {
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
+    permissionMode: 'default',
+    canUseTool: autoApprove,
     // No hooks configured
   });
 
@@ -250,6 +270,8 @@ testWithBothSDKs('matcher filters by tool name correctly', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
+    permissionMode: 'default',
+    canUseTool: autoApprove,
     hooks,
   });
 
@@ -296,6 +318,8 @@ testWithBothSDKs('multiple matchers can coexist', async (sdk) => {
 
   const messages = await runWithSDK(sdk, 'Read the package.json file', {
     maxTurns: 5,
+    permissionMode: 'default',
+    canUseTool: autoApprove,
     hooks,
   });
 
