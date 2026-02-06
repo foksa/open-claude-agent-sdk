@@ -200,7 +200,7 @@ for await (const event of session.stream()) {
 | `systemPrompt` | ✅ | ✅ | stdin init message | Complete |
 | `allowedTools` | ✅ | ✅ | `--allowedTools` | Complete |
 | `disallowedTools` | ✅ | ✅ | `--disallowedTools` | Complete |
-| `mcpServers` | ❌ | ✅ | `--mcp-config` | LOW |
+| `mcpServers` | ✅ | ✅ | `--mcp-config` | Complete |
 | `agents` | ❌ | ✅ | (programmatic) | LOW |
 | `enableFileCheckpointing` | ❌ | ✅ | `--enable-checkpointing` | LOW |
 | `plugins` | ❌ | ✅ | `--plugin-dir` | LOW |

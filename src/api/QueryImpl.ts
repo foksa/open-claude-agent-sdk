@@ -13,6 +13,7 @@ import type { ChildProcess } from 'node:child_process';
 import { ControlProtocolHandler } from '../core/control.ts';
 import { ControlRequests, type OutboundControlRequest } from '../core/controlRequests.ts';
 import { buildHookConfig } from '../core/hookConfig.ts';
+import { McpServerBridge } from '../core/mcpBridge.ts';
 import type {
   AccountInfo,
   McpServerConfig,
@@ -47,6 +48,9 @@ export class QueryImpl implements Query {
   private initResolve!: (value: SDKControlInitializeResponse) => void;
   private initReject!: (reason: Error) => void;
   private initRequestId!: string;
+
+  // SDK MCP server names (for init message)
+  private sdkMcpServerNames: string[] = [];
 
   // Pending control request/response map (for mcpServerStatus, etc.)
   private pendingControlResponses = new Map<
@@ -91,6 +95,22 @@ export class QueryImpl implements Query {
 
     // 3. Initialize control protocol handler
     this.controlHandler = new ControlProtocolHandler(this.process.stdin, options);
+
+    // 3.5. Connect SDK MCP servers (in-process servers with `instance` property)
+    if (options.mcpServers) {
+      const bridges = new Map<string, McpServerBridge>();
+      for (const [name, config] of Object.entries(options.mcpServers)) {
+        if ('instance' in config && config.instance) {
+          const bridge = new McpServerBridge(config.instance);
+          bridge.connect(); // async but we don't await — server connects in background
+          bridges.set(name, bridge);
+          this.sdkMcpServerNames.push(name);
+        }
+      }
+      if (bridges.size > 0) {
+        this.controlHandler.setMcpServerBridges(bridges);
+      }
+    }
 
     // 4. Initialize message router with callbacks (including control response routing)
     this.router = new MessageRouter(
@@ -406,6 +426,7 @@ export class QueryImpl implements Query {
         subtype: 'initialize';
         systemPrompt?: string;
         appendSystemPrompt?: string;
+        sdkMcpServers?: string[];
         hooks?: ReturnType<typeof buildHookConfig>;
       };
     } = {
@@ -415,6 +436,7 @@ export class QueryImpl implements Query {
         subtype: 'initialize',
         ...(systemPrompt !== undefined && { systemPrompt }),
         ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
+        ...(this.sdkMcpServerNames.length > 0 && { sdkMcpServers: this.sdkMcpServerNames }),
       },
     };
 

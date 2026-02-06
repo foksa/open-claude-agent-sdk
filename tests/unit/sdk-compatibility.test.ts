@@ -13,6 +13,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as liteQuery } from '../../src/api/query.ts';
 import type { HookCallbackMatcher, Query } from '../../src/types/index.ts';
+import { createSdkMcpServer, tool } from '../../src/types/index.ts';
 
 const CAPTURE_CLI = './src/tools/capture-cli.cjs';
 
@@ -1095,6 +1096,190 @@ describe('stdin message compatibility', () => {
       );
 
       console.log('   outputFormat json_schema args match');
+    },
+    { timeout: 30000 }
+  );
+
+  test.concurrent(
+    'process-based mcpServers --mcp-config args match official SDK',
+    async () => {
+      const mcpServers = {
+        playwright: { command: 'npx', args: ['@playwright/mcp@latest'] },
+      };
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { mcpServers }),
+        capture(officialQuery, 'test', { mcpServers }),
+      ]);
+
+      expect(lite.args).toContain('--mcp-config');
+      expect(official.args).toContain('--mcp-config');
+
+      // Find and compare the --mcp-config values
+      const liteIdx = lite.args.indexOf('--mcp-config');
+      const officialIdx = official.args.indexOf('--mcp-config');
+
+      expect(JSON.parse(lite.args[liteIdx + 1])).toEqual(
+        JSON.parse(official.args[officialIdx + 1])
+      );
+
+      console.log('   process-based mcpServers --mcp-config args match');
+    },
+    { timeout: 30000 }
+  );
+
+  test.concurrent(
+    'SDK mcpServers --mcp-config includes stripped SDK server matching official SDK',
+    async () => {
+      // Each SDK needs its own McpServer instance (McpServer only allows one connection)
+      const makeServer = () =>
+        createSdkMcpServer({
+          name: 'test-tools',
+          tools: [
+            tool('get_time', 'Get current time', {}, async () => ({
+              content: [{ type: 'text', text: '12:00 PM' }],
+            })),
+          ],
+        });
+
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
+        capture(officialQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
+      ]);
+
+      // Both should have --mcp-config with the SDK server (stripped of instance)
+      expect(lite.args).toContain('--mcp-config');
+      expect(official.args).toContain('--mcp-config');
+
+      const liteIdx = lite.args.indexOf('--mcp-config');
+      const officialIdx = official.args.indexOf('--mcp-config');
+
+      const liteMcpConfig = JSON.parse(lite.args[liteIdx + 1]);
+      const officialMcpConfig = JSON.parse(official.args[officialIdx + 1]);
+
+      expect(liteMcpConfig).toEqual(officialMcpConfig);
+
+      // Should have type: 'sdk' and name, but no instance
+      expect(liteMcpConfig.mcpServers['test-tools'].type).toBe('sdk');
+      expect(liteMcpConfig.mcpServers['test-tools'].name).toBe('test-tools');
+      expect(liteMcpConfig.mcpServers['test-tools'].instance).toBeUndefined();
+
+      console.log('   SDK mcpServers --mcp-config args match');
+    },
+    { timeout: 30000 }
+  );
+});
+
+// ============================================================================
+// MCP Server Init Message Compatibility Tests
+// ============================================================================
+
+describe('mcpServers init message compatibility', () => {
+  test.concurrent(
+    'sdkMcpServers in init message matches official SDK',
+    async () => {
+      // Each SDK needs its own McpServer instance (McpServer only allows one connection)
+      const makeServer = () =>
+        createSdkMcpServer({
+          name: 'test-tools',
+          tools: [
+            tool('get_time', 'Get current time', {}, async () => ({
+              content: [{ type: 'text', text: '12:00 PM' }],
+            })),
+          ],
+        });
+
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
+        capture(officialQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
+      ]);
+
+      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(liteInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      // Both should have sdkMcpServers
+      expect(liteInit?.request?.sdkMcpServers).toEqual(['test-tools']);
+      expect(officialInit?.request?.sdkMcpServers).toEqual(['test-tools']);
+
+      console.log('   sdkMcpServers in init message matches');
+    },
+    { timeout: 30000 }
+  );
+
+  test.concurrent(
+    'process-only mcpServers do not add sdkMcpServers to init',
+    async () => {
+      const mcpServers = {
+        playwright: { command: 'npx', args: ['@playwright/mcp@latest'] },
+      };
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { mcpServers }),
+        capture(officialQuery, 'test', { mcpServers }),
+      ]);
+
+      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(liteInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      // Neither should have sdkMcpServers
+      expect(liteInit?.request?.sdkMcpServers).toBeUndefined();
+      expect(officialInit?.request?.sdkMcpServers).toBeUndefined();
+
+      console.log('   process-only mcpServers: no sdkMcpServers in init');
+    },
+    { timeout: 30000 }
+  );
+
+  test.concurrent(
+    'mixed process + SDK mcpServers match official SDK',
+    async () => {
+      // Each SDK needs its own McpServer instance (McpServer only allows one connection)
+      const makeServer = () =>
+        createSdkMcpServer({
+          name: 'custom-tools',
+          tools: [
+            tool('echo', 'Echo input', {}, async () => ({
+              content: [{ type: 'text', text: 'echoed' }],
+            })),
+          ],
+        });
+
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', {
+          mcpServers: {
+            playwright: { command: 'npx', args: ['@playwright/mcp@latest'] },
+            'custom-tools': makeServer(),
+          },
+        }),
+        capture(officialQuery, 'test', {
+          mcpServers: {
+            playwright: { command: 'npx', args: ['@playwright/mcp@latest'] },
+            'custom-tools': makeServer(),
+          },
+        }),
+      ]);
+
+      // CLI args: --mcp-config should include both (SDK server stripped of instance)
+      const liteIdx = lite.args.indexOf('--mcp-config');
+      const officialIdx = official.args.indexOf('--mcp-config');
+
+      const liteMcpConfig = JSON.parse(lite.args[liteIdx + 1]);
+      const officialMcpConfig = JSON.parse(official.args[officialIdx + 1]);
+
+      expect(liteMcpConfig).toEqual(officialMcpConfig);
+
+      // Init message: should have sdkMcpServers with only SDK server name
+      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(liteInit?.request?.sdkMcpServers).toEqual(['custom-tools']);
+      expect(officialInit?.request?.sdkMcpServers).toEqual(['custom-tools']);
+
+      console.log('   mixed mcpServers match');
     },
     { timeout: 30000 }
   );

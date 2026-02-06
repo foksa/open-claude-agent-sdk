@@ -1,6 +1,6 @@
 # SDK MCP Servers (In-Process) — Implementation Plan
 
-**Status:** Not implemented
+**Status:** Implemented
 **Blocked demos:** email-agent
 **Priority:** MEDIUM
 **Effort:** 2-3 days

@@ -116,8 +116,25 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--settings', JSON.stringify({ sandbox: options.sandbox }));
   }
 
-  // TODO: Add in future steps:
-  // - --mcp-config
+  // MCP servers → --mcp-config
+  // All servers go into --mcp-config. SDK-type servers have `instance` stripped
+  // (it's non-serializable) but still included with {type, name}. The in-process
+  // routing is handled by QueryImpl via sdkMcpServers in the init message.
+  if (options.mcpServers) {
+    const serializedServers: Record<string, unknown> = {};
+    for (const [name, config] of Object.entries(options.mcpServers)) {
+      if ('instance' in config) {
+        // SDK server: strip instance, keep type/name
+        const { instance: _, ...rest } = config;
+        serializedServers[name] = rest;
+      } else {
+        serializedServers[name] = config;
+      }
+    }
+    if (Object.keys(serializedServers).length > 0) {
+      args.push('--mcp-config', JSON.stringify({ mcpServers: serializedServers }));
+    }
+  }
 
   // With --input-format stream-json, prompt is sent via stdin
   // as the first user message, not as a CLI argument.

@@ -6,9 +6,7 @@
 export const version = '0.1.0';
 
 export { query } from './api/query.ts';
-
+// MCP utilities — our own open source implementations
+export { createSdkMcpServer, tool } from './mcp.ts';
 // Re-export all types
 export type * from './types/index.ts';
-
-// Re-export MCP utilities (these create SDK servers)
-export { createSdkMcpServer, tool } from './types/index.ts';

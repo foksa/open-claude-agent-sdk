@@ -108,12 +108,9 @@ export type {
 } from '@anthropic-ai/claude-agent-sdk';
 
 /**
- * Re-export MCP utilities (these will be replaced in future steps)
+ * MCP utilities — re-exported from our own implementation (src/mcp.ts)
  */
-export {
-  createSdkMcpServer,
-  tool,
-} from '@anthropic-ai/claude-agent-sdk';
+export { createSdkMcpServer, tool } from '../mcp.ts';
 
 // ============================================================================
 // MODEL & USAGE TYPES
