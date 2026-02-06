@@ -57,14 +57,17 @@
 | PostToolUse | ✅ | ✅ | - | Complete |
 | UserPromptSubmit | ✅ | ✅ | - | Complete |
 | Stop | ✅ | ✅ | - | Complete |
-| PostToolUseFailure | ❌ | ✅ | MEDIUM | 1 day |
-| SubagentStart | ❌ | ✅ | MEDIUM | 1 day |
-| SubagentStop | ❌ | ✅ | MEDIUM | 1 day |
-| PreCompact | ❌ | ✅ | LOW | 1 day |
-| PermissionRequest | ❌ | ✅ | MEDIUM | 1 day |
-| SessionStart | ❌ | ✅ | LOW | 1 day |
-| SessionEnd | ❌ | ✅ | LOW | 1 day |
-| Notification | ❌ | ✅ | LOW | 1 day |
+| PostToolUseFailure | ✅ | ✅ | - | Complete |
+| SubagentStart | ✅ | ✅ | - | Complete |
+| SubagentStop | ✅ | ✅ | - | Complete |
+| PreCompact | ✅ | ✅ | - | Complete |
+| PermissionRequest | ✅ | ✅ | - | Complete |
+| SessionStart | ✅ | ✅ | - | Complete |
+| SessionEnd | ✅ | ✅ | - | Complete |
+| Notification | ✅ | ✅ | - | Complete |
+| Setup | ✅ | ✅ | - | Complete |
+| TeammateIdle | ✅ | ✅ | - | Complete (SDK 0.2.34+) |
+| TaskCompleted | ✅ | ✅ | - | Complete (SDK 0.2.34+) |
 | **Callbacks** |
 | canUseTool | ✅ Tested | ✅ | - | Complete |
 | hooks | ✅ Tested | ✅ | - | Complete |
@@ -208,23 +211,31 @@ for await (const event of session.stream()) {
 
 ### Hook Event Support
 
+All 15 hook events are supported. Hook infrastructure is generic — any event name
+registered in `hooks` config is forwarded to CLI and callbacks are invoked when
+the event fires. Events differ only in what triggers them.
+
+**Note:** `SessionStart` and `SessionEnd` only fire via declarative config
+(`.claude/settings.json`), not programmatic `hooks` option. This is a known
+limitation in the official SDK ([issue #83](https://github.com/anthropics/claude-agent-sdk-typescript/issues/83)).
+
 | Hook Event | Lite SDK | Official SDK | Use Case |
 |------------|----------|--------------|----------|
-| **Implemented** |
 | `PreToolUse` | ✅ | ✅ | Intercept/modify tool calls before execution |
 | `PostToolUse` | ✅ | ✅ | Process tool results after execution |
+| `PostToolUseFailure` | ✅ | ✅ | Handle tool failures |
 | `UserPromptSubmit` | ✅ | ✅ | Validate/modify user input |
 | `Stop` | ✅ | ✅ | Clean up on agent stop |
-| **Phase 2** |
-| `PostToolUseFailure` | ❌ | ✅ | Handle tool failures |
-| `SubagentStart` | ❌ | ✅ | Track subagent lifecycle |
-| `SubagentStop` | ❌ | ✅ | Handle subagent completion |
-| `PermissionRequest` | ❌ | ✅ | Custom permission UI |
-| `SessionStart` | ❌ | ✅ | Initialize session state |
-| `SessionEnd` | ❌ | ✅ | Clean up session resources |
-| `Notification` | ❌ | ✅ | Display agent status |
-| **Phase 3** |
-| `PreCompact` | ❌ | ✅ | Before context compaction |
+| `SessionStart` | ✅ | ✅ | Initialize session state |
+| `SessionEnd` | ✅ | ✅ | Clean up session resources |
+| `Notification` | ✅ | ✅ | Display agent status |
+| `SubagentStart` | ✅ | ✅ | Track subagent lifecycle |
+| `SubagentStop` | ✅ | ✅ | Handle subagent completion |
+| `PreCompact` | ✅ | ✅ | Before context compaction |
+| `PermissionRequest` | ✅ | ✅ | Custom permission UI |
+| `Setup` | ✅ | ✅ | Session setup phase |
+| `TeammateIdle` | ✅ | ✅ | Teammate agent idle (0.2.34+) |
+| `TaskCompleted` | ✅ | ✅ | Task completion in teams (0.2.34+) |
 
 ### Hook Implementation Example
 
@@ -245,22 +256,22 @@ query({
   }
 });
 
-// Phase 2 - Advanced Hooks ❌
+// All hook events supported ✅
 query({
   options: {
     hooks: {
-      PostToolUseFailure: async (input) => {
+      PostToolUseFailure: [{ hooks: [async (input) => {
         console.error('Tool failed:', input.error);
-        return { behavior: 'retry' };
-      },
-      SubagentStart: async (input) => {
+        return {};
+      }] }],
+      SubagentStart: [{ hooks: [async (input) => {
         console.log('Subagent started:', input.agent_id);
-      },
-      PermissionRequest: async (input) => {
-        // Custom permission UI
-        const allowed = await askUser(input.tool_name);
-        return { behavior: allowed ? 'allow' : 'deny' };
-      }
+        return {};
+      }] }],
+      TeammateIdle: [{ hooks: [async (input) => {
+        console.log('Teammate idle:', input.teammate_name);
+        return {};
+      }] }],
     }
   }
 });
@@ -363,10 +374,10 @@ These features are handled by Claude CLI or not needed for our use case:
    - ❌ Fork sessions (pending)
    - Session state (via CLI)
 
-2. **Advanced Hooks** (1-2 days)
-   - All 11 hook events
-   - Hook composition
-   - Hook testing
+2. **Advanced Hooks** ✅ Complete
+   - All 15 hook events supported (generic infrastructure)
+   - Hook matchers and composition
+   - Integration + unit tests
 
 3. **Model Management** ✅ Complete
    - ✅ Query available models (supportedModels)
@@ -486,6 +497,7 @@ for await (const msg of query({ prompt: 'Hello', options: {} })) {
 ✅ **Sandbox Config:** Complete
 ✅ **AbortController:** Complete
 ✅ **systemPrompt:** Complete (string, preset with append, preset without append)
+✅ **Hooks:** All 15 events supported (SDK 0.2.34)
 ⚠️ **Remaining Phase 1:** Budget Tracking
 
 ### Next Steps

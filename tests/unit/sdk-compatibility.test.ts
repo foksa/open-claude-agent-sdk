@@ -709,6 +709,66 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'all 15 hook events register correctly matching official SDK',
+    async () => {
+      // Every hook event from HOOK_EVENTS array in SDK 0.2.34
+      const allHookEvents = [
+        'PreToolUse',
+        'PostToolUse',
+        'PostToolUseFailure',
+        'Notification',
+        'UserPromptSubmit',
+        'SessionStart',
+        'SessionEnd',
+        'Stop',
+        'SubagentStart',
+        'SubagentStop',
+        'PreCompact',
+        'PermissionRequest',
+        'Setup',
+        'TeammateIdle',
+        'TaskCompleted',
+      ];
+
+      const hooks: Record<string, HookCallbackMatcher[]> = {};
+      for (const event of allHookEvents) {
+        hooks[event] = [{ hooks: [async () => ({})] }];
+      }
+
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { hooks }),
+        capture(officialQuery, 'test', { hooks }),
+      ]);
+
+      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(liteInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      if (liteInit && officialInit) {
+        const liteHookTypes = Object.keys(liteInit.request.hooks || {}).sort();
+        const officialHookTypes = Object.keys(officialInit.request.hooks || {}).sort();
+        expect(liteHookTypes).toEqual(officialHookTypes);
+        expect(liteHookTypes).toEqual(allHookEvents.sort());
+
+        // Each event should have exactly 1 matcher with 1 callback ID
+        for (const event of allHookEvents) {
+          const liteEvent = liteInit.request.hooks?.[event];
+          const officialEvent = officialInit.request.hooks?.[event];
+          expect(liteEvent).toHaveLength(1);
+          expect(officialEvent).toHaveLength(1);
+          expect(liteEvent?.[0].hookCallbackIds).toHaveLength(1);
+          expect(officialEvent?.[0].hookCallbackIds).toHaveLength(1);
+        }
+      }
+
+      console.log('   All 15 hook events register correctly');
+    },
+    { timeout: 30000 }
+  );
+
+  test.concurrent(
     'empty prompt handling matches',
     async () => {
       const [lite, official] = await Promise.all([

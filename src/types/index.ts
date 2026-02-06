@@ -85,6 +85,8 @@ export type {
   StopHookInput,
   SubagentStartHookInput,
   SubagentStopHookInput,
+  TaskCompletedHookInput,
+  TeammateIdleHookInput,
   UserPromptSubmitHookInput,
 } from '@anthropic-ai/claude-agent-sdk';
 

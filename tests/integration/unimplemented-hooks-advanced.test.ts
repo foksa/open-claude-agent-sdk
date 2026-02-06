@@ -60,8 +60,10 @@ describe('PostToolUseFailure hook', () => {
     // Trigger a failing tool - e.g., reading a non-existent file
     await runWithSDK(sdk, 'Read the file /nonexistent/path/that/does/not/exist.txt', {
       maxTurns: 3,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -89,8 +91,10 @@ describe('PostToolUseFailure hook', () => {
 
     await runWithSDK(sdk, 'Read /impossible/file.txt', {
       maxTurns: 3,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -179,8 +183,10 @@ describe('SubagentStart hook', () => {
 
     await runWithSDK(sdk, 'Use Task tool to analyze package.json', {
       maxTurns: 10,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -226,8 +232,10 @@ describe('SubagentStop hook', () => {
 
     await runWithSDK(sdk, 'Use Task tool to read package.json and report the version', {
       maxTurns: 15,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -253,8 +261,10 @@ describe('SubagentStop hook', () => {
 
     await runWithSDK(sdk, 'Use Task tool to analyze codebase', {
       maxTurns: 15,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -300,8 +310,10 @@ describe('PreCompact hook', () => {
     // or explicit compaction command
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 100, // Long enough to potentially trigger auto-compaction
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -433,8 +445,10 @@ describe('SessionStart hook', () => {
 
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 2,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -463,8 +477,10 @@ describe('SessionStart hook', () => {
     let sessionId: string | undefined;
     const messages = await runWithSDK(sdk, 'Hello', {
       maxTurns: 2,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
     });
 
     for (const msg of messages) {
@@ -511,8 +527,10 @@ describe('SessionStart hook', () => {
 
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 2,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -557,8 +575,10 @@ describe('SessionEnd hook', () => {
 
     await runWithSDK(sdk, 'Say hello then stop', {
       maxTurns: 2,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -585,8 +605,10 @@ describe('SessionEnd hook', () => {
 
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 2,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -645,8 +667,10 @@ describe('Notification hook', () => {
 
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 5,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -675,8 +699,10 @@ describe('Notification hook', () => {
 
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 5,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -731,8 +757,10 @@ describe('Advanced hook patterns', () => {
 
     await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -782,8 +810,10 @@ describe('Advanced hook patterns', () => {
 
     await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -835,8 +865,10 @@ describe('Advanced hook patterns', () => {
 
     await runWithSDK(sdk, 'Read /etc/passwd', {
       maxTurns: 3,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -868,8 +900,10 @@ describe('Advanced hook patterns', () => {
 
     await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 
@@ -902,8 +936,10 @@ describe('Advanced hook patterns', () => {
 
     await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
-      permissionMode: 'bypassPermissions',
-      allowDangerouslySkipPermissions: true,
+      permissionMode: 'default',
+      canUseTool: async (_toolName: string, input: any) => {
+        return { behavior: 'allow' as const, updatedInput: input };
+      },
       hooks,
     });
 

@@ -60,7 +60,7 @@ Drop-in replacement — just change the import:
 - **Skills & commands** — via `settingSources` + `.claude/` directories
 - **System prompts** — string, preset (`claude_code`), preset with append
 - **Output styles** — custom styles via `.claude/output-styles/`
-- **Hooks** — PreToolUse, PostToolUse, UserPromptSubmit, Stop
+- **Hooks** — all 15 events (PreToolUse, PostToolUse, Stop, SessionStart/End, SubagentStart/Stop, etc.)
 - **Permission callbacks** — canUseTool
 - **Session resume** — `resume` option
 - **AbortController** — signal-based cancellation
@@ -86,7 +86,6 @@ await q.currentOutputStyle();    // string
 - In-process SDK MCP servers (`createSdkMcpServer`)
 - File checkpointing / rewindFiles
 - Session forking
-- Remaining hook events (SubagentStart/Stop, PreCompact, etc.)
 - Plugins system
 - Context compaction
 
