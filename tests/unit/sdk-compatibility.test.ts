@@ -19,7 +19,34 @@ const CAPTURE_CLI = './src/tools/capture-cli.cjs';
 // Global counter to ensure unique file names even in parallel
 let captureCounter = 0;
 
-type StdinMessage = Record<string, unknown>;
+/**
+ * Shape of captured stdin messages from capture-cli.cjs
+ *
+ * Captured messages are either control_request (with .request) or
+ * user messages (with .message). Both always have their respective fields.
+ */
+type StdinMessage = {
+  type: string;
+  request_id?: string;
+  request: {
+    subtype: string;
+    systemPrompt?: string;
+    appendSystemPrompt?: string;
+    hooks?: Record<string, Array<{ matcher?: string; hookCallbackIds?: string[] }>>;
+    serverName?: string;
+    enabled?: boolean;
+    servers?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
+  message: {
+    role: string;
+    content: Array<{ type: string; text: string }>;
+    [key: string]: unknown;
+  };
+  session_id?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+};
 
 type CaptureResult = {
   args: string[];
@@ -148,7 +175,7 @@ CAPTURE_OUTPUT_FILE="${outputFile}" exec node "${process.cwd()}/${CAPTURE_CLI}" 
  * Normalize messages for comparison (remove dynamic fields)
  */
 function normalizeMessage(msg: StdinMessage): StdinMessage {
-  const clone = JSON.parse(JSON.stringify(msg)) as Record<string, Record<string, unknown>>;
+  const clone = JSON.parse(JSON.stringify(msg)) as StdinMessage;
 
   // Remove dynamic fields that will differ
   delete clone.request_id;
@@ -161,12 +188,9 @@ function normalizeMessage(msg: StdinMessage): StdinMessage {
 
   // Normalize hook callback IDs (they're generated dynamically)
   if (clone.request?.hooks) {
-    for (const [_event, matchers] of Object.entries(
-      clone.request.hooks as Record<string, Array<{ hookCallbackIds?: string[] }>>
-    )) {
+    for (const [_event, matchers] of Object.entries(clone.request.hooks)) {
       for (const matcher of matchers) {
         if (matcher.hookCallbackIds) {
-          // Replace with placeholder to show structure is same
           matcher.hookCallbackIds = matcher.hookCallbackIds.map(
             (_: string, i: number) => `hook_${i}`
           );
@@ -551,9 +575,7 @@ describe('stdin message compatibility', () => {
 
       // Extract message types in order
       const getType = (m: StdinMessage) =>
-        m.type === 'control_request'
-          ? (m.request as Record<string, unknown> | undefined)?.subtype
-          : m.type;
+        m.type === 'control_request' ? m.request?.subtype : m.type;
 
       const liteTypes = lite.stdin.map(getType);
       const officialTypes = official.stdin.map(getType);
