@@ -286,6 +286,16 @@ export class QueryImpl implements Query {
     return init.models;
   }
 
+  async availableOutputStyles(): Promise<string[]> {
+    const init = await this.initResponsePromise;
+    return init.available_output_styles;
+  }
+
+  async currentOutputStyle(): Promise<string> {
+    const init = await this.initResponsePromise;
+    return init.output_style;
+  }
+
   async mcpServerStatus(): Promise<McpServerStatus[]> {
     const response = await this.sendControlRequestWithResponse<{ mcpServers: McpServerStatus[] }>(
       ControlRequests.mcpStatus()
@@ -373,12 +383,29 @@ export class QueryImpl implements Query {
     const requestId = `init_${Date.now()}`;
     this.initRequestId = requestId;
 
+    // Resolve systemPrompt to match official SDK behavior:
+    // - undefined → systemPrompt: "" (use minimal prompt, saves tokens)
+    // - string → systemPrompt: "..." (custom full prompt)
+    // - { type: 'preset', preset: 'claude_code' } → neither field (use claude_code preset)
+    // - { type: 'preset', preset: 'claude_code', append: '...' } → appendSystemPrompt: "..."
+    let systemPrompt: string | undefined;
+    let appendSystemPrompt: string | undefined;
+
+    if (options.systemPrompt === undefined) {
+      systemPrompt = '';
+    } else if (typeof options.systemPrompt === 'string') {
+      systemPrompt = options.systemPrompt;
+    } else if (options.systemPrompt.type === 'preset' && options.systemPrompt.append) {
+      appendSystemPrompt = options.systemPrompt.append;
+    }
+
     const init: {
       type: 'control_request';
       request_id: string;
       request: {
         subtype: 'initialize';
         systemPrompt?: string;
+        appendSystemPrompt?: string;
         hooks?: ReturnType<typeof buildHookConfig>;
       };
     } = {
@@ -386,12 +413,8 @@ export class QueryImpl implements Query {
       request_id: requestId,
       request: {
         subtype: 'initialize',
-        systemPrompt:
-          typeof options.systemPrompt === 'string'
-            ? options.systemPrompt
-            : options.systemPrompt === undefined
-              ? ''
-              : undefined,
+        ...(systemPrompt !== undefined && { systemPrompt }),
+        ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
       },
     };
 

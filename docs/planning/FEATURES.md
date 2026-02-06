@@ -485,7 +485,7 @@ for await (const msg of query({ prompt: 'Hello', options: {} })) {
 ✅ **Session Resume:** Complete
 ✅ **Sandbox Config:** Complete
 ✅ **AbortController:** Complete
-✅ **systemPrompt:** Complete
+✅ **systemPrompt:** Complete (string, preset with append, preset without append)
 ⚠️ **Remaining Phase 1:** Budget Tracking
 
 ### Next Steps

@@ -417,6 +417,8 @@ testWithBothSDKs('supportedModels() returns available models', async (sdk) => {
   console.log(`   [${sdk}] Got ${models.length} supported models`);
 });
 
+// Output style tests moved to output-styles.test.ts
+
 testWithBothSDKs('mcpServerStatus() returns MCP server status', async (sdk) => {
   /**
    * Official SDK docs:

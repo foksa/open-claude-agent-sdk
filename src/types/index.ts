@@ -190,6 +190,20 @@ export type SDKControlInitializeResponse = {
 };
 
 // ============================================================================
+// LITE SDK EXTENSIONS (beyond official SDK)
+// ============================================================================
+
+/**
+ * Extended Query type with convenience methods not in the official SDK.
+ * Use this type instead of Query to access extra methods like
+ * availableOutputStyles() and currentOutputStyle().
+ */
+export type LiteQuery = import('@anthropic-ai/claude-agent-sdk').Query & {
+  availableOutputStyles(): Promise<string[]>;
+  currentOutputStyle(): Promise<string>;
+};
+
+// ============================================================================
 // ADVANCED TYPES (for completeness)
 // ============================================================================
 

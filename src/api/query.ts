@@ -16,8 +16,6 @@ import { QueryImpl } from './QueryImpl.ts';
 /**
  * Main query function - returns Query interface with control methods
  *
- * Baby Step 5: Full bidirectional control protocol support
- *
  * Features:
  * - AsyncGenerator for streaming messages
  * - Control methods: interrupt(), setPermissionMode(), setModel(), etc.
@@ -28,6 +26,10 @@ import { QueryImpl } from './QueryImpl.ts';
  * Input modes:
  * - String: Simple one-shot or multi-turn via streamInput()
  * - AsyncIterable: Streaming input mode (recommended for complex flows)
+ *
+ * Tip: Cast to LiteQuery to access extra convenience methods:
+ *   const q = query({ prompt: '...' }) as LiteQuery;
+ *   const styles = await q.availableOutputStyles();
  *
  * @param params Query parameters (prompt and options)
  * @returns Query interface (AsyncGenerator + control methods)
