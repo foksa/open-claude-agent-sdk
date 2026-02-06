@@ -26,6 +26,9 @@ export class McpServerBridge {
    * and routes responses back through pending request promises.
    */
   async connect(): Promise<void> {
+    // Close any existing connection — McpServer only allows one transport at a time
+    await this.serverInstance.close().catch(() => {});
+
     const self = this;
     const transport: Transport = {
       async start() {},
