@@ -171,33 +171,30 @@ testWithBothSDKs('UserPromptSubmit hook is called for user messages', async (sdk
 // process interrupts — hard to trigger reliably. Identical in both SDKs.
 // =============================================================================
 
-testWithBothSDKsTodo(
-  'PostToolUseFailure hook fires on tool execution failure',
-  async (sdk) => {
-    let failureHookCalled = false;
+testWithBothSDKsTodo('PostToolUseFailure hook fires on tool execution failure', async (sdk) => {
+  let failureHookCalled = false;
 
-    await runWithSDK(sdk, 'Read the file /etc/passwd', {
-      maxTurns: 3,
-      permissionMode: 'default',
-      canUseTool: autoApprove,
-      sandbox: { enabled: true },
-      hooks: {
-        PostToolUseFailure: [
-          {
-            hooks: [
-              async (_input: any) => {
-                failureHookCalled = true;
-                return {};
-              },
-            ],
-          },
-        ],
-      },
-    });
+  await runWithSDK(sdk, 'Read the file /etc/passwd', {
+    maxTurns: 3,
+    permissionMode: 'default',
+    canUseTool: autoApprove,
+    sandbox: { enabled: true },
+    hooks: {
+      PostToolUseFailure: [
+        {
+          hooks: [
+            async (_input: any) => {
+              failureHookCalled = true;
+              return {};
+            },
+          ],
+        },
+      ],
+    },
+  });
 
-    expect(failureHookCalled).toBe(true);
-  }
-);
+  expect(failureHookCalled).toBe(true);
+});
 
 // =============================================================================
 // DECLARATIVE-ONLY: SessionStart / SessionEnd
