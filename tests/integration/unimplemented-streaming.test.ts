@@ -417,6 +417,98 @@ testWithBothSDKs('supportedModels() returns available models', async (sdk) => {
   console.log(`   [${sdk}] Got ${models.length} supported models`);
 });
 
+// =============================================================================
+// LITE EXTENSION: availableOutputStyles() and currentOutputStyle()
+// =============================================================================
+
+testWithBothSDKs('initializationResult() includes output style data', async (sdk) => {
+  const { query: liteQuery } = await import('../../src/api/query.ts');
+  const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
+  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+
+  const q = queryFn({
+    prompt: 'Say hello',
+    options: {
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      maxTurns: 1,
+      model: 'haiku',
+      settingSources: [],
+      pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+    },
+  });
+
+  const init = await q.initializationResult();
+
+  expect(typeof init.output_style).toBe('string');
+  expect(Array.isArray(init.available_output_styles)).toBe(true);
+  expect(init.available_output_styles.length).toBeGreaterThan(0);
+
+  for await (const msg of q) {
+    if (msg.type === 'result') break;
+  }
+
+  console.log(
+    `   [${sdk}] Output style: "${init.output_style}", available: [${init.available_output_styles.join(', ')}]`
+  );
+});
+
+testWithBothSDKs('availableOutputStyles() returns output styles (lite extension)', async (sdk) => {
+  const { query: liteQuery } = await import('../../src/api/query.ts');
+  const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
+
+  if (sdk === 'official') {
+    // Official SDK doesn't have this method — just verify init data exists
+    const q = officialQuery({
+      prompt: 'Say hello',
+      options: {
+        permissionMode: 'bypassPermissions',
+        allowDangerouslySkipPermissions: true,
+        maxTurns: 1,
+        model: 'haiku',
+        settingSources: [],
+        pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+      },
+    });
+    const init = await q.initializationResult();
+    expect(init.available_output_styles.length).toBeGreaterThan(0);
+    for await (const msg of q) {
+      if (msg.type === 'result') break;
+    }
+    console.log(
+      `   [official] Skipped (no availableOutputStyles method), init has ${init.available_output_styles.length} styles`
+    );
+    return;
+  }
+
+  const q = liteQuery({
+    prompt: 'Say hello',
+    options: {
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      maxTurns: 1,
+      model: 'haiku',
+      settingSources: [],
+      pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+    },
+  });
+
+  const styles = await q.availableOutputStyles();
+  const current = await q.currentOutputStyle();
+
+  expect(Array.isArray(styles)).toBe(true);
+  expect(styles.length).toBeGreaterThan(0);
+  expect(typeof current).toBe('string');
+
+  for await (const msg of q) {
+    if (msg.type === 'result') break;
+  }
+
+  console.log(
+    `   [lite] currentOutputStyle: "${current}", availableOutputStyles: [${styles.join(', ')}]`
+  );
+});
+
 testWithBothSDKs('mcpServerStatus() returns MCP server status', async (sdk) => {
   /**
    * Official SDK docs:
