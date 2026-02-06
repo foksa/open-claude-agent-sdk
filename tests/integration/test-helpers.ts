@@ -34,7 +34,9 @@ export function normalizeMessage(msg: unknown): unknown {
   delete clone.session_id;
   if (clone.request) delete clone.request.request_id;
   if (clone.request?.hooks) {
-    for (const matchers of Object.values(clone.request.hooks) as any[]) {
+    for (const matchers of Object.values(
+      clone.request.hooks as Record<string, Array<{ hookCallbackIds?: string[] }>>
+    )) {
       for (const matcher of matchers) {
         if (matcher.hookCallbackIds) {
           matcher.hookCallbackIds = matcher.hookCallbackIds.map(

@@ -4,6 +4,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { buildCliArgs } from '../../src/core/spawn.ts';
+import type { Options } from '../../src/types/index.ts';
 
 describe('buildCliArgs', () => {
   test('includes required CLI flags', () => {
@@ -180,12 +181,16 @@ describe('buildCliArgs', () => {
 
     // In test environment, it should work
     process.env.NODE_ENV = 'test';
-    const argsWithTest = buildCliArgs({ _testCliArgs: ['--test-flag'] } as any);
+    const argsWithTest = buildCliArgs({ _testCliArgs: ['--test-flag'] } as Options & {
+      _testCliArgs?: string[];
+    });
     expect(argsWithTest).toContain('--test-flag');
 
     // In production, it should be ignored
     process.env.NODE_ENV = 'production';
-    const argsWithoutTest = buildCliArgs({ _testCliArgs: ['--test-flag'] } as any);
+    const argsWithoutTest = buildCliArgs({ _testCliArgs: ['--test-flag'] } as Options & {
+      _testCliArgs?: string[];
+    });
     expect(argsWithoutTest).not.toContain('--test-flag');
 
     // Restore

@@ -29,7 +29,7 @@ describe('canUseTool - Basic approval', () => {
    * - Returns { behavior: 'allow', updatedInput } or { behavior: 'deny', message }
    */
   testWithBothSDKs('should receive canUseTool callback', async (sdk) => {
-    const toolRequests: Array<{ toolName: string; input: any }> = [];
+    const toolRequests: Array<{ toolName: string; input: Record<string, unknown> }> = [];
 
     await runWithSDK(sdk, 'Read the package.json file', {
       maxTurns: 5,
@@ -174,7 +174,7 @@ describe('canUseTool - Context information', () => {
   });
 
   testWithBothSDKsTodo('should receive permission_suggestions', async (sdk) => {
-    let receivedSuggestions: any = null;
+    let receivedSuggestions: unknown = null;
 
     await runWithSDK(sdk, 'Write "test" to /tmp/test.txt', {
       maxTurns: 3,
@@ -228,7 +228,7 @@ describe('AskUserQuestion - Clarifying questions', () => {
   });
 
   testWithBothSDKsTodo('should handle questions array structure', async (sdk) => {
-    let questionsReceived: any[] = [];
+    let questionsReceived: Record<string, unknown>[] = [];
 
     await runWithSDK(sdk, 'Help me decide how to structure my project', {
       maxTurns: 10,
@@ -262,7 +262,7 @@ describe('AskUserQuestion - Clarifying questions', () => {
   });
 
   testWithBothSDKsTodo('should support multiSelect questions', async (sdk) => {
-    let multiSelectQuestion: any = null;
+    let multiSelectQuestion: Record<string, unknown> | null = null;
 
     await runWithSDK(sdk, 'Help me decide which features to include in my app', {
       maxTurns: 10,
@@ -281,7 +281,7 @@ describe('AskUserQuestion - Clarifying questions', () => {
               // Join multiple selections with comma
               answers[q.question] = q.options
                 ?.slice(0, 2)
-                .map((o: any) => o.label)
+                .map((o: Record<string, unknown>) => o.label)
                 .join(', ');
             } else {
               answers[q.question] = q.options?.[0]?.label;
@@ -338,7 +338,7 @@ describe('canUseTool - Tool input types', () => {
    * - Read: file_path, offset, limit
    */
   testWithBothSDKsTodo('should receive Bash tool input fields', async (sdk) => {
-    let bashInput: any = null;
+    let bashInput: Record<string, unknown> | null = null;
 
     await runWithSDK(sdk, 'Run: echo hello', {
       maxTurns: 5,
@@ -358,7 +358,7 @@ describe('canUseTool - Tool input types', () => {
   });
 
   testWithBothSDKsTodo('should receive Write tool input fields', async (sdk) => {
-    let writeInput: any = null;
+    let writeInput: Record<string, unknown> | null = null;
 
     await runWithSDK(sdk, 'Write "test" to /tmp/test.txt', {
       maxTurns: 5,
@@ -377,7 +377,7 @@ describe('canUseTool - Tool input types', () => {
   });
 
   testWithBothSDKsTodo('should receive Edit tool input fields', async (sdk) => {
-    let editInput: any = null;
+    let editInput: Record<string, unknown> | null = null;
 
     await runWithSDK(sdk, 'Edit package.json to change the version from current to 2.0.0', {
       maxTurns: 5,
@@ -397,7 +397,7 @@ describe('canUseTool - Tool input types', () => {
   });
 
   testWithBothSDKsTodo('should receive Read tool input fields', async (sdk) => {
-    let readInput: any = null;
+    let readInput: Record<string, unknown> | null = null;
 
     await runWithSDK(sdk, 'Read the first 10 lines of package.json', {
       maxTurns: 5,

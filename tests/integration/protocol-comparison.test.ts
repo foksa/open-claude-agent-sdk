@@ -15,7 +15,13 @@ const COMPARE_CLI = './tests/utils/compare-cli.cjs';
 
 interface CapturedMessage {
   timestamp: number;
-  message?: any;
+  message?: {
+    type?: string;
+    subtype?: string;
+    request?: { subtype?: string; [key: string]: unknown };
+    response?: { subtype?: string; [key: string]: unknown };
+    [key: string]: unknown;
+  };
   raw?: string;
 }
 
@@ -84,7 +90,7 @@ exec node "${process.cwd()}/${COMPARE_CLI}" "$@"
   return { stdin: [], stdout: [], duration: 0 };
 }
 
-function normalizeMessage(msg: any): any {
+function normalizeMessage(msg: unknown): unknown {
   if (!msg) return msg;
   const clone = JSON.parse(JSON.stringify(msg));
   delete clone.request_id;
@@ -92,7 +98,9 @@ function normalizeMessage(msg: any): any {
   delete clone.session_id;
   if (clone.request) delete clone.request.request_id;
   if (clone.request?.hooks) {
-    for (const matchers of Object.values(clone.request.hooks as Record<string, any[]>)) {
+    for (const matchers of Object.values(
+      clone.request.hooks as Record<string, Array<{ hookCallbackIds?: string[] }>>
+    )) {
       for (const m of matchers) {
         if (m.hookCallbackIds)
           m.hookCallbackIds = m.hookCallbackIds.map((_: string, i: number) => `cb_${i}`);
@@ -102,7 +110,7 @@ function normalizeMessage(msg: any): any {
   return clone;
 }
 
-function getMessageType(msg: any): string {
+function getMessageType(msg: CapturedMessage): string {
   if (!msg?.message) return 'unknown';
   const m = msg.message;
   if (m.type === 'control_request') return `control_request:${m.request?.subtype || 'unknown'}`;

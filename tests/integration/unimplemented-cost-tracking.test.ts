@@ -15,6 +15,7 @@
  */
 
 import { describe, expect } from 'bun:test';
+import type { SDKMessage } from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs, testWithBothSDKsTodo } from './comparison-utils.ts';
 
 // =============================================================================
@@ -29,7 +30,7 @@ describe('Cost tracking - Basic usage', () => {
    */
   testWithBothSDKs('should include usage in assistant messages', async (sdk) => {
     let usageFound = false;
-    let usage: any = null;
+    let usage: Record<string, unknown> | null = null;
 
     const messages = await runWithSDK(sdk, 'Say hello', {
       maxTurns: 3,
@@ -105,7 +106,7 @@ describe('Cost tracking - Result message', () => {
     expect(result).toBeTruthy();
 
     // Result should have cumulative cost
-    expect('usage' in result! || 'total_cost_usd' in result!).toBe(true);
+    expect(result && ('usage' in result || 'total_cost_usd' in result)).toBe(true);
     const totalCost = result?.usage?.total_cost_usd || result?.total_cost_usd;
     expect(typeof totalCost).toBe('number');
     expect(totalCost).toBeGreaterThan(0);
@@ -208,7 +209,7 @@ describe('Cost tracking - Message ID deduplication', () => {
    * - Should only charge once per unique message ID
    */
   testWithBothSDKsTodo('should have same usage for messages with same ID', async (sdk) => {
-    const usageByMessageId = new Map<string, any[]>();
+    const usageByMessageId = new Map<string, unknown[]>();
 
     const messages = await runWithSDK(sdk, 'Read package.json and show the version', {
       maxTurns: 10,
@@ -322,7 +323,7 @@ describe('Cost tracking - Cache tokens', () => {
     });
 
     // Compare cache usage between calls
-    const getUsage = (msgs: any[]) => {
+    const getUsage = (msgs: SDKMessage[]) => {
       for (const msg of msgs) {
         if (msg.type === 'assistant' && 'usage' in msg) {
           return msg.usage;
@@ -376,7 +377,7 @@ describe('Cost tracking - Multi-step conversations', () => {
    * - Result message has cumulative total
    */
   testWithBothSDKsTodo('should track usage per step', async (sdk) => {
-    const stepUsages: any[] = [];
+    const stepUsages: Record<string, unknown>[] = [];
     const processedIds = new Set<string>();
 
     const messages = await runWithSDK(
@@ -433,9 +434,9 @@ describe('Cost tracking - Billing patterns', () => {
     // Example CostTracker implementation
     class CostTracker {
       private processedMessageIds = new Set<string>();
-      private stepUsages: any[] = [];
+      private stepUsages: Record<string, unknown>[] = [];
 
-      processMessage(message: any) {
+      processMessage(message: Record<string, unknown>) {
         if (message.type !== 'assistant' || !message.usage) {
           return;
         }

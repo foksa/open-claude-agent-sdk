@@ -18,7 +18,16 @@
  */
 
 import { describe, expect } from 'bun:test';
-import type { HookCallbackMatcher } from '../../src/types/index.ts';
+import type {
+  HookCallbackMatcher,
+  HookInput,
+  NotificationHookInput,
+  PermissionRequestHookInput,
+  PostToolUseFailureHookInput,
+  PreCompactHookInput,
+  SessionEndHookInput,
+  SessionStartHookInput,
+} from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKsTodo } from './comparison-utils.ts';
 
 // =============================================================================
@@ -42,7 +51,7 @@ describe('PostToolUseFailure hook', () => {
    * - is_interrupt: boolean
    */
   testWithBothSDKsTodo('should fire when tool execution fails', async (sdk) => {
-    const failureCalls: any[] = [];
+    const failureCalls: { input: HookInput; toolUseId: string }[] = [];
 
     const hooks: Record<string, HookCallbackMatcher[]> = {
       PostToolUseFailure: [
@@ -61,7 +70,7 @@ describe('PostToolUseFailure hook', () => {
     await runWithSDK(sdk, 'Read the file /nonexistent/path/that/does/not/exist.txt', {
       maxTurns: 3,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -74,14 +83,14 @@ describe('PostToolUseFailure hook', () => {
   });
 
   testWithBothSDKsTodo('should include error message and tool details', async (sdk) => {
-    let capturedInput: any = null;
+    let capturedInput: PostToolUseFailureHookInput | null = null;
 
     const hooks: Record<string, HookCallbackMatcher[]> = {
       PostToolUseFailure: [
         {
           hooks: [
             async (input, _toolUseId, _context) => {
-              capturedInput = input;
+              capturedInput = input as PostToolUseFailureHookInput;
               return {};
             },
           ],
@@ -92,7 +101,7 @@ describe('PostToolUseFailure hook', () => {
     await runWithSDK(sdk, 'Read /impossible/file.txt', {
       maxTurns: 3,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -126,7 +135,7 @@ describe('SubagentStart hook', () => {
    * - cwd: string
    */
   testWithBothSDKsTodo('should fire when Task tool spawns a subagent', async (sdk) => {
-    const subagentStarts: any[] = [];
+    const subagentStarts: { input: HookInput; toolUseId: string }[] = [];
 
     const hooks: Record<string, HookCallbackMatcher[]> = {
       SubagentStart: [
@@ -184,7 +193,7 @@ describe('SubagentStart hook', () => {
     await runWithSDK(sdk, 'Use Task tool to analyze package.json', {
       maxTurns: 10,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -215,7 +224,7 @@ describe('SubagentStop hook', () => {
    * - agent_transcript_path: string
    */
   testWithBothSDKsTodo('should fire when subagent completes', async (sdk) => {
-    const subagentStops: any[] = [];
+    const subagentStops: { input: HookInput; toolUseId: string }[] = [];
 
     const hooks: Record<string, HookCallbackMatcher[]> = {
       SubagentStop: [
@@ -233,7 +242,7 @@ describe('SubagentStop hook', () => {
     await runWithSDK(sdk, 'Use Task tool to read package.json and report the version', {
       maxTurns: 15,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -262,7 +271,7 @@ describe('SubagentStop hook', () => {
     await runWithSDK(sdk, 'Use Task tool to analyze codebase', {
       maxTurns: 15,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -291,14 +300,14 @@ describe('PreCompact hook', () => {
    * - custom_instructions: string
    */
   testWithBothSDKsTodo('should fire before context compaction', async (sdk) => {
-    const preCompactCalls: any[] = [];
+    const preCompactCalls: PreCompactHookInput[] = [];
 
     const hooks: Record<string, HookCallbackMatcher[]> = {
       PreCompact: [
         {
           hooks: [
             async (input, _toolUseId, _context) => {
-              preCompactCalls.push(input);
+              preCompactCalls.push(input as PreCompactHookInput);
               return {};
             },
           ],
@@ -311,7 +320,7 @@ describe('PreCompact hook', () => {
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 100, // Long enough to potentially trigger auto-compaction
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -347,14 +356,14 @@ describe('PermissionRequest hook', () => {
    * Note: Matchers apply to this hook (filter by tool name)
    */
   testWithBothSDKsTodo('should fire when permission dialog would be shown', async (sdk) => {
-    const permissionRequests: any[] = [];
+    const permissionRequests: PermissionRequestHookInput[] = [];
 
     const hooks: Record<string, HookCallbackMatcher[]> = {
       PermissionRequest: [
         {
           hooks: [
             async (input, _toolUseId, _context) => {
-              permissionRequests.push(input);
+              permissionRequests.push(input as PermissionRequestHookInput);
               return {};
             },
           ],
@@ -379,14 +388,14 @@ describe('PermissionRequest hook', () => {
   });
 
   testWithBothSDKsTodo('should include permission_suggestions', async (sdk) => {
-    let capturedSuggestions: any = null;
+    let capturedSuggestions: unknown = null;
 
     const hooks: Record<string, HookCallbackMatcher[]> = {
       PermissionRequest: [
         {
           hooks: [
             async (input, _toolUseId, _context) => {
-              capturedSuggestions = input.permission_suggestions;
+              capturedSuggestions = (input as PermissionRequestHookInput).permission_suggestions;
               return {};
             },
           ],
@@ -428,14 +437,14 @@ describe('SessionStart hook', () => {
    * Note: This is TypeScript SDK only
    */
   testWithBothSDKsTodo('should fire when session initializes', async (sdk) => {
-    const sessionStartCalls: any[] = [];
+    const sessionStartCalls: SessionStartHookInput[] = [];
 
     const hooks: Record<string, HookCallbackMatcher[]> = {
       SessionStart: [
         {
           hooks: [
             async (input, _toolUseId, _context) => {
-              sessionStartCalls.push(input);
+              sessionStartCalls.push(input as SessionStartHookInput);
               return {};
             },
           ],
@@ -446,7 +455,7 @@ describe('SessionStart hook', () => {
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 2,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -465,7 +474,7 @@ describe('SessionStart hook', () => {
         {
           hooks: [
             async (input, _toolUseId, _context) => {
-              sessionSource = input.source;
+              sessionSource = (input as SessionStartHookInput).source;
               return {};
             },
           ],
@@ -478,7 +487,7 @@ describe('SessionStart hook', () => {
     const messages = await runWithSDK(sdk, 'Hello', {
       maxTurns: 2,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
     });
@@ -528,7 +537,7 @@ describe('SessionStart hook', () => {
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 2,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -558,14 +567,14 @@ describe('SessionEnd hook', () => {
    * Note: This is TypeScript SDK only
    */
   testWithBothSDKsTodo('should fire when session ends', async (sdk) => {
-    const sessionEndCalls: any[] = [];
+    const sessionEndCalls: SessionEndHookInput[] = [];
 
     const hooks: Record<string, HookCallbackMatcher[]> = {
       SessionEnd: [
         {
           hooks: [
             async (input, _toolUseId, _context) => {
-              sessionEndCalls.push(input);
+              sessionEndCalls.push(input as SessionEndHookInput);
               return {};
             },
           ],
@@ -576,7 +585,7 @@ describe('SessionEnd hook', () => {
     await runWithSDK(sdk, 'Say hello then stop', {
       maxTurns: 2,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -595,7 +604,7 @@ describe('SessionEnd hook', () => {
         {
           hooks: [
             async (input, _toolUseId, _context) => {
-              endReason = input.reason;
+              endReason = (input as SessionEndHookInput).reason;
               return {};
             },
           ],
@@ -606,7 +615,7 @@ describe('SessionEnd hook', () => {
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 2,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -650,14 +659,14 @@ describe('Notification hook', () => {
    * Note: This is TypeScript SDK only
    */
   testWithBothSDKsTodo('should fire for agent status messages', async (sdk) => {
-    const notifications: any[] = [];
+    const notifications: NotificationHookInput[] = [];
 
     const hooks: Record<string, HookCallbackMatcher[]> = {
       Notification: [
         {
           hooks: [
             async (input, _toolUseId, _context) => {
-              notifications.push(input);
+              notifications.push(input as NotificationHookInput);
               return {};
             },
           ],
@@ -668,7 +677,7 @@ describe('Notification hook', () => {
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 5,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -689,7 +698,7 @@ describe('Notification hook', () => {
         {
           hooks: [
             async (input, _toolUseId, _context) => {
-              notificationType = input.notification_type;
+              notificationType = (input as NotificationHookInput).notification_type;
               return {};
             },
           ],
@@ -700,7 +709,7 @@ describe('Notification hook', () => {
     await runWithSDK(sdk, 'Hello', {
       maxTurns: 5,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -758,7 +767,7 @@ describe('Advanced hook patterns', () => {
     await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -811,7 +820,7 @@ describe('Advanced hook patterns', () => {
     await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -866,7 +875,7 @@ describe('Advanced hook patterns', () => {
     await runWithSDK(sdk, 'Read /etc/passwd', {
       maxTurns: 3,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -901,7 +910,7 @@ describe('Advanced hook patterns', () => {
     await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,
@@ -937,7 +946,7 @@ describe('Advanced hook patterns', () => {
     await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
       permissionMode: 'default',
-      canUseTool: async (_toolName: string, input: any) => {
+      canUseTool: async (_toolName: string, input: Record<string, unknown>) => {
         return { behavior: 'allow' as const, updatedInput: input };
       },
       hooks,

@@ -118,9 +118,9 @@ describe('detectClaudeBinary', () => {
       const result = detectClaudeBinary();
       expect(result).toBeTruthy();
       expect(typeof result).toBe('string');
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Expected if claude isn't installed
-      expect(error.message).toContain('Claude CLI not found');
+      expect((error as Error).message).toContain('Claude CLI not found');
     }
   });
 

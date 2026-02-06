@@ -9,7 +9,7 @@
  */
 
 import { expect } from 'bun:test';
-import type { SDKResultSuccess, SDKSystemMessage } from '../../src/types/index.ts';
+import type { SDKMessage, SDKResultSuccess, SDKSystemMessage } from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs, testWithBothSDKsTodo } from './comparison-utils.ts';
 
 // =============================================================================
@@ -198,7 +198,7 @@ testWithBothSDKsTodo('resumeSessionAt resumes at specific message UUID', async (
    */
 
   // Create conversation with multiple turns
-  const messages: any[] = [];
+  const messages: SDKMessage[] = [];
   const msgs1 = await runWithSDK(sdk, 'First: my favorite color is blue', {
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
@@ -222,7 +222,7 @@ testWithBothSDKsTodo('resumeSessionAt resumes at specific message UUID', async (
 
   // Find UUID of a user message to resume at
   const userMessage = msgs1.find((m) => m.type === 'user');
-  const resumeAtUuid = (userMessage as any)?.uuid;
+  const resumeAtUuid = (userMessage as Record<string, unknown>)?.uuid;
 
   // Resume at that specific point (THIS IS UNIMPLEMENTED)
   const msgs3 = await runWithSDK(sdk, 'What is my favorite color?', {
@@ -258,11 +258,13 @@ testWithBothSDKs('all messages include session_id', async (sdk) => {
   });
 
   // All messages should have session_id
-  const messagesWithSessionId = messages.filter((m) => (m as any).session_id);
+  const messagesWithSessionId = messages.filter((m) => (m as Record<string, unknown>).session_id);
   expect(messagesWithSessionId.length).toBe(messages.length);
 
   // All session_ids should be the same
-  const sessionIds = new Set(messagesWithSessionId.map((m) => (m as any).session_id));
+  const sessionIds = new Set(
+    messagesWithSessionId.map((m) => (m as Record<string, unknown>).session_id)
+  );
   expect(sessionIds.size).toBe(1);
 
   console.log(`   [${sdk}] All ${messages.length} messages have consistent session_id`);
