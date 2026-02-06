@@ -33,10 +33,15 @@
  */
 
 import { expect } from 'bun:test';
+import type {
+  HookInput,
+  PreToolUseHookInput,
+  UserPromptSubmitHookInput,
+} from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs, testWithBothSDKsTodo } from './comparison-utils.ts';
 
 /** Auto-approve all tool usage (replaces bypassPermissions) */
-const autoApprove = async (_toolName: string, input: any) => {
+const autoApprove = async (_toolName: string, input: Record<string, unknown>) => {
   return { behavior: 'allow' as const, updatedInput: input };
 };
 
@@ -56,9 +61,9 @@ testWithBothSDKs('PreToolUse hook is called before tool execution', async (sdk) 
       PreToolUse: [
         {
           hooks: [
-            async (input: any) => {
+            async (input) => {
               hookCalled = true;
-              capturedToolName = input.tool_name;
+              capturedToolName = (input as PreToolUseHookInput).tool_name;
               return {};
             },
           ],
@@ -87,7 +92,7 @@ testWithBothSDKs('PostToolUse hook is called after tool execution', async (sdk) 
       PostToolUse: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               hookCalled = true;
               return {};
             },
@@ -116,7 +121,7 @@ testWithBothSDKs('Stop hook is called when agent stops', async (sdk) => {
       Stop: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               stopHookCalled = true;
               return {};
             },
@@ -146,9 +151,9 @@ testWithBothSDKs('UserPromptSubmit hook is called for user messages', async (sdk
       UserPromptSubmit: [
         {
           hooks: [
-            async (input: any) => {
+            async (input) => {
               hookCalled = true;
-              capturedPrompt = input.prompt;
+              capturedPrompt = (input as UserPromptSubmitHookInput).prompt;
               return {};
             },
           ],
@@ -183,7 +188,7 @@ testWithBothSDKsTodo('PostToolUseFailure hook fires on tool execution failure', 
       PostToolUseFailure: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               failureHookCalled = true;
               return {};
             },
@@ -200,7 +205,6 @@ testWithBothSDKsTodo('PostToolUseFailure hook fires on tool execution failure', 
 // DECLARATIVE-ONLY: SessionStart / SessionEnd
 // These hooks only fire via .claude/settings.json, NOT programmatic hooks.
 // Known official SDK limitation: github.com/anthropics/claude-agent-sdk-typescript/issues/83
-// Tested in declarative-hooks.test.ts via fixtures/.claude/settings.json
 // =============================================================================
 
 testWithBothSDKsTodo('SessionStart hook is called at session start', async (sdk) => {
@@ -214,7 +218,7 @@ testWithBothSDKsTodo('SessionStart hook is called at session start', async (sdk)
       SessionStart: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               sessionStartCalled = true;
               return {};
             },
@@ -239,7 +243,7 @@ testWithBothSDKsTodo('SessionEnd hook is called at session end', async (sdk) => 
       SessionEnd: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               sessionEndCalled = true;
               return {};
             },
@@ -269,7 +273,7 @@ testWithBothSDKsTodo('Notification hook receives agent notifications', async (sd
       Notification: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               notificationCalled = true;
               return {};
             },
@@ -300,7 +304,7 @@ testWithBothSDKs('PermissionRequest hook fires for permission prompts', async (s
       PermissionRequest: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               permissionRequestCalled = true;
               return {};
             },
@@ -330,7 +334,7 @@ testWithBothSDKsTodo('SubagentStart hook is called when subagent starts', async 
       SubagentStart: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               subagentStartCalled = true;
               return {};
             },
@@ -354,7 +358,7 @@ testWithBothSDKsTodo('SubagentStop hook is called when subagent stops', async (s
       SubagentStop: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               subagentStopCalled = true;
               return {};
             },
@@ -383,7 +387,7 @@ testWithBothSDKsTodo('PreCompact hook is called before context compaction', asyn
       PreCompact: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               preCompactCalled = true;
               return {};
             },
@@ -412,7 +416,7 @@ testWithBothSDKsTodo('TeammateIdle hook fires when teammate is idle', async (sdk
       TeammateIdle: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               teammateIdleCalled = true;
               return {};
             },
@@ -441,7 +445,7 @@ testWithBothSDKsTodo('TaskCompleted hook fires when task completes', async (sdk)
       TaskCompleted: [
         {
           hooks: [
-            async (_input: any) => {
+            async (_input: HookInput) => {
               taskCompletedCalled = true;
               return {};
             },

@@ -4,11 +4,11 @@
  */
 
 import { expect } from 'bun:test';
-import type { HookCallbackMatcher } from '../../src/types/index.ts';
+import type { HookCallbackMatcher, HookInput } from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
 /** Auto-approve all tool usage (replaces bypassPermissions) */
-const autoApprove = async (_toolName: string, input: any) => {
+const autoApprove = async (_toolName: string, input: Record<string, unknown>) => {
   return { behavior: 'allow' as const, updatedInput: input };
 };
 
@@ -74,7 +74,7 @@ testWithBothSDKs('PostToolUse hook is called after tool execution', async (sdk) 
 });
 
 testWithBothSDKs('hooks receive correct input data', async (sdk) => {
-  let capturedInput: any = null;
+  let capturedInput: HookInput | null = null;
 
   const hooks: Record<string, HookCallbackMatcher[]> = {
     PreToolUse: [
