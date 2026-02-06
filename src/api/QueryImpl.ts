@@ -286,6 +286,16 @@ export class QueryImpl implements Query {
     return init.models;
   }
 
+  async availableOutputStyles(): Promise<string[]> {
+    const init = await this.initResponsePromise;
+    return init.available_output_styles;
+  }
+
+  async currentOutputStyle(): Promise<string> {
+    const init = await this.initResponsePromise;
+    return init.output_style;
+  }
+
   async mcpServerStatus(): Promise<McpServerStatus[]> {
     const response = await this.sendControlRequestWithResponse<{ mcpServers: McpServerStatus[] }>(
       ControlRequests.mcpStatus()

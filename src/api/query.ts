@@ -10,13 +10,11 @@
  * Reference: https://buildwithaws.substack.com/p/inside-the-claude-agent-sdk-from
  */
 
-import type { Options, Query, SDKUserMessage } from '../types/index.ts';
+import type { LiteQuery, Options, SDKUserMessage } from '../types/index.ts';
 import { QueryImpl } from './QueryImpl.ts';
 
 /**
- * Main query function - returns Query interface with control methods
- *
- * Baby Step 5: Full bidirectional control protocol support
+ * Main query function - returns LiteQuery interface with control methods
  *
  * Features:
  * - AsyncGenerator for streaming messages
@@ -24,17 +22,18 @@ import { QueryImpl } from './QueryImpl.ts';
  * - Multi-turn conversations via streamInput() OR AsyncIterable input
  * - Permission callbacks via options.canUseTool
  * - Hook callbacks via options.hooks
+ * - Lite SDK extensions: availableOutputStyles(), currentOutputStyle()
  *
  * Input modes:
  * - String: Simple one-shot or multi-turn via streamInput()
  * - AsyncIterable: Streaming input mode (recommended for complex flows)
  *
  * @param params Query parameters (prompt and options)
- * @returns Query interface (AsyncGenerator + control methods)
+ * @returns LiteQuery interface (Query + extra convenience methods)
  */
 export function query(params: {
   prompt: string | AsyncIterable<SDKUserMessage>;
   options?: Options;
-}): Query {
-  return new QueryImpl(params);
+}): LiteQuery {
+  return new QueryImpl(params) as LiteQuery;
 }
