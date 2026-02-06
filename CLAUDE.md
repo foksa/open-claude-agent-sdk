@@ -139,15 +139,15 @@ bun run typecheck
 
 ## Current Status (Read First!)
 
-**Implemented:** Baby Steps 1-5 complete
+**Implemented:**
 - ✅ One-shot queries
 - ✅ Multi-turn (AsyncIterable + streamInput)
 - ✅ Control protocol (stdin/stdout)
-- ⚠️ canUseTool & hooks (code exists, needs tests - see docs/CORRECTIONS.md)
+- ✅ Skills, commands, structured outputs, system prompts
+- ✅ MCP control methods
+- ⚠️ canUseTool & hooks (code exists, needs tests)
 
-**Next:** Phase 0.5 (Validation) then Phase 1 (4 features)
-- See `docs/planning/ROADMAP.md` for timeline
-- See `docs/planning/FEATURES.md` for status matrix
+**See:** `docs/planning/FEATURES.md` for full status matrix
 
 ## Tech Stack
 

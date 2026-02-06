@@ -67,7 +67,7 @@ docs/
 ### planning/ROADMAP.md
 **Development timeline and priorities**
 
-- Current status: Baby Steps 1-5 complete, Phase 0.5 (validation) complete
+- Current status: Core features complete, Phase 1 partial
 - Phase 1: 4 features (8-10 days)
 - Phase 2: 4 features (7-11 days)
 - Phase 3: Optional enhancements

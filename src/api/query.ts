@@ -1,12 +1,6 @@
 /**
  * Main query implementation - spawns Claude CLI and streams messages
  *
- * Baby Step 5: Full bidirectional control protocol support
- * - Multi-turn conversations via streamInput()
- * - Runtime control methods (interrupt, setPermissionMode, etc.)
- * - Permission callbacks (canUseTool)
- * - Hook system support
- *
  * Reference: https://buildwithaws.substack.com/p/inside-the-claude-agent-sdk-from
  */
 

@@ -600,7 +600,7 @@ claude --version
 
 **Error:**
 ```
-Error: accountInfo() not implemented in Baby Step 5
+Error: rewindFiles() not yet implemented
 ```
 
 **Solution:**

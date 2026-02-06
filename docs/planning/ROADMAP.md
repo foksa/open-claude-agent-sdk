@@ -1,7 +1,7 @@
 # Lite Claude Agent SDK - Development Roadmap
 
 **Last Updated:** 2026-02-05
-**Current Status:** Baby Steps 1-5 Complete ✅ | Phase 0.5 (Validation) Complete ✅ | Phase 1 Partial ✅
+**Current Status:** Core Features Complete ✅ | Phase 1 Partial ✅
 **Next Phase:** Phase 1 Remaining Items (Skills/Commands, Budget Tracking)
 
 ---
@@ -19,7 +19,7 @@
 
 ## Current Status
 
-### ✅ Implemented (Baby Steps 1-5)
+### ✅ Implemented
 
 #### Core Functionality
 - **One-shot queries** - Basic prompt → response pattern

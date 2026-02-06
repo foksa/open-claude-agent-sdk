@@ -1,12 +1,8 @@
 /**
  * Type re-exports from official Claude Agent SDK
  *
- * This ensures 100% type compatibility with the official SDK while
+ * Ensures 100% type compatibility with the official SDK while
  * providing our own lightweight implementation.
- *
- * For Baby Steps 1-4, we implement one-shot queries only.
- * Control protocol types (SDKControlRequest, SDKControlResponse) will be
- * added in Baby Step 5 when implementing bidirectional communication.
  */
 
 // ============================================================================
@@ -22,12 +18,7 @@
 /**
  * Permission modes for controlling tool execution
  */
-/**
- * Query interface (AsyncGenerator with control methods)
- *
- * NOTE: For Baby Steps 1-4, control methods (interrupt, setPermissionMode, etc.)
- * are not yet implemented. Use with permissionMode: 'bypassPermissions' or 'plan'.
- */
+/** Query interface (AsyncGenerator with control methods) */
 export type {
   Options,
   PermissionMode,

@@ -312,7 +312,7 @@ export class QueryImpl implements Query {
     _userMessageId: string,
     _options?: { dryRun?: boolean }
   ): Promise<RewindFilesResult> {
-    throw new Error('rewindFiles() not implemented in Baby Step 5');
+    throw new Error('rewindFiles() not yet implemented');
   }
 
   async reconnectMcpServer(serverName: string): Promise<void> {

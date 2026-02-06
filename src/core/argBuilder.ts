@@ -21,9 +21,6 @@ import {
  *
  * Reference: https://gist.github.com/SamSaffron/603648958a8c18ceae34939a8951d417
  *
- * Baby Step 5: Includes --input-format stream-json for bidirectional communication
- * Prompt is optional - when using AsyncIterable input, prompt comes via stdin only
- *
  * @param options Query options (prompt is optional for AsyncIterable input)
  * @returns Array of CLI arguments
  */
@@ -122,9 +119,8 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   // TODO: Add in future steps:
   // - --mcp-config
 
-  // Baby Step 5: With --input-format stream-json, prompt is sent via stdin
-  // NOT as CLI argument. The prompt will be sent as first user message on stdin.
-  // No '-- prompt' argument needed!
+  // With --input-format stream-json, prompt is sent via stdin
+  // as the first user message, not as a CLI argument.
 
   // Test support: Allow injecting extra CLI args for testing
   // Security: Only enabled in test environment to prevent misuse

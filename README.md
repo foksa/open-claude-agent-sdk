@@ -2,7 +2,7 @@
 
 A lightweight alternative to the official Claude Agent SDK - **70x smaller** (~200KB vs 13MB), uses your local Claude CLI.
 
-## 🎯 Status: ✅ Baby Steps 1-5 COMPLETE!
+## 🎯 Status: ✅ Core Features Complete
 
 **Current Status:** Production-ready for basic use cases
 **Last Updated:** February 2, 2026
@@ -58,7 +58,7 @@ for await (const msg of query({
 
 ## ✨ Features
 
-### Currently Supported (Baby Steps 1-5) ✅
+### Currently Supported ✅
 
 ✅ **One-shot queries** - Basic prompt → response pattern
 ✅ **Multi-turn conversations** - AsyncIterable input + streamInput()
@@ -186,5 +186,5 @@ MIT
 ---
 
 **Current Version:** 0.0.0 (Pre-release)
-**Status:** ✅ Baby Steps 1-5 Complete | 📋 Phase 1 Ready to Implement
+**Status:** ✅ Core Features Complete | 📋 Phase 1 In Progress
 **Next Release:** v1.0.0 with Phase 1 features (1-2 weeks)
