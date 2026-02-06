@@ -64,8 +64,8 @@ testWithBothSDKs('canUseTool callback denies tool execution', async (sdk) => {
 
 testWithBothSDKs('canUseTool callback receives correct parameters', async (sdk) => {
   let capturedToolName = '';
-  let capturedInput: any = null;
-  let capturedContext: any = null;
+  let capturedInput: Record<string, unknown> | null = null;
+  let capturedContext: { signal: AbortSignal; toolUseID: string } | null = null;
 
   await runWithSDK(
     sdk,

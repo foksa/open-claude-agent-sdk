@@ -273,8 +273,8 @@ testWithBothSDKsTodo('streaming input supports queued messages', async (sdk) => 
     if (msg.type === 'assistant') {
       // Track response content
       const content = (msg.message?.content || [])
-        .filter((c: any) => c.type === 'text')
-        .map((c: any) => c.text)
+        .filter((c: Record<string, unknown>) => c.type === 'text')
+        .map((c: Record<string, unknown>) => c.text)
         .join('');
       responseOrder.push(content);
     }

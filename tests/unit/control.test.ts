@@ -28,7 +28,7 @@ describe('ControlProtocolHandler', () => {
       const req: ControlRequest = {
         type: 'control_request',
         request_id: 'req-123',
-        request: { subtype: 'unknown_type' as any },
+        request: { subtype: 'unknown_type' as unknown as ControlRequest['request']['subtype'] },
       };
 
       await handler.handleControlRequest(req);
@@ -69,9 +69,15 @@ describe('ControlProtocolHandler', () => {
 
     test('calls canUseTool callback when provided', async () => {
       const { stream, writes } = createMockStdin();
-      const canUseTool = mock(async (_toolName: string, _input: any, _context: any) => {
-        return { behavior: 'deny' as const, message: 'Not allowed' };
-      });
+      const canUseTool = mock(
+        async (
+          _toolName: string,
+          _input: Record<string, unknown>,
+          _context: Record<string, unknown>
+        ) => {
+          return { behavior: 'deny' as const, message: 'Not allowed' };
+        }
+      );
       const handler = new ControlProtocolHandler(stream, { canUseTool });
 
       const req: ControlRequest = {
@@ -152,7 +158,7 @@ describe('ControlProtocolHandler', () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {});
 
-      const hookFn = mock(async (input: any) => {
+      const hookFn = mock(async (input: Record<string, unknown>) => {
         return { modified: true, original: input };
       });
       handler.registerCallback('my_hook', hookFn);

@@ -180,12 +180,15 @@ describe('buildCliArgs', () => {
 
     // In test environment, it should work
     process.env.NODE_ENV = 'test';
-    const argsWithTest = buildCliArgs({ _testCliArgs: ['--test-flag'] } as any);
+    const argsWithTest = buildCliArgs({ _testCliArgs: ['--test-flag'] } as Record<string, unknown>);
     expect(argsWithTest).toContain('--test-flag');
 
     // In production, it should be ignored
     process.env.NODE_ENV = 'production';
-    const argsWithoutTest = buildCliArgs({ _testCliArgs: ['--test-flag'] } as any);
+    const argsWithoutTest = buildCliArgs({ _testCliArgs: ['--test-flag'] } as Record<
+      string,
+      unknown
+    >);
     expect(argsWithoutTest).not.toContain('--test-flag');
 
     // Restore

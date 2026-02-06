@@ -5,9 +5,23 @@
 
 import { expect, test } from 'bun:test';
 
+// Type for dynamically-injected MCP Playwright functions on globalThis
+type McpFunction = (args: Record<string, unknown>) => Promise<string>;
+
+interface PlaywrightMcpGlobal {
+  mcp__plugin_playwright_playwright__browser_navigate?: McpFunction;
+  mcp__plugin_playwright_playwright__browser_snapshot?: McpFunction;
+  mcp__plugin_playwright_playwright__browser_click?: McpFunction;
+  mcp__plugin_playwright_playwright__browser_type?: McpFunction;
+  mcp__plugin_playwright_playwright__browser_wait_for?: McpFunction;
+  mcp__plugin_playwright_playwright__browser_close?: McpFunction;
+}
+
+const mcpGlobal = globalThis as unknown as PlaywrightMcpGlobal;
+
 // Check if we have playwright MCP available
 const hasPlaywright =
-  typeof (globalThis as any).mcp__plugin_playwright_playwright__browser_navigate === 'function';
+  typeof mcpGlobal.mcp__plugin_playwright_playwright__browser_navigate === 'function';
 
 if (!hasPlaywright) {
   console.log('⚠️  Playwright MCP not available, skipping demo app tests');
@@ -16,12 +30,12 @@ if (!hasPlaywright) {
 test.skipIf(!hasPlaywright)(
   'demo app loads and shows correct UI',
   async () => {
-    const navigate = (globalThis as any).mcp__plugin_playwright_playwright__browser_navigate;
-    const snapshot = (globalThis as any).mcp__plugin_playwright_playwright__browser_snapshot;
-    const _click = (globalThis as any).mcp__plugin_playwright_playwright__browser_click;
-    const _type = (globalThis as any).mcp__plugin_playwright_playwright__browser_type;
-    const waitFor = (globalThis as any).mcp__plugin_playwright_playwright__browser_wait_for;
-    const close = (globalThis as any).mcp__plugin_playwright_playwright__browser_close;
+    const navigate = mcpGlobal.mcp__plugin_playwright_playwright__browser_navigate;
+    const snapshot = mcpGlobal.mcp__plugin_playwright_playwright__browser_snapshot;
+    const _click = mcpGlobal.mcp__plugin_playwright_playwright__browser_click;
+    const _type = mcpGlobal.mcp__plugin_playwright_playwright__browser_type;
+    const waitFor = mcpGlobal.mcp__plugin_playwright_playwright__browser_wait_for;
+    const close = mcpGlobal.mcp__plugin_playwright_playwright__browser_close;
 
     try {
       // Navigate to demo app
@@ -55,12 +69,12 @@ test.skipIf(!hasPlaywright)(
 test.skipIf(!hasPlaywright)(
   'demo app sends query to both SDKs',
   async () => {
-    const navigate = (globalThis as any).mcp__plugin_playwright_playwright__browser_navigate;
-    const snapshot = (globalThis as any).mcp__plugin_playwright_playwright__browser_snapshot;
-    const click = (globalThis as any).mcp__plugin_playwright_playwright__browser_click;
-    const type = (globalThis as any).mcp__plugin_playwright_playwright__browser_type;
-    const waitFor = (globalThis as any).mcp__plugin_playwright_playwright__browser_wait_for;
-    const close = (globalThis as any).mcp__plugin_playwright_playwright__browser_close;
+    const navigate = mcpGlobal.mcp__plugin_playwright_playwright__browser_navigate;
+    const snapshot = mcpGlobal.mcp__plugin_playwright_playwright__browser_snapshot;
+    const click = mcpGlobal.mcp__plugin_playwright_playwright__browser_click;
+    const type = mcpGlobal.mcp__plugin_playwright_playwright__browser_type;
+    const waitFor = mcpGlobal.mcp__plugin_playwright_playwright__browser_wait_for;
+    const close = mcpGlobal.mcp__plugin_playwright_playwright__browser_close;
 
     try {
       // Navigate to demo app
@@ -121,12 +135,12 @@ test.skipIf(!hasPlaywright)(
 test.skipIf(!hasPlaywright)(
   'demo app continues conversation',
   async () => {
-    const navigate = (globalThis as any).mcp__plugin_playwright_playwright__browser_navigate;
-    const snapshot = (globalThis as any).mcp__plugin_playwright_playwright__browser_snapshot;
-    const click = (globalThis as any).mcp__plugin_playwright_playwright__browser_click;
-    const type = (globalThis as any).mcp__plugin_playwright_playwright__browser_type;
-    const waitFor = (globalThis as any).mcp__plugin_playwright_playwright__browser_wait_for;
-    const close = (globalThis as any).mcp__plugin_playwright_playwright__browser_close;
+    const navigate = mcpGlobal.mcp__plugin_playwright_playwright__browser_navigate;
+    const snapshot = mcpGlobal.mcp__plugin_playwright_playwright__browser_snapshot;
+    const click = mcpGlobal.mcp__plugin_playwright_playwright__browser_click;
+    const type = mcpGlobal.mcp__plugin_playwright_playwright__browser_type;
+    const waitFor = mcpGlobal.mcp__plugin_playwright_playwright__browser_wait_for;
+    const close = mcpGlobal.mcp__plugin_playwright_playwright__browser_close;
 
     try {
       // Navigate to demo app
