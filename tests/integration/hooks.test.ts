@@ -4,7 +4,7 @@
  */
 
 import { expect } from 'bun:test';
-import type { HookCallbackMatcher, HookInput } from '../../src/types/index.ts';
+import type { HookCallbackMatcher, PreToolUseHookInput } from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
 /** Auto-approve all tool usage (replaces bypassPermissions) */
@@ -74,14 +74,14 @@ testWithBothSDKs('PostToolUse hook is called after tool execution', async (sdk) 
 });
 
 testWithBothSDKs('hooks receive correct input data', async (sdk) => {
-  let capturedInput: HookInput | null = null;
+  let capturedInput: PreToolUseHookInput | null = null;
 
   const hooks: Record<string, HookCallbackMatcher[]> = {
     PreToolUse: [
       {
         hooks: [
           async (input, _toolUseId, _context) => {
-            if (!capturedInput) capturedInput = input;
+            if (!capturedInput) capturedInput = input as PreToolUseHookInput;
             return {};
           },
         ],
@@ -98,11 +98,14 @@ testWithBothSDKs('hooks receive correct input data', async (sdk) => {
 
   // Query should complete
   expect(messages.length).toBeGreaterThan(0);
-  // If hook was called, verify structure
+  // If hook was called, verify structure (cast needed: TS can't track closure mutations)
   if (capturedInput) {
-    expect(capturedInput.hook_event_name).toBeTruthy();
+    expect((capturedInput as PreToolUseHookInput).hook_event_name).toBeTruthy();
   }
-  console.log(`   [${sdk}] Hook event:`, capturedInput?.hook_event_name || 'not captured');
+  console.log(
+    `   [${sdk}] Hook event:`,
+    (capturedInput as PreToolUseHookInput | null)?.hook_event_name || 'not captured'
+  );
 });
 
 testWithBothSDKs('hook can cancel tool execution', async (sdk) => {
