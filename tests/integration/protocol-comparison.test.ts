@@ -15,7 +15,13 @@ const COMPARE_CLI = './tests/utils/compare-cli.cjs';
 
 interface CapturedMessage {
   timestamp: number;
-  message?: Record<string, unknown>;
+  message?: {
+    type?: string;
+    subtype?: string;
+    request?: { subtype?: string; [key: string]: unknown };
+    response?: { subtype?: string; [key: string]: unknown };
+    [key: string]: unknown;
+  };
   raw?: string;
 }
 
@@ -92,7 +98,9 @@ function normalizeMessage(msg: unknown): unknown {
   delete clone.session_id;
   if (clone.request) delete clone.request.request_id;
   if (clone.request?.hooks) {
-    for (const matchers of Object.values(clone.request.hooks as Record<string, unknown[]>)) {
+    for (const matchers of Object.values(
+      clone.request.hooks as Record<string, Array<{ hookCallbackIds?: string[] }>>
+    )) {
       for (const m of matchers) {
         if (m.hookCallbackIds)
           m.hookCallbackIds = m.hookCallbackIds.map((_: string, i: number) => `cb_${i}`);
