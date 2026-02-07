@@ -417,24 +417,18 @@ describe('Custom Tools SDK Comparison', () => {
   });
 
   testWithBothSDKs('SDK exports createSdkMcpServer function', async (sdk) => {
-    // This test checks if the SDK exports the function
-    // Will fail for lite SDK until implemented
-    if (sdk === 'lite') {
-      // Skip for lite - not implemented
-      return;
-    }
-
-    const officialSdk = await import('@anthropic-ai/claude-agent-sdk');
-    expect(typeof officialSdk.createSdkMcpServer).toBe('function');
+    const module =
+      sdk === 'lite'
+        ? await import('../../../src/index.ts')
+        : await import('@anthropic-ai/claude-agent-sdk');
+    expect(typeof module.createSdkMcpServer).toBe('function');
   });
 
   testWithBothSDKs('SDK exports tool helper function', async (sdk) => {
-    if (sdk === 'lite') {
-      // Skip for lite - not implemented
-      return;
-    }
-
-    const officialSdk = await import('@anthropic-ai/claude-agent-sdk');
-    expect(typeof officialSdk.tool).toBe('function');
+    const module =
+      sdk === 'lite'
+        ? await import('../../../src/index.ts')
+        : await import('@anthropic-ai/claude-agent-sdk');
+    expect(typeof module.tool).toBe('function');
   });
 });

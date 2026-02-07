@@ -200,18 +200,18 @@ testWithBothSDKs(
 // =============================================================================
 
 testWithBothSDKs(
-  'permission evaluation follows order: hooks then canUseTool',
+  'PreToolUse hook fires and preempts canUseTool',
   async (sdk) => {
     let hookCalled = false;
     let canUseToolCalled = false;
 
-    await runWithSDK(sdk, 'Write "test" to /tmp/eval-order-test.txt', {
+    await runWithSDK(sdk, 'Run this exact bash command: echo hello', {
       maxTurns: 3,
       permissionMode: 'default',
       hooks: {
         PreToolUse: [
           {
-            matcher: 'Write',
+            matcher: 'Bash',
             hooks: [
               async (_input) => {
                 hookCalled = true;
@@ -227,8 +227,10 @@ testWithBothSDKs(
       },
     });
 
+    // When a PreToolUse hook matches and returns {} (continue),
+    // the CLI does NOT subsequently call canUseTool — hooks preempt it.
     expect(hookCalled).toBe(true);
-    expect(canUseToolCalled).toBe(true);
+    expect(canUseToolCalled).toBe(false);
 
     console.log(`   [${sdk}] Hook called: ${hookCalled}, canUseTool called: ${canUseToolCalled}`);
   },
