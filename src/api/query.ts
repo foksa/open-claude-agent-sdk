@@ -32,5 +32,5 @@ export function query(params: {
   prompt: string | AsyncIterable<SDKUserMessage>;
   options?: Options;
 }): Query {
-  return new QueryImpl(params);
+  return QueryImpl.create(params);
 }
