@@ -47,7 +47,7 @@
 | Structured outputs | ✅ | ✅ | - | Complete |
 | Extended thinking | ✅ | ✅ | - | Complete |
 | Skills/commands | ✅ | ✅ | - | Complete |
-| Budget tracking | ⚠️ Partial | ✅ | HIGH | 2-3 days |
+| Budget tracking | ✅ | ✅ | - | Complete |
 | Session management | ✅ Resume | ✅ | MEDIUM | Fork pending |
 | File checkpointing | ❌ | ✅ | LOW | 5-7 days |
 | Context compaction | ❌ | ✅ | LOW | 5-7 days |
@@ -498,14 +498,13 @@ for await (const msg of query({ prompt: 'Hello', options: {} })) {
 ✅ **AbortController:** Complete
 ✅ **systemPrompt:** Complete (string, preset with append, preset without append)
 ✅ **Hooks:** All 15 events supported (SDK 0.2.34)
-⚠️ **Remaining Phase 1:** Budget Tracking
+✅ **Phase 1:** Complete
 
 ### Next Steps
 
-1. Complete remaining Phase 1 features (Skills/Commands, Budget Tracking)
-2. Ship v1.0.0 for production use
-3. Gather user feedback
-4. Implement Phase 2 based on demand
+1. Ship v1.0.0 for production use
+2. Gather user feedback
+3. Implement Phase 2 based on demand
 
 ### Target Users
 

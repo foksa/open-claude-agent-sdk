@@ -1,8 +1,8 @@
 # Lite Claude Agent SDK - Development Roadmap
 
 **Last Updated:** 2026-02-05
-**Current Status:** Core Features Complete ✅ | Phase 1 Partial ✅
-**Next Phase:** Phase 1 Remaining Items (Skills/Commands, Budget Tracking)
+**Current Status:** Core Features Complete ✅ | Phase 1 Complete ✅
+**Next Phase:** v1.0.0 Release
 
 ---
 
@@ -155,64 +155,19 @@ query({
 
 ---
 
-### 1.4 Budget Tracking (2-3 days) 🎯 HIGH
+### 1.4 Budget Tracking ✅ COMPLETE
 
-**What:** Track cost and usage statistics in real-time
+**What:** Cost and usage statistics from CLI result messages
 
-**Why:** Critical for production - prevent runaway costs, monitor usage
+**Status:** ✅ Complete — CLI passes through `total_cost_usd`, `usage`, and `modelUsage` fields on result messages. No `src/` changes needed (pass-through wrapper).
 
-**CLI Support:** Already in result messages (usage stats)
+**Verified fields:**
+- `SDKResultMessage.total_cost_usd` — authoritative total cost
+- `SDKResultMessage.usage` — cumulative `NonNullableUsage` (input_tokens, output_tokens, etc.)
+- `SDKResultMessage.modelUsage` — per-model breakdown (`Record<string, ModelUsage>`)
+- `SDKAssistantMessage.message.usage` — per-step usage on the nested `BetaMessage`
 
-**Implementation:**
-```typescript
-// In QueryImpl:
-class QueryImpl {
-  private usageStats = {
-    inputTokens: 0,
-    outputTokens: 0,
-    costUsd: 0
-  };
-
-  async accountInfo(): Promise<AccountInfo> {
-    return {
-      usage: this.usageStats,
-      model: this.currentModel,
-      budget: this.maxBudgetUsd
-    };
-  }
-
-  private parseResultMessage(msg: SDKResultMessage) {
-    if (msg.result?.usage) {
-      this.usageStats.inputTokens += msg.result.usage.input_tokens;
-      this.usageStats.outputTokens += msg.result.usage.output_tokens;
-      this.usageStats.costUsd += calculateCost(msg.result.usage);
-    }
-  }
-}
-```
-
-**Usage Example:**
-```typescript
-const q = query({ ... });
-
-for await (const msg of q) {
-  if (msg.type === 'result') {
-    const info = await q.accountInfo();
-    console.log(`Cost: $${info.usage.costUsd}`);
-  }
-}
-```
-
-**Tests Required:**
-- Parse usage from result messages
-- Cumulative token tracking
-- Cost calculation
-- Budget limit enforcement
-
-**Files to Modify:**
-- `src/api/QueryImpl.ts` - Add usage tracking
-- `src/types/index.ts` - Add AccountInfo type
-- `tests/integration/budget.test.ts` - New test file
+**Tests:** `tests/integration/cost-tracking.test.ts`
 
 ---
 
@@ -221,10 +176,9 @@ for await (const msg of q) {
 ✅ **Structured Outputs** - JSON schema validation (PR #11)
 ✅ **Extended Thinking** - maxThinkingTokens option (PR #10)
 ✅ **Skills/Commands** - settingSources, allowedTools, disallowedTools
-⏳ **Budget Tracking** - Token/cost monitoring
+✅ **Budget Tracking** - Cost/usage pass-through verified
 
-**Completed so far:** 3 of 4 major features
-**Remaining:** Budget Tracking
+**Completed:** 4 of 4 major features
 
 ---
 
@@ -511,7 +465,7 @@ src/
 - [x] Structured outputs work with JSON schema
 - [x] Extended thinking via maxThinkingTokens
 - [x] Skills/commands load from .claude/
-- [ ] Budget tracking shows real-time costs
+- [x] Budget tracking verified (pass-through from CLI)
 - [ ] All integration tests pass (16+ tests total)
 - [ ] Demo showcases all features
 - [ ] README updated with examples
@@ -583,7 +537,7 @@ src/
 7. ✅ Implement `sandbox` option via --settings
 8. ✅ Implement `abortController` for cancellation
 9. ✅ Implement Skills/Commands (settingSources, allowedTools, disallowedTools)
-10. 🚀 Complete Phase 1 (Budget Tracking)
+10. ✅ Complete Phase 1 (Budget Tracking verified)
 11. 📦 Ship v1.0.0 with production features
 
 ---
