@@ -15,7 +15,7 @@
  */
 
 import { describe, expect } from 'bun:test';
-import { runWithSDK, testWithBothSDKsTodo } from './comparison-utils.ts';
+import { runWithSDK, testWithBothSDKsTodo } from '../comparison-utils.ts';
 
 // =============================================================================
 // Basic Checkpointing

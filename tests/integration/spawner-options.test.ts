@@ -5,7 +5,6 @@
  * Each test verifies actual runtime behavior.
  */
 
-import { expect } from 'bun:test';
 import { runWithSDK, type SDKType, testWithBothSDKs } from './comparison-utils.ts';
 import { expectSuccessResult } from './test-helpers.ts';
 

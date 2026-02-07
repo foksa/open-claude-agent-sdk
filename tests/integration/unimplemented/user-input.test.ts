@@ -1,103 +1,28 @@
 /**
- * Tests for user input features NOT YET fully tested in lite SDK
+ * Todo tests for user input features
  *
- * These tests document the expected behavior based on official SDK documentation.
- * They cover canUseTool callback and AskUserQuestion tool handling.
- *
- * Official documentation: docs/official-agent-sdk-docs/user-input.md
- *
- * Features to test:
- * - canUseTool callback for tool approval
- * - AskUserQuestion tool for clarifying questions
- * - Permission result types (allow/deny)
- * - Input modification (updatedInput)
- * - Tool input context (suggestions, blockedPath, etc.)
+ * Implemented canUseTool tests are in tests/integration/permissions.test.ts.
+ * These tests document advanced user input features not yet fully tested.
  */
 
 import { describe, expect } from 'bun:test';
-import { runWithSDK, testWithBothSDKs, testWithBothSDKsTodo } from './comparison-utils.ts';
-
-// =============================================================================
-// canUseTool Callback - Basic
-// =============================================================================
-
-describe('canUseTool - Basic approval', () => {
-  /**
-   * From docs:
-   * - canUseTool fires when tool needs permission
-   * - Receives toolName and input arguments
-   * - Returns { behavior: 'allow', updatedInput } or { behavior: 'deny', message }
-   */
-  testWithBothSDKs('should receive canUseTool callback', async (sdk) => {
-    const toolRequests: Array<{ toolName: string; input: Record<string, unknown> }> = [];
-
-    await runWithSDK(sdk, 'Read the package.json file', {
-      maxTurns: 5,
-      canUseTool: async (toolName, input) => {
-        toolRequests.push({ toolName, input });
-        return { behavior: 'allow', updatedInput: input };
-      },
-    });
-
-    console.log(`   [${sdk}] canUseTool calls:`, toolRequests.length);
-    // Note: May not fire in all cases depending on permission mode
-  });
-
-  testWithBothSDKs('should allow tool execution with allow behavior', async (sdk) => {
-    let wasAllowed = false;
-
-    const messages = await runWithSDK(sdk, 'Read the package.json file', {
-      maxTurns: 5,
-      canUseTool: async (toolName, input) => {
-        if (toolName === 'Read') {
-          wasAllowed = true;
-        }
-        return { behavior: 'allow', updatedInput: input };
-      },
-    });
-
-    const result = messages.find((m) => m.type === 'result');
-    expect(result).toBeTruthy();
-    console.log(`   [${sdk}] Read allowed:`, wasAllowed);
-  });
-
-  testWithBothSDKs('should block tool execution with deny behavior', async (sdk) => {
-    let _wasDenied = false;
-    let deniedToolName: string | null = null;
-
-    await runWithSDK(sdk, 'Read the package.json file', {
-      maxTurns: 3,
-      canUseTool: async (toolName, _input) => {
-        _wasDenied = true;
-        deniedToolName = toolName;
-        return { behavior: 'deny', message: 'Tool denied for testing' };
-      },
-    });
-
-    console.log(`   [${sdk}] Tool denied:`, deniedToolName);
-  });
-});
+import { runWithSDK, testWithBothSDKsTodo } from '../comparison-utils.ts';
 
 // =============================================================================
 // canUseTool - Input Modification
 // =============================================================================
 
 describe('canUseTool - Input modification', () => {
-  /**
-   * From docs:
-   * - Can modify tool input via updatedInput
-   * - Useful for sanitizing paths, adding constraints, redirecting
-   */
   testWithBothSDKsTodo('should allow modifying tool input', async (sdk) => {
     let originalCommand: string | null = null;
     let modifiedCommand: string | null = null;
 
     await runWithSDK(sdk, 'Run the command: echo "hello"', {
       maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (toolName, input) => {
         if (toolName === 'Bash') {
           originalCommand = input.command;
-          // Modify command to sandbox
           const sandboxedInput = {
             ...input,
             command: input.command.replace('/tmp', '/tmp/sandbox'),
@@ -117,6 +42,7 @@ describe('canUseTool - Input modification', () => {
 
     await runWithSDK(sdk, 'Write "test" to /tmp/test-file.txt', {
       maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (toolName, input) => {
         if (toolName === 'Write') {
           const sandboxedInput = {
@@ -139,15 +65,12 @@ describe('canUseTool - Input modification', () => {
 // =============================================================================
 
 describe('canUseTool - Context information', () => {
-  /**
-   * From docs:
-   * - Third argument is context: { signal, suggestions, blockedPath, decisionReason, toolUseID, agentID }
-   */
   testWithBothSDKsTodo('should receive context with AbortSignal', async (sdk) => {
     let hasSignal = false;
 
     await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
+      permissionMode: 'default',
       canUseTool: async (_toolName, input, context) => {
         if (context?.signal) {
           hasSignal = true;
@@ -164,6 +87,7 @@ describe('canUseTool - Context information', () => {
 
     await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 3,
+      permissionMode: 'default',
       canUseTool: async (_toolName, input, context) => {
         receivedToolUseID = context?.toolUseID || null;
         return { behavior: 'allow', updatedInput: input };
@@ -178,13 +102,13 @@ describe('canUseTool - Context information', () => {
 
     await runWithSDK(sdk, 'Write "test" to /tmp/test.txt', {
       maxTurns: 3,
+      permissionMode: 'default',
       canUseTool: async (_toolName, input, context) => {
         receivedSuggestions = context?.suggestions;
         return { behavior: 'allow', updatedInput: input };
       },
     });
 
-    // Suggestions may contain recommended permission updates
     console.log(`   [${sdk}] Received suggestions:`, !!receivedSuggestions);
   });
 });
@@ -194,23 +118,15 @@ describe('canUseTool - Context information', () => {
 // =============================================================================
 
 describe('AskUserQuestion - Clarifying questions', () => {
-  /**
-   * From docs:
-   * - Claude uses AskUserQuestion tool for clarifying questions
-   * - Triggers canUseTool with toolName === 'AskUserQuestion'
-   * - Input contains questions array with question, header, options, multiSelect
-   * - Return answers object mapping question text to selected option label
-   */
   testWithBothSDKsTodo('should detect AskUserQuestion tool', async (sdk) => {
     let askUserQuestionReceived = false;
 
     await runWithSDK(sdk, 'Help me decide on the tech stack for a new mobile app', {
       maxTurns: 10,
-      permissionMode: 'plan', // Plan mode encourages clarifying questions
+      permissionMode: 'plan',
       canUseTool: async (toolName, input) => {
         if (toolName === 'AskUserQuestion') {
           askUserQuestionReceived = true;
-          // Return answers
           const answers: Record<string, string> = {};
           for (const q of input.questions || []) {
             answers[q.question] = q.options?.[0]?.label || 'Default';
@@ -236,8 +152,6 @@ describe('AskUserQuestion - Clarifying questions', () => {
       canUseTool: async (toolName, input) => {
         if (toolName === 'AskUserQuestion') {
           questionsReceived = input.questions || [];
-
-          // Answer all questions with first option
           const answers: Record<string, string> = {};
           for (const q of questionsReceived) {
             answers[q.question] = q.options?.[0]?.label || 'Option 1';
@@ -251,7 +165,6 @@ describe('AskUserQuestion - Clarifying questions', () => {
       },
     });
 
-    // Verify question structure
     if (questionsReceived.length > 0) {
       const firstQuestion = questionsReceived[0];
       expect(firstQuestion.question).toBeTruthy();
@@ -274,11 +187,9 @@ describe('AskUserQuestion - Clarifying questions', () => {
               multiSelectQuestion = q;
             }
           }
-
           const answers: Record<string, string> = {};
           for (const q of input.questions || []) {
             if (q.multiSelect) {
-              // Join multiple selections with comma
               answers[q.question] = q.options
                 ?.slice(0, 2)
                 .map((o: Record<string, unknown>) => o.label)
@@ -307,7 +218,6 @@ describe('AskUserQuestion - Clarifying questions', () => {
         if (toolName === 'AskUserQuestion') {
           const answers: Record<string, string> = {};
           for (const q of input.questions || []) {
-            // Use free text instead of predefined option
             answers[q.question] = 'MyCustomProjectName';
           }
           return {
@@ -319,7 +229,6 @@ describe('AskUserQuestion - Clarifying questions', () => {
       },
     });
 
-    // Should complete without error
     expect(true).toBe(true);
   });
 });
@@ -329,19 +238,12 @@ describe('AskUserQuestion - Clarifying questions', () => {
 // =============================================================================
 
 describe('canUseTool - Tool input types', () => {
-  /**
-   * From docs:
-   * Different tools have different input fields:
-   * - Bash: command, description, timeout
-   * - Write: file_path, content
-   * - Edit: file_path, old_string, new_string
-   * - Read: file_path, offset, limit
-   */
   testWithBothSDKsTodo('should receive Bash tool input fields', async (sdk) => {
     let bashInput: Record<string, unknown> | null = null;
 
     await runWithSDK(sdk, 'Run: echo hello', {
       maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (toolName, input) => {
         if (toolName === 'Bash') {
           bashInput = input;
@@ -352,8 +254,6 @@ describe('canUseTool - Tool input types', () => {
 
     if (bashInput) {
       expect(bashInput.command).toBeTruthy();
-      // description is optional
-      // timeout is optional
     }
   });
 
@@ -362,6 +262,7 @@ describe('canUseTool - Tool input types', () => {
 
     await runWithSDK(sdk, 'Write "test" to /tmp/test.txt', {
       maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (toolName, input) => {
         if (toolName === 'Write') {
           writeInput = input;
@@ -381,6 +282,7 @@ describe('canUseTool - Tool input types', () => {
 
     await runWithSDK(sdk, 'Edit package.json to change the version from current to 2.0.0', {
       maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (toolName, input) => {
         if (toolName === 'Edit') {
           editInput = input;
@@ -401,6 +303,7 @@ describe('canUseTool - Tool input types', () => {
 
     await runWithSDK(sdk, 'Read the first 10 lines of package.json', {
       maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (toolName, input) => {
         if (toolName === 'Read') {
           readInput = input;
@@ -411,7 +314,6 @@ describe('canUseTool - Tool input types', () => {
 
     if (readInput) {
       expect(readInput.file_path).toBeTruthy();
-      // offset and limit are optional
     }
   });
 });
@@ -421,21 +323,12 @@ describe('canUseTool - Tool input types', () => {
 // =============================================================================
 
 describe('User input - Alternative methods', () => {
-  /**
-   * From docs:
-   * Other ways to get user input:
-   * - streamInput() for follow-up messages during execution
-   * - Custom tools for structured input beyond AskUserQuestion
-   */
   testWithBothSDKsTodo('should use streamInput for follow-up messages', async (_sdk) => {
-    // streamInput allows sending additional messages during execution
-    // This is covered in multi-turn tests but documented here for completeness
-    expect(true).toBe(true); // Placeholder
+    expect(true).toBe(true);
   });
 
   testWithBothSDKsTodo('should work with custom tools for structured input', async (_sdk) => {
-    // Custom tools (via MCP) can provide richer input interfaces
-    expect(true).toBe(true); // Placeholder
+    expect(true).toBe(true);
   });
 });
 
@@ -449,6 +342,7 @@ describe('canUseTool - Edge cases', () => {
 
     await runWithSDK(sdk, 'List all files in the current directory', {
       maxTurns: 10,
+      permissionMode: 'default',
       canUseTool: async (_toolName, input) => {
         toolCount++;
         return { behavior: 'allow', updatedInput: input };
@@ -463,8 +357,8 @@ describe('canUseTool - Edge cases', () => {
 
     await runWithSDK(sdk, 'Read package.json', {
       maxTurns: 5,
+      permissionMode: 'default',
       canUseTool: async (_toolName, input) => {
-        // Simulate async operation (e.g., external API call)
         await new Promise((resolve) => setTimeout(resolve, 100));
         asyncComplete = true;
         return { behavior: 'allow', updatedInput: input };
@@ -475,16 +369,15 @@ describe('canUseTool - Edge cases', () => {
   });
 
   testWithBothSDKsTodo('should handle errors in callback gracefully', async (sdk) => {
-    // What happens if canUseTool throws an error?
     try {
       await runWithSDK(sdk, 'Read package.json', {
         maxTurns: 3,
+        permissionMode: 'default',
         canUseTool: async (_toolName, _input) => {
           throw new Error('Simulated callback error');
         },
       });
     } catch (error) {
-      // Should handle gracefully
       expect(error).toBeTruthy();
     }
   });

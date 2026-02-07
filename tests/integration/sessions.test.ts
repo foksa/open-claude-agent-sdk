@@ -8,7 +8,7 @@
 import { expect } from 'bun:test';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import type { SDKResultSuccess } from '../../src/types/index.ts';
+import type { SDKResultSuccess, SDKSystemMessage } from '../../src/types/index.ts';
 import { runWithSDK, type SDKType, testWithBothSDKs } from './comparison-utils.ts';
 import { expectSuccessResult } from './test-helpers.ts';
 
@@ -166,4 +166,49 @@ testWithBothSDKs(
     console.log(`   [${sdk}] persistSession=false — session not saved`);
   },
   120000
+);
+
+// ============================================================================
+// session_id in messages
+// ============================================================================
+
+testWithBothSDKs(
+  'captures session ID from init message',
+  async (sdk: SDKType) => {
+    const messages = await runWithSDK(sdk, 'Say hello briefly', {
+      permissionMode: 'default',
+      maxTurns: 1,
+    });
+
+    const initMessage = messages.find(
+      (m): m is SDKSystemMessage => m.type === 'system' && m.subtype === 'init'
+    );
+
+    expect(initMessage).toBeDefined();
+    expect(initMessage?.session_id).toBeDefined();
+
+    console.log(`   [${sdk}] Session ID from init: ${initMessage?.session_id}`);
+  },
+  90000
+);
+
+testWithBothSDKs(
+  'all messages include consistent session_id',
+  async (sdk: SDKType) => {
+    const messages = await runWithSDK(sdk, 'Say "hello"', {
+      permissionMode: 'default',
+      maxTurns: 1,
+    });
+
+    const messagesWithSessionId = messages.filter((m) => (m as Record<string, unknown>).session_id);
+    expect(messagesWithSessionId.length).toBe(messages.length);
+
+    const sessionIds = new Set(
+      messagesWithSessionId.map((m) => (m as Record<string, unknown>).session_id)
+    );
+    expect(sessionIds.size).toBe(1);
+
+    console.log(`   [${sdk}] All ${messages.length} messages have consistent session_id`);
+  },
+  90000
 );
