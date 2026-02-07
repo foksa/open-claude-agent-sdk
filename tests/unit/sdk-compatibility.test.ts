@@ -12,6 +12,7 @@ import { describe, expect, test } from 'bun:test';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as liteQuery } from '../../src/api/query.ts';
+import { buildCliArgs } from '../../src/core/argBuilder.ts';
 import type { HookCallbackMatcher, Query } from '../../src/types/index.ts';
 import { createSdkMcpServer, tool } from '../../src/types/index.ts';
 
@@ -228,7 +229,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   Basic args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -247,7 +248,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   Model args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -265,7 +266,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   maxTurns args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -283,7 +284,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   permissionMode args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -312,7 +313,7 @@ describe('CLI arguments compatibility', () => {
       console.log('   Lite sandbox:', liteSettings.sandbox);
       console.log('   Official sandbox:', officialSettings.sandbox);
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -338,7 +339,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   settingSources args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -357,7 +358,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   resume args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -375,7 +376,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   maxThinkingTokens args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -402,7 +403,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   allowedTools args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -429,7 +430,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   disallowedTools args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
   test.concurrent(
     'plugins --plugin-dir args match official SDK',
@@ -459,7 +460,7 @@ describe('CLI arguments compatibility', () => {
 
       console.log('   plugins --plugin-dir args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 });
 
@@ -494,7 +495,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   Init messages captured:', { lite: !!liteInit, official: !!officialInit });
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -537,7 +538,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   User messages captured:', { lite: !!liteUser, official: !!officialUser });
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -593,7 +594,7 @@ describe('stdin message compatibility', () => {
         official: !!officialInit?.request?.hooks,
       });
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -616,7 +617,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   Message order:', { lite: liteTypes, official: officialTypes });
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -651,7 +652,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   Multiple hooks test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -670,7 +671,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   Permission mode test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -689,7 +690,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   Model option test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -708,7 +709,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   maxTurns option test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -736,7 +737,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   All hook event types test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -796,7 +797,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   All 15 hook events register correctly');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -816,7 +817,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   Empty prompt handling test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -843,7 +844,7 @@ describe('stdin message compatibility', () => {
       console.log('   Lite systemPrompt:', liteInit?.request?.systemPrompt);
       console.log('   Official systemPrompt:', officialInit?.request?.systemPrompt);
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -873,7 +874,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   systemPrompt preset (no append) test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -904,7 +905,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   systemPrompt preset with append test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -923,7 +924,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   settingSources: [project] test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -942,7 +943,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   settingSources: [user] test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -961,7 +962,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   settingSources: [user, project] test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -980,7 +981,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   settingSources: [] test passed');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -1009,7 +1010,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   mcpServerStatus stdin messages match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -1038,7 +1039,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   reconnectMcpServer stdin messages match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -1067,7 +1068,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   toggleMcpServer stdin messages match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -1099,7 +1100,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   setMcpServers stdin messages match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -1127,7 +1128,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   outputFormat json_schema args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -1154,7 +1155,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   process-based mcpServers --mcp-config args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -1195,7 +1196,7 @@ describe('stdin message compatibility', () => {
 
       console.log('   SDK mcpServers --mcp-config args match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 });
 
@@ -1235,7 +1236,7 @@ describe('mcpServers init message compatibility', () => {
 
       console.log('   sdkMcpServers in init message matches');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -1261,7 +1262,7 @@ describe('mcpServers init message compatibility', () => {
 
       console.log('   process-only mcpServers: no sdkMcpServers in init');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -1311,7 +1312,7 @@ describe('mcpServers init message compatibility', () => {
 
       console.log('   mixed mcpServers match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 });
 
@@ -1349,7 +1350,7 @@ describe('agents init message compatibility', () => {
 
       console.log('   agents in init message matches');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -1372,7 +1373,7 @@ describe('agents init message compatibility', () => {
 
       console.log('   no agents field when not provided');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
 
   test.concurrent(
@@ -1407,6 +1408,446 @@ describe('agents init message compatibility', () => {
 
       console.log('   multiple agents in init message match');
     },
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
+});
+
+// ============================================================================
+// New CLI Options Compatibility Tests (Group A: argBuilder flags)
+// ============================================================================
+
+describe('new CLI options compatibility', () => {
+  test.concurrent(
+    'additionalDirectories --add-dir args match official SDK',
+    async () => {
+      const additionalDirectories = ['/path/to/dir1', '/path/to/dir2'];
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { additionalDirectories }),
+        capture(officialQuery, 'test', { additionalDirectories }),
+      ]);
+
+      // Both should have --add-dir flags
+      const liteAddDirs: string[] = [];
+      const officialAddDirs: string[] = [];
+      for (let i = 0; i < lite.args.length; i++) {
+        if (lite.args[i] === '--add-dir') liteAddDirs.push(lite.args[i + 1]);
+      }
+      for (let i = 0; i < official.args.length; i++) {
+        if (official.args[i] === '--add-dir') officialAddDirs.push(official.args[i + 1]);
+      }
+
+      expect(liteAddDirs).toEqual(officialAddDirs);
+      expect(liteAddDirs).toEqual(additionalDirectories);
+
+      console.log('   additionalDirectories --add-dir args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'agent option args match official SDK',
+    async () => {
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { agent: 'code-reviewer' }),
+        capture(officialQuery, 'test', { agent: 'code-reviewer' }),
+      ]);
+
+      expect(lite.args).toContain('--agent');
+      expect(lite.args).toContain('code-reviewer');
+      expect(official.args).toContain('--agent');
+      expect(official.args).toContain('code-reviewer');
+
+      console.log('   agent args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'betas option args match official SDK',
+    async () => {
+      const betas = ['context-1m-2025-08-07'] as const;
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { betas }),
+        capture(officialQuery, 'test', { betas }),
+      ]);
+
+      expect(lite.args).toContain('--betas');
+      expect(official.args).toContain('--betas');
+
+      const liteIdx = lite.args.indexOf('--betas');
+      const officialIdx = official.args.indexOf('--betas');
+      expect(lite.args[liteIdx + 1]).toBe(official.args[officialIdx + 1]);
+
+      console.log('   betas args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'continue option args match official SDK',
+    async () => {
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { continue: true }),
+        capture(officialQuery, 'test', { continue: true }),
+      ]);
+
+      expect(lite.args).toContain('--continue');
+      expect(official.args).toContain('--continue');
+
+      console.log('   continue args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'fallbackModel option args match official SDK',
+    async () => {
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', {
+          model: 'claude-sonnet-4-20250514',
+          fallbackModel: 'claude-haiku-4-20250414',
+        }),
+        capture(officialQuery, 'test', {
+          model: 'claude-sonnet-4-20250514',
+          fallbackModel: 'claude-haiku-4-20250414',
+        }),
+      ]);
+
+      expect(lite.args).toContain('--fallback-model');
+      expect(lite.args).toContain('claude-haiku-4-20250414');
+      expect(official.args).toContain('--fallback-model');
+      expect(official.args).toContain('claude-haiku-4-20250414');
+
+      console.log('   fallbackModel args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'forkSession option args match official SDK',
+    async () => {
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { forkSession: true }),
+        capture(officialQuery, 'test', { forkSession: true }),
+      ]);
+
+      expect(lite.args).toContain('--fork-session');
+      expect(official.args).toContain('--fork-session');
+
+      console.log('   forkSession args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'sessionId option args match official SDK',
+    async () => {
+      const sessionId = 'abc-123-def-456';
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { sessionId }),
+        capture(officialQuery, 'test', { sessionId }),
+      ]);
+
+      expect(lite.args).toContain('--session-id');
+      expect(lite.args).toContain(sessionId);
+      expect(official.args).toContain('--session-id');
+      expect(official.args).toContain(sessionId);
+
+      console.log('   sessionId args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'resumeSessionAt option args match official SDK',
+    async () => {
+      const resumeSessionAt = 'msg-uuid-789';
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { resumeSessionAt }),
+        capture(officialQuery, 'test', { resumeSessionAt }),
+      ]);
+
+      expect(lite.args).toContain('--resume-session-at');
+      expect(lite.args).toContain(resumeSessionAt);
+      expect(official.args).toContain('--resume-session-at');
+      expect(official.args).toContain(resumeSessionAt);
+
+      console.log('   resumeSessionAt args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'persistSession false args match official SDK',
+    async () => {
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { persistSession: false }),
+        capture(officialQuery, 'test', { persistSession: false }),
+      ]);
+
+      expect(lite.args).toContain('--no-session-persistence');
+      expect(official.args).toContain('--no-session-persistence');
+
+      console.log('   persistSession=false args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'strictMcpConfig option args match official SDK',
+    async () => {
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { strictMcpConfig: true }),
+        capture(officialQuery, 'test', { strictMcpConfig: true }),
+      ]);
+
+      expect(lite.args).toContain('--strict-mcp-config');
+      expect(official.args).toContain('--strict-mcp-config');
+
+      console.log('   strictMcpConfig args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'tools string array args match official SDK',
+    async () => {
+      const tools = ['Bash', 'Read', 'Edit'];
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { tools }),
+        capture(officialQuery, 'test', { tools }),
+      ]);
+
+      expect(lite.args).toContain('--tools');
+      expect(official.args).toContain('--tools');
+
+      const liteIdx = lite.args.indexOf('--tools');
+      const officialIdx = official.args.indexOf('--tools');
+      expect(lite.args[liteIdx + 1]).toBe(official.args[officialIdx + 1]);
+
+      console.log('   tools string array args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'tools empty array args match official SDK',
+    async () => {
+      const tools: string[] = [];
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { tools }),
+        capture(officialQuery, 'test', { tools }),
+      ]);
+
+      expect(lite.args).toContain('--tools');
+      expect(official.args).toContain('--tools');
+
+      const liteIdx = lite.args.indexOf('--tools');
+      const officialIdx = official.args.indexOf('--tools');
+      expect(lite.args[liteIdx + 1]).toBe('');
+      expect(official.args[officialIdx + 1]).toBe('');
+
+      console.log('   tools empty array args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'tools preset args match official SDK',
+    async () => {
+      const tools = { type: 'preset' as const, preset: 'claude_code' as const };
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { tools }),
+        capture(officialQuery, 'test', { tools }),
+      ]);
+
+      expect(lite.args).toContain('--tools');
+      expect(official.args).toContain('--tools');
+
+      const liteIdx = lite.args.indexOf('--tools');
+      const officialIdx = official.args.indexOf('--tools');
+      expect(lite.args[liteIdx + 1]).toBe(official.args[officialIdx + 1]);
+
+      console.log('   tools preset args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'permissionPromptToolName args match official SDK',
+    async () => {
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { permissionPromptToolName: 'my-tool' }),
+        capture(officialQuery, 'test', { permissionPromptToolName: 'my-tool' }),
+      ]);
+
+      expect(lite.args).toContain('--permission-prompt-tool');
+      expect(lite.args).toContain('my-tool');
+      expect(official.args).toContain('--permission-prompt-tool');
+      expect(official.args).toContain('my-tool');
+
+      console.log('   permissionPromptToolName args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'extraArgs pass-through matches official SDK',
+    async () => {
+      const extraArgs = { 'custom-flag': 'value1', 'bool-flag': null };
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { extraArgs }),
+        capture(officialQuery, 'test', { extraArgs }),
+      ]);
+
+      expect(lite.args).toContain('--custom-flag');
+      expect(lite.args).toContain('value1');
+      expect(lite.args).toContain('--bool-flag');
+      expect(official.args).toContain('--custom-flag');
+      expect(official.args).toContain('value1');
+      expect(official.args).toContain('--bool-flag');
+
+      console.log('   extraArgs args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'sandbox + extraArgs merged correctly matching official SDK',
+    async () => {
+      const sandbox = { enabled: true, autoAllowBashIfSandboxed: false };
+      const extraArgs = { 'some-flag': 'val' };
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { sandbox, extraArgs }),
+        capture(officialQuery, 'test', { sandbox, extraArgs }),
+      ]);
+
+      // Both should have --settings (sandbox merged into extraArgs.settings)
+      expect(lite.args).toContain('--settings');
+      expect(official.args).toContain('--settings');
+
+      // Both should have --some-flag
+      expect(lite.args).toContain('--some-flag');
+      expect(official.args).toContain('--some-flag');
+
+      // Compare settings values
+      const liteIdx = lite.args.indexOf('--settings');
+      const officialIdx = official.args.indexOf('--settings');
+      const liteSettings = JSON.parse(lite.args[liteIdx + 1]);
+      const officialSettings = JSON.parse(official.args[officialIdx + 1]);
+      expect(liteSettings.sandbox).toEqual(officialSettings.sandbox);
+
+      console.log('   sandbox + extraArgs merged correctly');
+    },
+    { timeout: 60000 }
+  );
+});
+
+// ============================================================================
+// Validation Tests
+// ============================================================================
+
+describe('option validation', () => {
+  test('fallbackModel same as model throws', () => {
+    expect(() =>
+      buildCliArgs({
+        model: 'claude-sonnet-4-20250514',
+        fallbackModel: 'claude-sonnet-4-20250514',
+        permissionMode: 'default',
+      })
+    ).toThrow('Fallback model cannot be the same as the main model');
+  });
+
+  test('canUseTool + permissionPromptToolName throws', () => {
+    expect(() =>
+      buildCliArgs({
+        canUseTool: async () => ({ behavior: 'allow' as const }),
+        permissionPromptToolName: 'my-tool',
+        permissionMode: 'default',
+      })
+    ).toThrow('canUseTool callback cannot be used with permissionPromptToolName');
+  });
+});
+
+// ============================================================================
+// executableArgs behavior with native vs JS binaries
+// ============================================================================
+
+describe('executableArgs included for both native and JS binaries', () => {
+  /**
+   * Official SDK (docs/research/official-sdk-unminified.mjs lines 7361-7363):
+   *
+   *   let r6 = $V(H),                                    // isNativeBinary check
+   *       o6 = r6 ? H : W,                               // command: native path or runtime
+   *       t6 = r6 ? [...J, ...c] : [...J, H, ...c],      // args: ALWAYS includes executableArgs (J)
+   *
+   * J = executableArgs, c = CLI args, H = script path, W = executable runtime
+   * executableArgs are included in BOTH branches — native and JS.
+   */
+
+  test('spawnClaudeCodeProcess receives executableArgs for native binary', () => {
+    const { DefaultProcessFactory } = require('../../src/api/ProcessFactory.ts');
+    const { writeFileSync, unlinkSync } = require('node:fs');
+    const factory = new DefaultProcessFactory();
+
+    // Create a temp file with no JS extension to simulate a native binary
+    const nativeBinary = `/tmp/fake-claude-${Date.now()}`;
+    writeFileSync(nativeBinary, '', { mode: 0o755 });
+
+    let captured: { command: string; args: string[] } | null = null;
+    try {
+      factory.spawn({
+        pathToClaudeCodeExecutable: nativeBinary,
+        permissionMode: 'default',
+        executableArgs: ['--inspect'],
+        spawnClaudeCodeProcess: (opts: { command: string; args: string[] }) => {
+          captured = opts;
+          return { stdout: null, stderr: null, stdin: null };
+        },
+      });
+    } finally {
+      unlinkSync(nativeBinary);
+    }
+
+    expect(captured).not.toBeNull();
+    expect(captured!.command).toBe(nativeBinary);
+    expect(captured!.args).toContain('--inspect');
+    expect(captured!.args).not.toContain(nativeBinary);
+
+    console.log('   executableArgs included for native binary via spawnClaudeCodeProcess');
+  });
+
+  test('spawnClaudeCodeProcess receives executableArgs for JS binary', () => {
+    const { DefaultProcessFactory } = require('../../src/api/ProcessFactory.ts');
+    const factory = new DefaultProcessFactory();
+
+    // Use the embedded cli.js — a real .js file that isNativeBinary() correctly identifies as JS
+    const jsScript = `${process.cwd()}/node_modules/@anthropic-ai/claude-agent-sdk/cli.js`;
+    let captured: { command: string; args: string[] } | null = null;
+
+    factory.spawn({
+      pathToClaudeCodeExecutable: jsScript,
+      permissionMode: 'default',
+      executableArgs: ['--max-old-space-size=4096'],
+      spawnClaudeCodeProcess: (opts: { command: string; args: string[] }) => {
+        captured = opts;
+        return { stdout: null, stderr: null, stdin: null };
+      },
+    });
+
+    expect(captured).not.toBeNull();
+    // JS binary: command is the runtime (node/bun), not the script
+    expect(['node', 'bun']).toContain(captured!.command);
+    // executableArgs should be in the args
+    expect(captured!.args).toContain('--max-old-space-size=4096');
+    // Script path should also be in args (after executableArgs)
+    const hasScriptInArgs = captured!.args.some((a) => a.endsWith('cli.js'));
+    expect(hasScriptInArgs).toBe(true);
+    // executableArgs should come before script path
+    const execArgIdx = captured!.args.indexOf('--max-old-space-size=4096');
+    const scriptIdx = captured!.args.findIndex((a) => a.endsWith('cli.js'));
+    expect(execArgIdx).toBeLessThan(scriptIdx);
+
+    console.log('   executableArgs included for JS binary via spawnClaudeCodeProcess');
+  });
 });

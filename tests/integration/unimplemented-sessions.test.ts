@@ -41,7 +41,7 @@ testWithBothSDKs('captures session ID from init message', async (sdk) => {
 });
 
 // =============================================================================
-// UNIMPLEMENTED: forkSession option
+// IMPLEMENTED: forkSession option (see sessions.test.ts)
 // =============================================================================
 
 testWithBothSDKsTodo('forkSession creates new session ID when resuming', async (sdk) => {
@@ -141,7 +141,7 @@ testWithBothSDKsTodo('forkSession preserves original session for later resumptio
 });
 
 // =============================================================================
-// UNIMPLEMENTED: continue option (most recent conversation)
+// IMPLEMENTED: continue option (see sessions.test.ts)
 // =============================================================================
 
 testWithBothSDKsTodo('continue option resumes most recent conversation', async (sdk) => {

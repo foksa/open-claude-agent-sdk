@@ -3,18 +3,23 @@
  */
 
 import { expect } from 'bun:test';
-import type { Options, SDKMessage, SDKResultMessage } from '../../src/types/index.ts';
+import type {
+  Options,
+  SDKMessage,
+  SDKResultMessage,
+  SDKResultSuccess,
+} from '../../src/types/index.ts';
 
 /**
  * Assert result message exists and is successful, return it for further assertions
  */
-export function expectSuccessResult(messages: SDKMessage[]): SDKResultMessage {
+export function expectSuccessResult(messages: SDKMessage[]): SDKResultSuccess {
   const result = messages.find((m) => m.type === 'result');
   expect(result).toBeTruthy();
   if (result && result.type === 'result') {
     expect(result.subtype).toBe('success');
   }
-  return result as SDKResultMessage;
+  return result as SDKResultSuccess;
 }
 
 /**

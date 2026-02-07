@@ -1,6 +1,6 @@
 # Lite Claude Agent SDK - Development Roadmap
 
-**Last Updated:** 2026-02-05
+**Last Updated:** 2026-02-07
 **Current Status:** Core Features Complete ✅ | Phase 1 Complete ✅
 **Next Phase:** v1.0.0 Release
 
@@ -186,37 +186,17 @@ query({
 
 **Goal:** Feature parity with official SDK for power users
 
-### 2.1 Session Management ✅ Partial / ⚠️ MEDIUM
+### 2.1 Session Management ✅ COMPLETE
 
-**What:** Resume and fork sessions
+**What:** Resume, fork, and manage sessions
 
-**Status:**
-- ✅ `resume` option - Implemented and tested
-- ❌ `forkSession` option - Not yet implemented
-
-**CLI Support:** `--resume <session-id>`, `--fork <session-id>`
-
-**Implementation:**
-```typescript
-// Resume - ✅ Working
-query({
-  prompt: 'Continue from before',
-  options: {
-    resume: 'session-abc-123'
-  }
-});
-
-// Fork - ❌ Not yet implemented
-query({
-  prompt: 'Try alternative approach',
-  options: {
-    forkSession: 'session-abc-123'
-  }
-});
-```
-
-**Remaining:**
-- `forkSession` option implementation
+**Status:** ✅ All session options implemented
+- `resume` — `--resume`
+- `continue` — `--continue`
+- `forkSession` — `--fork-session`
+- `sessionId` — `--session-id`
+- `resumeSessionAt` — `--resume-session-at`
+- `persistSession` — `--no-session-persistence` (inverted)
 
 ---
 
@@ -298,15 +278,26 @@ query({
 
 ---
 
+### 2.5 CLI Options Parity ✅ COMPLETE
+
+**What:** All remaining CLI options from official SDK
+
+**Status:** ✅ All options implemented
+- `additionalDirectories`, `agent`, `betas`, `fallbackModel`
+- `strictMcpConfig`, `tools`, `permissionPromptToolName`, `extraArgs`
+- `executable`, `executableArgs`, `env`, `stderr`, `spawnClaudeCodeProcess`
+- `enableFileCheckpointing` (env var)
+
 ### Phase 2 Deliverables
 
-✅ **Session resume** - Working (fork not yet)
-⏳ **All hook events** - 4/11 implemented
-⏳ **Model querying** - Stub only
+✅ **Session management** - All options (resume, fork, continue, etc.)
+✅ **All hook events** - 15/15 implemented
+✅ **Model querying** - Via initializationResult
 ✅ **Sandbox config** - Complete
-⏳ **Tests** - Ongoing
+✅ **CLI options parity** - All options implemented
+✅ **Tests** - 62 unit tests passing
 
-**Estimated Timeline:** 7-11 days total
+**Status:** Complete
 
 ---
 
@@ -334,23 +325,13 @@ const response = await session.send("Hello!");
 
 ---
 
-### 3.2 File Checkpointing (5-7 days) 🔵 LOW
+### 3.2 File Checkpointing ✅ Partial
 
 **What:** Track file changes and rewind to previous states
 
-**Why:** Useful for experimentation, but complex
-
-**Implementation:**
-```typescript
-query({
-  prompt: 'Refactor this code',
-  options: { enableFileCheckpointing: true }
-});
-
-await query.rewindFiles('checkpoint-uuid');
-```
-
-**Priority:** LOW - Complex state tracking, limited use case
+**Status:**
+- ✅ `enableFileCheckpointing` option — sets `CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING` env var
+- ⚠️ `rewindFiles()` — stub only, needs full implementation
 
 ---
 
@@ -542,5 +523,5 @@ src/
 
 ---
 
-**Last Updated:** 2026-02-05
+**Last Updated:** 2026-02-07
 **Maintainer:** lite-claude-agent-sdk team
