@@ -1787,28 +1787,31 @@ describe('executableArgs included for both native and JS binaries', () => {
 
   test('spawnClaudeCodeProcess receives executableArgs for native binary', () => {
     const { DefaultProcessFactory } = require('../../src/api/ProcessFactory.ts');
+    const { writeFileSync, unlinkSync } = require('node:fs');
     const factory = new DefaultProcessFactory();
 
-    // Use the real native claude binary
-    const nativeBinary = '/Users/marshal/.local/bin/claude';
-    let captured: { command: string; args: string[] } | null = null;
+    // Create a temp file with no JS extension to simulate a native binary
+    const nativeBinary = `/tmp/fake-claude-${Date.now()}`;
+    writeFileSync(nativeBinary, '', { mode: 0o755 });
 
-    factory.spawn({
-      pathToClaudeCodeExecutable: nativeBinary,
-      permissionMode: 'default',
-      executableArgs: ['--inspect'],
-      spawnClaudeCodeProcess: (opts: { command: string; args: string[] }) => {
-        captured = opts;
-        return { stdout: null, stderr: null, stdin: null };
-      },
-    });
+    let captured: { command: string; args: string[] } | null = null;
+    try {
+      factory.spawn({
+        pathToClaudeCodeExecutable: nativeBinary,
+        permissionMode: 'default',
+        executableArgs: ['--inspect'],
+        spawnClaudeCodeProcess: (opts: { command: string; args: string[] }) => {
+          captured = opts;
+          return { stdout: null, stderr: null, stdin: null };
+        },
+      });
+    } finally {
+      unlinkSync(nativeBinary);
+    }
 
     expect(captured).not.toBeNull();
-    // Native binary: command is the binary path itself
     expect(captured!.command).toBe(nativeBinary);
-    // executableArgs should be in the args
     expect(captured!.args).toContain('--inspect');
-    // Script path should NOT be in args (native binary IS the command)
     expect(captured!.args).not.toContain(nativeBinary);
 
     console.log('   executableArgs included for native binary via spawnClaudeCodeProcess');
