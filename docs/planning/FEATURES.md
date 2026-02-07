@@ -51,7 +51,7 @@
 | Session management | ✅ Resume | ✅ | MEDIUM | Fork pending |
 | File checkpointing | ❌ | ✅ | LOW | 5-7 days |
 | Context compaction | ❌ | ✅ | LOW | 5-7 days |
-| Plugins system | ❌ | ✅ | LOW | 5-7 days |
+| Plugins system | ✅ | ✅ | - | Complete |
 | **Hooks** |
 | PreToolUse | ✅ | ✅ | - | Complete |
 | PostToolUse | ✅ | ✅ | - | Complete |
@@ -203,7 +203,7 @@ for await (const event of session.stream()) {
 | `mcpServers` | ✅ | ✅ | `--mcp-config` | Complete |
 | `agents` | ❌ | ✅ | (programmatic) | LOW |
 | `enableFileCheckpointing` | ❌ | ✅ | `--enable-checkpointing` | LOW |
-| `plugins` | ❌ | ✅ | `--plugin-dir` | LOW |
+| `plugins` | ✅ | ✅ | `--plugin-dir` | Complete |
 
 ---
 

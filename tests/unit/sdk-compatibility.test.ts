@@ -431,6 +431,36 @@ describe('CLI arguments compatibility', () => {
     },
     { timeout: 30000 }
   );
+  test.concurrent(
+    'plugins --plugin-dir args match official SDK',
+    async () => {
+      const plugins = [
+        { type: 'local' as const, path: './path/to/plugin1' },
+        { type: 'local' as const, path: '/absolute/path/to/plugin2' },
+      ];
+      const [lite, official] = await Promise.all([
+        capture(liteQuery, 'test', { plugins }),
+        capture(officialQuery, 'test', { plugins }),
+      ]);
+
+      // Both should have two --plugin-dir flags
+      const litePluginDirs: string[] = [];
+      const officialPluginDirs: string[] = [];
+
+      for (let i = 0; i < lite.args.length; i++) {
+        if (lite.args[i] === '--plugin-dir') litePluginDirs.push(lite.args[i + 1]);
+      }
+      for (let i = 0; i < official.args.length; i++) {
+        if (official.args[i] === '--plugin-dir') officialPluginDirs.push(official.args[i + 1]);
+      }
+
+      expect(litePluginDirs).toEqual(officialPluginDirs);
+      expect(litePluginDirs).toEqual(['./path/to/plugin1', '/absolute/path/to/plugin2']);
+
+      console.log('   plugins --plugin-dir args match');
+    },
+    { timeout: 30000 }
+  );
 });
 
 // ============================================================================

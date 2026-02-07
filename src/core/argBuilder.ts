@@ -136,6 +136,17 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
   }
 
+  // Plugins → --plugin-dir (one per plugin)
+  if (options.plugins && options.plugins.length > 0) {
+    for (const plugin of options.plugins) {
+      if (plugin.type === 'local') {
+        args.push('--plugin-dir', plugin.path);
+      } else {
+        throw new Error(`Unsupported plugin type: ${(plugin as { type: string }).type}`);
+      }
+    }
+  }
+
   // With --input-format stream-json, prompt is sent via stdin
   // as the first user message, not as a CLI argument.
 

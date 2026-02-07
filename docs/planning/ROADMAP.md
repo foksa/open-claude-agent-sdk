@@ -441,11 +441,11 @@ query({
 
 ---
 
-### 3.6 Plugins System (5-7 days) 🔵 LOW
+### 3.6 Plugins System ✅ COMPLETE
 
 **What:** Load custom plugins with commands, agents, MCP servers
 
-**Priority:** LOW - Advanced use case
+**Status:** ✅ Implemented — each plugin passed as `--plugin-dir <path>` CLI flag
 
 ---
 
