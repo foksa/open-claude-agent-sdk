@@ -21,6 +21,16 @@
       "bun": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./query": {
+      "bun": "./src/query.ts",
+      "import": "./dist/query.js",
+      "types": "./dist/query.d.ts"
+    },
+    "./mcp": {
+      "bun": "./src/mcp-entry.ts",
+      "import": "./dist/mcp-entry.js",
+      "types": "./dist/mcp-entry.d.ts"
     }
   },
   "files": [
@@ -30,7 +40,7 @@
   ],
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm && bun run build:types",
+    "build": "bun build ./src/index.ts ./src/query.ts ./src/mcp-entry.ts --outdir ./dist --target node --format esm && bun run build:types",
     "build:types": "tsc -p tsconfig.build.json",
     "test": "bun test",
     "test:unit": "bun test tests/unit/",
