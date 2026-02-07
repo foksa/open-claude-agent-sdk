@@ -37,7 +37,7 @@ tests/
 docs/
   ├── planning/             # ROADMAP, FEATURES, gap analysis
   ├── guides/               # IMPLEMENTATION_GUIDE, MIGRATION
-  ├── research/             # Protocol research, findings
+  ├── research/             # Protocol research, findings, official-sdk-unminified.mjs
   ├── official-agent-sdk-docs/  # Downloaded official SDK docs (reference)
   ├── analysis/             # Codebase analysis (architecture, coverage)
   └── api/                  # API documentation
@@ -82,6 +82,9 @@ bun run typecheck
 **Test utilities:**
 - `src/tools/capture-cli.cjs` - Captures CLI args + stdin for unit tests
 - `src/tools/proxy-cli.cjs` - Proxy interceptor for debugging protocol
+
+**Official SDK source:**
+- `docs/research/official-sdk-unminified.mjs` - Readable (unminified) version of the official SDK source (~19k lines). Use this instead of the minified `node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs` when researching how the official SDK works.
 
 ### What NOT to Do
 
