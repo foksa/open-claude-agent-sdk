@@ -34,23 +34,8 @@ import { type ControlResponsePayload, MessageRouter } from './MessageRouter.ts';
 import { DefaultProcessFactory, type ProcessFactory } from './ProcessFactory.ts';
 
 export class QueryImpl implements Query {
-  private process!: ChildProcess;
-  private controlHandler!: ControlProtocolHandler;
-  private messageQueue!: MessageQueue<SDKMessage>;
-  private router!: MessageRouter;
-  private isSingleUserTurn = false;
   private closed = false;
-  private abortHandler: (() => void) | null = null; // Handler for abortController cleanup
-  private abortController: AbortController | undefined; // Store for cleanup
-
-  // Init response capture
-  private initResponsePromise!: Promise<SDKControlInitializeResponse>;
-  private initResolve!: (value: SDKControlInitializeResponse) => void;
-  private initReject!: (reason: Error) => void;
-  private initRequestId!: string;
-
-  // SDK MCP server names (for init message)
-  private sdkMcpServerNames: string[] = [];
+  private abortHandler: (() => void) | null = null;
 
   // Pending control request/response map (for mcpServerStatus, etc.)
   private pendingControlResponses = new Map<
@@ -59,88 +44,161 @@ export class QueryImpl implements Query {
     { resolve: (value: any) => void; reject: (reason: Error) => void }
   >();
 
-  constructor(
+  private constructor(
+    private process: ChildProcess,
+    private messageQueue: MessageQueue<SDKMessage>,
+    private controlHandler: ControlProtocolHandler,
+    private router: MessageRouter,
+    private initResponsePromise: Promise<SDKControlInitializeResponse>,
+    private initResolve: (value: SDKControlInitializeResponse) => void,
+    private initReject: (reason: Error) => void,
+    private initRequestId: string,
+    private sdkMcpServerNames: string[],
+    private isSingleUserTurn: boolean,
+    private abortController?: AbortController
+  ) {}
+
+  /**
+   * Factory method — performs all initialization that was previously in the constructor.
+   */
+  static create(
     params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options },
     processFactory: ProcessFactory = new DefaultProcessFactory()
-  ) {
+  ): QueryImpl {
     const { prompt, options = {} } = params;
 
     // Check for pre-aborted signal BEFORE spawning process (save resources)
     if (options.abortController?.signal.aborted) {
-      this.closed = true;
-      // Mark as aborted - the iterator will return done immediately
-      // Initialize with empty values to satisfy TypeScript
-      this.messageQueue = new MessageQueue<SDKMessage>();
-      this.messageQueue.complete();
-      const abortError = new Error('Query was aborted before initialization');
-      this.initResponsePromise = Promise.reject(abortError);
-      this.initResponsePromise.catch(() => {}); // Prevent unhandled rejection
-      this.initReject = () => {};
-      return;
+      return QueryImpl.createAborted();
     }
 
-    // Determine if single-turn or multi-turn
-    this.isSingleUserTurn = typeof prompt === 'string';
-
     // 1. Spawn process via factory
-    this.process = processFactory.spawn(options);
+    const childProcess = processFactory.spawn(options);
 
     // Validate stdio streams exist (they should with stdio: 'pipe')
-    if (!this.process.stdin || !this.process.stdout) {
+    if (!childProcess.stdin || !childProcess.stdout) {
       throw new Error('Process stdin/stdout not available');
     }
 
     // 2. Initialize message queue
-    this.messageQueue = new MessageQueue<SDKMessage>();
+    const messageQueue = new MessageQueue<SDKMessage>();
 
     // 3. Initialize control protocol handler
-    this.controlHandler = new ControlProtocolHandler(this.process.stdin, options);
+    const controlHandler = new ControlProtocolHandler(childProcess.stdin, options);
 
     // 3.5. Connect SDK MCP servers (in-process servers with `instance` property)
-    if (options.mcpServers) {
-      const bridges = new Map<string, McpServerBridge>();
-      for (const [name, config] of Object.entries(options.mcpServers)) {
-        if ('instance' in config && config.instance) {
-          const bridge = new McpServerBridge(config.instance);
-          bridge.connect(); // async but we don't await — server connects in background
-          bridges.set(name, bridge);
-          this.sdkMcpServerNames.push(name);
-        }
-      }
-      if (bridges.size > 0) {
-        this.controlHandler.setMcpServerBridges(bridges);
-      }
-    }
+    const sdkMcpServerNames: string[] = [];
+    QueryImpl.connectMcpBridges(options, controlHandler, sdkMcpServerNames);
 
-    // 4. Initialize message router with callbacks (including control response routing)
-    this.router = new MessageRouter(
-      this.process.stdout,
-      this.controlHandler,
-      (msg) => this.handleMessage(msg),
-      (error) => this.handleDone(error),
-      (response) => this.handleControlResponse(response)
-    );
-
-    // 5. Start background reading
-    this.router.startReading();
-
-    // 6. Set up init response promise before sending init request
-    this.initResponsePromise = new Promise<SDKControlInitializeResponse>((resolve, reject) => {
-      this.initResolve = resolve;
-      this.initReject = reject;
+    // 4. Set up init response promise before sending init request
+    let initResolve!: (value: SDKControlInitializeResponse) => void;
+    let initReject!: (reason: Error) => void;
+    const initResponsePromise = new Promise<SDKControlInitializeResponse>((resolve, reject) => {
+      initResolve = resolve;
+      initReject = reject;
     });
 
-    // 7. Send control protocol initialization
-    this.sendControlProtocolInit(options);
+    const initRequestId = `init_${Date.now()}`;
+    const isSingleUserTurn = typeof prompt === 'string';
 
-    // 8. Handle input based on type
+    // 5. Construct instance
+    const instance = new QueryImpl(
+      childProcess,
+      messageQueue,
+      controlHandler,
+      // router placeholder — set below after constructing with callbacks
+      null as unknown as MessageRouter,
+      initResponsePromise,
+      initResolve,
+      initReject,
+      initRequestId,
+      sdkMcpServerNames,
+      isSingleUserTurn,
+      options.abortController
+    );
+
+    // 6. Initialize message router with callbacks (needs instance for closures)
+    instance.router = new MessageRouter(
+      childProcess.stdout,
+      controlHandler,
+      (msg) => instance.handleMessage(msg),
+      (error) => instance.handleDone(error),
+      (response) => instance.handleControlResponse(response)
+    );
+
+    // 7. Start background reading
+    instance.router.startReading();
+
+    // 8. Send control protocol initialization
+    instance.sendControlProtocolInit(options);
+
+    // 9. Handle input based on type
     if (typeof prompt === 'string') {
-      this.sendInitialPrompt(prompt);
+      instance.sendInitialPrompt(prompt);
     } else {
-      this.consumeInputGenerator(prompt);
+      instance.consumeInputGenerator(prompt);
     }
 
-    // 9. Handle process exit/error
+    // 10. Setup process exit/error handlers + abort listener
+    instance.setupProcessHandlers();
+
+    return instance;
+  }
+
+  /**
+   * Create an already-aborted QueryImpl (no process spawned).
+   */
+  private static createAborted(): QueryImpl {
+    const messageQueue = new MessageQueue<SDKMessage>();
+    messageQueue.complete();
+    const abortError = new Error('Query was aborted before initialization');
+    const initResponsePromise = Promise.reject(abortError);
+    initResponsePromise.catch(() => {}); // Prevent unhandled rejection
+
+    const instance = new QueryImpl(
+      null as unknown as ChildProcess,
+      messageQueue,
+      null as unknown as ControlProtocolHandler,
+      null as unknown as MessageRouter,
+      initResponsePromise,
+      () => {},
+      () => {},
+      '',
+      [],
+      false
+    );
+    instance.closed = true;
+    return instance;
+  }
+
+  /**
+   * Connect SDK MCP server bridges (in-process servers with `instance` property).
+   */
+  private static connectMcpBridges(
+    options: Options,
+    controlHandler: ControlProtocolHandler,
+    sdkMcpServerNames: string[]
+  ): void {
+    if (!options.mcpServers) return;
+
+    const bridges = new Map<string, McpServerBridge>();
+    for (const [name, config] of Object.entries(options.mcpServers)) {
+      if ('instance' in config && config.instance) {
+        const bridge = new McpServerBridge(config.instance);
+        bridge.connect(); // async but we don't await — server connects in background
+        bridges.set(name, bridge);
+        sdkMcpServerNames.push(name);
+      }
+    }
+    if (bridges.size > 0) {
+      controlHandler.setMcpServerBridges(bridges);
+    }
+  }
+
+  /**
+   * Set up process exit/error handlers and abort controller listener.
+   */
+  private setupProcessHandlers(): void {
     this.process.on('exit', (code) => {
       if (code !== 0 && code !== null && !this.messageQueue.isDone()) {
         const error = new Error(`Claude CLI exited with code ${code}`);
@@ -159,9 +217,7 @@ export class QueryImpl implements Query {
       this.rejectPendingPromises(err);
     });
 
-    // 10. Setup abort controller listener if provided
-    if (options.abortController) {
-      this.abortController = options.abortController;
+    if (this.abortController) {
       this.abortHandler = () => {
         this.interrupt();
       };
