@@ -1,0 +1,4 @@
+{
+  "name": "external-plugin",
+  "description": "Test plugin outside .claude directory"
+}
