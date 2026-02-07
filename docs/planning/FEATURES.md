@@ -195,10 +195,10 @@ for await (const event of session.stream()) {
 |--------|----------|--------------|----------|--------|
 | `resume` | ✅ | ✅ | `--resume` | Complete |
 | `continue` | ✅ | ✅ | `--continue` | Complete |
-| `forkSession` | ✅ | ✅ | `--fork-session` | Complete |
-| `sessionId` | ✅ | ✅ | `--session-id` | Complete |
-| `resumeSessionAt` | ✅ | ✅ | `--resume-session-at` | Complete |
-| `persistSession` | ✅ | ✅ | `--no-session-persistence` | Complete |
+| `forkSession` | ⚠️ | ✅ | `--fork-session` | Unit tested, needs integration test |
+| `sessionId` | ⚠️ | ✅ | `--session-id` | Unit tested, needs integration test |
+| `resumeSessionAt` | ⚠️ | ✅ | `--resume-session-at` | Unit tested, needs integration test |
+| `persistSession` | ⚠️ | ✅ | `--no-session-persistence` | Unit tested, needs integration test |
 | `sandbox` | ✅ | ✅ | `--settings` | Complete |
 | `abortController` | ✅ | ✅ | (signal handler) | Complete |
 | `systemPrompt` | ✅ | ✅ | stdin init message | Complete |
@@ -207,7 +207,7 @@ for await (const event of session.stream()) {
 | `tools` | ✅ | ✅ | `--tools` | Complete |
 | `mcpServers` | ✅ | ✅ | `--mcp-config` | Complete |
 | `agents` | ✅ | ✅ | stdin init message | Complete |
-| `enableFileCheckpointing` | ✅ | ✅ | env var | Complete |
+| `enableFileCheckpointing` | ⚠️ | ✅ | env var | Unit tested, needs integration test |
 | `plugins` | ✅ | ✅ | `--plugin-dir` | Complete |
 | `additionalDirectories` | ✅ | ✅ | `--add-dir` | Complete |
 | `agent` | ✅ | ✅ | `--agent` | Complete |
@@ -216,11 +216,11 @@ for await (const event of session.stream()) {
 | `strictMcpConfig` | ✅ | ✅ | `--strict-mcp-config` | Complete |
 | `permissionPromptToolName` | ✅ | ✅ | `--permission-prompt-tool` | Complete |
 | `extraArgs` | ✅ | ✅ | `--key value` | Complete |
-| `executable` | ✅ | ✅ | (spawner) | Complete |
-| `executableArgs` | ✅ | ✅ | (spawner) | Complete |
-| `env` | ✅ | ✅ | (spawner) | Complete |
-| `stderr` | ✅ | ✅ | (spawner) | Complete |
-| `spawnClaudeCodeProcess` | ✅ | ✅ | (spawner) | Complete |
+| `executable` | ⚠️ | ✅ | (spawner) | Unit tested, needs integration test |
+| `executableArgs` | ⚠️ | ✅ | (spawner) | Unit tested, needs integration test |
+| `env` | ⚠️ | ✅ | (spawner) | Unit tested, needs integration test |
+| `stderr` | ⚠️ | ✅ | (spawner) | Unit tested, needs integration test |
+| `spawnClaudeCodeProcess` | ⚠️ | ✅ | (spawner) | Unit tested, needs integration test |
 
 ---
 
