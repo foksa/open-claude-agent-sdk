@@ -1,23 +1,17 @@
 /**
- * Custom Tools feature tests
+ * Custom Tools — unimplemented feature tests
  *
- * These tests document custom tool features that exist in the official SDK but are
- * NOT YET implemented in the lite SDK. Tests are marked with .skip or .todo.
+ * createSdkMcpServer() and tool() are implemented and tested in:
+ *   - tests/integration/mcp-servers.test.ts
  *
- * Based on official documentation:
- * - docs/official-agent-sdk-docs/custom-tools.md
- *
- * Custom Tool Features to Implement:
- * 1. createSdkMcpServer() - Create in-process MCP server
- * 2. tool() helper - Define type-safe tools with Zod schemas
- * 3. Streaming input requirement - Custom tools require async generator input
- * 4. Tool result format - { content: [{ type: "text", text: "..." }] }
- * 5. Multiple tools per server
- * 6. Error handling in tool handlers
+ * These .todo tests document remaining custom tool features not yet covered:
+ * - Streaming input requirement validation
+ * - Tool naming convention enforcement
+ * - Zod validation error handling
+ * - Example tool patterns
  */
 
-import { describe, expect, test } from 'bun:test';
-import { testWithBothSDKs } from '../comparison-utils.ts';
+import { describe, test } from 'bun:test';
 
 // =============================================================================
 // createSdkMcpServer Function
@@ -374,61 +368,5 @@ describe('Example Tool Implementations', () => {
     /**
      * From docs - authenticated API requests to multiple services
      */
-  });
-});
-
-// =============================================================================
-// SDK Comparison Tests - Verify both SDKs behave the same
-// =============================================================================
-
-describe('Custom Tools SDK Comparison', () => {
-  // Note: These tests require createSdkMcpServer and tool exports
-  // They will skip for lite SDK until implemented
-
-  test.skip('[official] createSdkMcpServer creates functional MCP server', async () => {
-    // This test verifies official SDK behavior
-    // Import would be: import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
-    //
-    // const server = createSdkMcpServer({
-    //   name: 'test-tools',
-    //   version: '1.0.0',
-    //   tools: [
-    //     tool('add_numbers', 'Add two numbers', {
-    //       a: z.number(),
-    //       b: z.number()
-    //     }, async (args) => ({
-    //       content: [{ type: 'text', text: String(args.a + args.b) }]
-    //     }))
-    //   ]
-    // });
-    //
-    // const messages = await runWithSDK('official', 'What is 5 + 3? Use the add_numbers tool.', {
-    //   mcpServers: { 'test-tools': server },
-    //   allowedTools: ['mcp__test-tools__*']
-    // });
-    //
-    // const result = messages.find(m => m.type === 'result');
-    // expect(result).toBeTruthy();
-  });
-
-  test.skip('[lite] createSdkMcpServer not yet implemented', async () => {
-    // This will fail until lite SDK implements createSdkMcpServer
-    // When implemented, should behave identically to official SDK
-  });
-
-  testWithBothSDKs('SDK exports createSdkMcpServer function', async (sdk) => {
-    const module =
-      sdk === 'lite'
-        ? await import('../../../src/index.ts')
-        : await import('@anthropic-ai/claude-agent-sdk');
-    expect(typeof module.createSdkMcpServer).toBe('function');
-  });
-
-  testWithBothSDKs('SDK exports tool helper function', async (sdk) => {
-    const module =
-      sdk === 'lite'
-        ? await import('../../../src/index.ts')
-        : await import('@anthropic-ai/claude-agent-sdk');
-    expect(typeof module.tool).toBe('function');
   });
 });
