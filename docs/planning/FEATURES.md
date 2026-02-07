@@ -195,10 +195,10 @@ for await (const event of session.stream()) {
 |--------|----------|--------------|----------|--------|
 | `resume` | ✅ | ✅ | `--resume` | Complete |
 | `continue` | ✅ | ✅ | `--continue` | Complete |
-| `forkSession` | ⚠️ | ✅ | `--fork-session` | Unit tested, needs integration test |
-| `sessionId` | ⚠️ | ✅ | `--session-id` | Unit tested, needs integration test |
+| `forkSession` | ✅ | ✅ | `--fork-session` | Complete |
+| `sessionId` | ✅ | ✅ | `--session-id` | Complete |
 | `resumeSessionAt` | ⚠️ | ✅ | `--resume-session-at` | Unit tested, needs integration test |
-| `persistSession` | ⚠️ | ✅ | `--no-session-persistence` | Unit tested, needs integration test |
+| `persistSession` | ✅ | ✅ | `--no-session-persistence` | Complete |
 | `sandbox` | ✅ | ✅ | `--settings` | Complete |
 | `abortController` | ✅ | ✅ | (signal handler) | Complete |
 | `systemPrompt` | ✅ | ✅ | stdin init message | Complete |
