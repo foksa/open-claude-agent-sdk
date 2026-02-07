@@ -65,10 +65,16 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   // Note: cwd is NOT a CLI argument. It's passed to spawn() as a process option.
   // The CLI doesn't support --cwd flag.
 
-  // Enable control protocol for permissions only (not hooks)
-  // Hooks use control protocol but don't need --permission-prompt-tool stdio
+  // Permission prompt tool — canUseTool and permissionPromptToolName are mutually exclusive
+  if (options.canUseTool && options.permissionPromptToolName) {
+    throw new Error(
+      'canUseTool callback cannot be used with permissionPromptToolName. Please use one or the other.'
+    );
+  }
   if (options.canUseTool) {
     args.push('--permission-prompt-tool', 'stdio');
+  } else if (options.permissionPromptToolName) {
+    args.push('--permission-prompt-tool', options.permissionPromptToolName);
   }
 
   // Output format (structured outputs)
@@ -111,9 +117,92 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--resume', options.resume);
   }
 
-  // Sandbox configuration - passed via --settings flag as JSON (matches official SDK)
+  // Continue most recent conversation
+  if (options.continue) {
+    args.push('--continue');
+  }
+
+  // Additional directories
+  if (options.additionalDirectories) {
+    for (const dir of options.additionalDirectories) {
+      args.push('--add-dir', dir);
+    }
+  }
+
+  // Agent name
+  if (options.agent) {
+    args.push('--agent', options.agent);
+  }
+
+  // Beta features
+  if (options.betas && options.betas.length > 0) {
+    args.push('--betas', options.betas.join(','));
+  }
+
+  // Fallback model (must differ from primary model)
+  if (options.fallbackModel) {
+    if (options.fallbackModel === options.model) {
+      throw new Error(
+        'Fallback model cannot be the same as the main model. Please specify a different model for fallbackModel option.'
+      );
+    }
+    args.push('--fallback-model', options.fallbackModel);
+  }
+
+  // Fork session (branch from resumed session)
+  if (options.forkSession) {
+    args.push('--fork-session');
+  }
+
+  // Custom session ID
+  if (options.sessionId) {
+    args.push('--session-id', options.sessionId);
+  }
+
+  // Resume at specific message
+  if (options.resumeSessionAt) {
+    args.push('--resume-session-at', options.resumeSessionAt);
+  }
+
+  // Disable session persistence (inverted: false → flag present)
+  if (options.persistSession === false) {
+    args.push('--no-session-persistence');
+  }
+
+  // Strict MCP config
+  if (options.strictMcpConfig) {
+    args.push('--strict-mcp-config');
+  }
+
+  // Tools option — official SDK: array → join or empty string; non-array → "default"
+  if (options.tools !== undefined) {
+    if (Array.isArray(options.tools)) {
+      args.push('--tools', options.tools.length > 0 ? options.tools.join(',') : '');
+    } else {
+      args.push('--tools', 'default');
+    }
+  }
+
+  // extraArgs and sandbox — merged per official SDK behavior
+  // sandbox goes into extraArgs.settings as JSON
+  const mergedExtraArgs = { ...(options.extraArgs ?? {}) };
   if (options.sandbox) {
-    args.push('--settings', JSON.stringify({ sandbox: options.sandbox }));
+    let settingsObj: Record<string, unknown> = { sandbox: options.sandbox };
+    if (mergedExtraArgs.settings) {
+      try {
+        settingsObj = { ...JSON.parse(mergedExtraArgs.settings), sandbox: options.sandbox };
+      } catch {
+        // If settings is not valid JSON, overwrite
+      }
+    }
+    mergedExtraArgs.settings = JSON.stringify(settingsObj);
+  }
+  for (const [key, value] of Object.entries(mergedExtraArgs)) {
+    if (value === null) {
+      args.push(`--${key}`);
+    } else {
+      args.push(`--${key}`, value);
+    }
   }
 
   // MCP servers → --mcp-config

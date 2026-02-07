@@ -1,6 +1,6 @@
 # Feature Comparison: Lite SDK vs Official SDK
 
-**Last Updated:** 2026-02-05
+**Last Updated:** 2026-02-07
 **Purpose:** Comprehensive feature matrix showing what we have, what we need, and what we don't need
 
 ---
@@ -48,8 +48,8 @@
 | Extended thinking | ✅ | ✅ | - | Complete |
 | Skills/commands | ✅ | ✅ | - | Complete |
 | Budget tracking | ✅ | ✅ | - | Complete |
-| Session management | ✅ Resume | ✅ | MEDIUM | Fork pending |
-| File checkpointing | ❌ | ✅ | LOW | 5-7 days |
+| Session management | ✅ | ✅ | - | Complete (resume, fork, sessionId, resumeSessionAt, persistSession) |
+| File checkpointing | ✅ | ✅ | - | Complete (env var) |
 | Context compaction | ❌ | ✅ | LOW | 5-7 days |
 | Plugins system | ✅ | ✅ | - | Complete |
 | **Hooks** |
@@ -194,16 +194,33 @@ for await (const event of session.stream()) {
 | Option | Lite SDK | Official SDK | CLI Flag | Status |
 |--------|----------|--------------|----------|--------|
 | `resume` | ✅ | ✅ | `--resume` | Complete |
-| `forkSession` | ❌ | ✅ | `--fork` | MEDIUM |
+| `continue` | ✅ | ✅ | `--continue` | Complete |
+| `forkSession` | ✅ | ✅ | `--fork-session` | Complete |
+| `sessionId` | ✅ | ✅ | `--session-id` | Complete |
+| `resumeSessionAt` | ✅ | ✅ | `--resume-session-at` | Complete |
+| `persistSession` | ✅ | ✅ | `--no-session-persistence` | Complete |
 | `sandbox` | ✅ | ✅ | `--settings` | Complete |
 | `abortController` | ✅ | ✅ | (signal handler) | Complete |
 | `systemPrompt` | ✅ | ✅ | stdin init message | Complete |
 | `allowedTools` | ✅ | ✅ | `--allowedTools` | Complete |
 | `disallowedTools` | ✅ | ✅ | `--disallowedTools` | Complete |
+| `tools` | ✅ | ✅ | `--tools` | Complete |
 | `mcpServers` | ✅ | ✅ | `--mcp-config` | Complete |
 | `agents` | ✅ | ✅ | stdin init message | Complete |
-| `enableFileCheckpointing` | ❌ | ✅ | `--enable-checkpointing` | LOW |
+| `enableFileCheckpointing` | ✅ | ✅ | env var | Complete |
 | `plugins` | ✅ | ✅ | `--plugin-dir` | Complete |
+| `additionalDirectories` | ✅ | ✅ | `--add-dir` | Complete |
+| `agent` | ✅ | ✅ | `--agent` | Complete |
+| `betas` | ✅ | ✅ | `--betas` | Complete |
+| `fallbackModel` | ✅ | ✅ | `--fallback-model` | Complete |
+| `strictMcpConfig` | ✅ | ✅ | `--strict-mcp-config` | Complete |
+| `permissionPromptToolName` | ✅ | ✅ | `--permission-prompt-tool` | Complete |
+| `extraArgs` | ✅ | ✅ | `--key value` | Complete |
+| `executable` | ✅ | ✅ | (spawner) | Complete |
+| `executableArgs` | ✅ | ✅ | (spawner) | Complete |
+| `env` | ✅ | ✅ | (spawner) | Complete |
+| `stderr` | ✅ | ✅ | (spawner) | Complete |
+| `spawnClaudeCodeProcess` | ✅ | ✅ | (spawner) | Complete |
 
 ---
 
@@ -516,10 +533,9 @@ for await (const msg of query({ prompt: 'Hello', options: {} })) {
 
 **Not Ideal For:**
 - Self-contained deployments (no CLI)
-- Complex subagent orchestration (advanced resumption/forking)
-- File checkpointing workflows (Phase 3)
+- V2 API workflows (preview API not implemented)
 
 ---
 
-**Last Updated:** 2026-02-05
+**Last Updated:** 2026-02-07
 **See Also:** [ROADMAP.md](./ROADMAP.md) for implementation timeline

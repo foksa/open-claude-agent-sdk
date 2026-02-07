@@ -85,7 +85,8 @@ export class MessageRouter {
           }
         } catch (parseError) {
           // Log but don't crash on parse errors
-          console.error('Failed to parse line:', line, parseError);
+          const errMsg = parseError instanceof Error ? parseError.message : String(parseError);
+          console.error('Failed to parse line:', line.substring(0, 200), '-', errMsg);
         }
       }
     } catch (err: unknown) {
