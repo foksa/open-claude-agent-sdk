@@ -10,14 +10,23 @@
 import type { Writable } from 'node:stream';
 import type { ControlRequest, ControlResponse, InternalHookCallback } from '../types/control.ts';
 import type { Options, PermissionResult } from '../types/index.ts';
+import type { McpServerBridge } from './mcpBridge.ts';
 
 export class ControlProtocolHandler {
   private callbackMap: Map<string, InternalHookCallback> = new Map();
+  private mcpServerBridges: Map<string, McpServerBridge> = new Map();
 
   constructor(
     private stdin: Writable,
     private options: Options
   ) {}
+
+  /**
+   * Set MCP server bridges for routing mcp_message requests
+   */
+  setMcpServerBridges(bridges: Map<string, McpServerBridge>): void {
+    this.mcpServerBridges = bridges;
+  }
 
   /**
    * Register a callback function with its ID
@@ -53,11 +62,13 @@ export class ControlProtocolHandler {
         case 'interrupt':
           await this.handleInterrupt(req);
           break;
+        case 'mcp_message':
+          await this.handleMcpMessage(req);
+          break;
         case 'set_permission_mode':
         case 'set_model':
         case 'set_max_thinking_tokens':
         case 'mcp_status':
-        case 'mcp_message':
         case 'rewind_files':
         case 'mcp_set_servers':
         case 'mcp_reconnect':
@@ -174,6 +185,24 @@ export class ControlProtocolHandler {
   private async handleInterrupt(req: ControlRequest) {
     // Acknowledge interrupt
     this.sendSuccess(req.request_id, {});
+  }
+
+  /**
+   * Handle MCP message from CLI — route to SDK MCP server bridge
+   */
+  private async handleMcpMessage(req: ControlRequest) {
+    if (req.request.subtype !== 'mcp_message') return;
+
+    const { server_name, message } = req.request;
+    const bridge = this.mcpServerBridges.get(server_name);
+
+    if (!bridge) {
+      this.sendError(req.request_id, `SDK MCP server not found: ${server_name}`);
+      return;
+    }
+
+    const response = await bridge.handleMessage(message);
+    this.sendSuccess(req.request_id, { mcp_response: response });
   }
 
   /**

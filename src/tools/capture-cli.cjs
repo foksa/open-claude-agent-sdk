@@ -113,6 +113,23 @@ rl.on('line', (line) => {
             },
           })
         );
+      } else if (msg.request?.subtype === 'mcp_message') {
+        console.log(
+          JSON.stringify({
+            type: 'control_response',
+            response: {
+              subtype: 'success',
+              request_id: msg.request_id,
+              response: {
+                mcp_response: {
+                  jsonrpc: '2.0',
+                  result: {},
+                  id: msg.request.message?.id || 1,
+                },
+              },
+            },
+          })
+        );
       } else if (msg.request?.subtype !== 'initialize') {
         // Generic success response for other control requests
         console.log(
