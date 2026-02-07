@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { buildCliArgs } from '../../src/core/spawn.ts';
+import { buildCliArgs } from '../../src/core/argBuilder.ts';
 import type { Options } from '../../src/types/index.ts';
 
 describe('buildCliArgs', () => {

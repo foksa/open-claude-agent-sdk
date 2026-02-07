@@ -11,11 +11,25 @@
  */
 
 import type { Options } from '../types/index.ts';
-import {
-  DEFAULT_PERMISSION_MODE,
-  DEFAULT_SETTING_SOURCES,
-  REQUIRED_CLI_FLAGS,
-} from './defaults.ts';
+
+// ============================================================================
+// Defaults — match official SDK behavior (discovered via proxy analysis)
+// ============================================================================
+
+/** Official SDK passes --permission-mode default explicitly */
+const DEFAULT_PERMISSION_MODE = 'default';
+
+/** Empty = no filesystem settings loaded (faster startup) */
+const DEFAULT_SETTING_SOURCES: string[] = [];
+
+/** Required CLI flags for stream-json protocol */
+const REQUIRED_CLI_FLAGS = [
+  '--output-format',
+  'stream-json',
+  '--input-format',
+  'stream-json',
+  '--verbose',
+] as const;
 
 // ============================================================================
 // Declarative flag mapping — option key → CLI flag + type

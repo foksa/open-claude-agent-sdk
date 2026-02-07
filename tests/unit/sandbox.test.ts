@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { buildCliArgs } from '../../src/core/spawn.ts';
+import { buildCliArgs } from '../../src/core/argBuilder.ts';
 
 describe('sandbox CLI arguments', () => {
   test('sandbox enabled adds --settings flag with JSON', () => {

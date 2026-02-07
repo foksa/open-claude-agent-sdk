@@ -7,8 +7,8 @@
  */
 
 import type { ChildProcess } from 'node:child_process';
-import { detectClaudeBinary } from '../core/detection.ts';
-import { buildCliArgs, spawnClaude } from '../core/spawn.ts';
+import { buildCliArgs } from '../core/argBuilder.ts';
+import { detectClaudeBinary, spawnClaude } from '../core/spawn.ts';
 import type { Options } from '../types/index.ts';
 
 /**

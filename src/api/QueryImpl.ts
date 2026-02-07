@@ -10,8 +10,11 @@
  */
 
 import type { ChildProcess } from 'node:child_process';
-import { ControlProtocolHandler } from '../core/control.ts';
-import { ControlRequests, type OutboundControlRequest } from '../core/controlRequests.ts';
+import {
+  ControlProtocolHandler,
+  ControlRequests,
+  type OutboundControlRequest,
+} from '../core/control.ts';
 import { buildHookConfig } from '../core/hookConfig.ts';
 import { McpServerBridge } from '../core/mcpBridge.ts';
 import { MessageType, RequestSubtype, ResponseSubtype } from '../types/control.ts';
