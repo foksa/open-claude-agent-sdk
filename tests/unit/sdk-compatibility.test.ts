@@ -1768,3 +1768,83 @@ describe('option validation', () => {
     ).toThrow('canUseTool callback cannot be used with permissionPromptToolName');
   });
 });
+
+// ============================================================================
+// executableArgs behavior with native vs JS binaries
+// ============================================================================
+
+describe('executableArgs included for both native and JS binaries', () => {
+  /**
+   * Official SDK (docs/research/official-sdk-unminified.mjs lines 7361-7363):
+   *
+   *   let r6 = $V(H),                                    // isNativeBinary check
+   *       o6 = r6 ? H : W,                               // command: native path or runtime
+   *       t6 = r6 ? [...J, ...c] : [...J, H, ...c],      // args: ALWAYS includes executableArgs (J)
+   *
+   * J = executableArgs, c = CLI args, H = script path, W = executable runtime
+   * executableArgs are included in BOTH branches — native and JS.
+   */
+
+  test('spawnClaudeCodeProcess receives executableArgs for native binary', () => {
+    const { DefaultProcessFactory } = require('../../src/api/ProcessFactory.ts');
+    const factory = new DefaultProcessFactory();
+
+    // Use the real native claude binary
+    const nativeBinary = '/Users/marshal/.local/bin/claude';
+    let captured: { command: string; args: string[] } | null = null;
+
+    factory.spawn({
+      pathToClaudeCodeExecutable: nativeBinary,
+      permissionMode: 'default',
+      executableArgs: ['--inspect'],
+      spawnClaudeCodeProcess: (opts: { command: string; args: string[] }) => {
+        captured = opts;
+        return { stdout: null, stderr: null, stdin: null };
+      },
+    });
+
+    expect(captured).not.toBeNull();
+    // Native binary: command is the binary path itself
+    expect(captured!.command).toBe(nativeBinary);
+    // executableArgs should be in the args
+    expect(captured!.args).toContain('--inspect');
+    // Script path should NOT be in args (native binary IS the command)
+    expect(captured!.args).not.toContain(nativeBinary);
+
+    console.log('   executableArgs included for native binary via spawnClaudeCodeProcess');
+  });
+
+  test('spawnClaudeCodeProcess receives executableArgs for JS binary', () => {
+    const { DefaultProcessFactory } = require('../../src/api/ProcessFactory.ts');
+    const factory = new DefaultProcessFactory();
+
+    // Use the embedded cli.js — a real .js file that isNativeBinary() correctly identifies as JS
+    const jsScript = `${process.cwd()}/node_modules/@anthropic-ai/claude-agent-sdk/cli.js`;
+    let captured: { command: string; args: string[] } | null = null;
+
+    factory.spawn({
+      pathToClaudeCodeExecutable: jsScript,
+      permissionMode: 'default',
+      executableArgs: ['--max-old-space-size=4096'],
+      spawnClaudeCodeProcess: (opts: { command: string; args: string[] }) => {
+        captured = opts;
+        return { stdout: null, stderr: null, stdin: null };
+      },
+    });
+
+    expect(captured).not.toBeNull();
+    // JS binary: command is the runtime (node/bun), not the script
+    expect(['node', 'bun']).toContain(captured!.command);
+    // executableArgs should be in the args
+    expect(captured!.args).toContain('--max-old-space-size=4096');
+    // Script path should also be in args (after executableArgs)
+    const hasScriptInArgs = captured!.args.some((a) => a.endsWith('cli.js'));
+    expect(hasScriptInArgs).toBe(true);
+    // executableArgs should come before script path
+    const execArgIdx = captured!.args.indexOf('--max-old-space-size=4096');
+    const scriptIdx = captured!.args.findIndex((a) => a.endsWith('cli.js'));
+    expect(execArgIdx).toBeLessThan(scriptIdx);
+
+    console.log('   executableArgs included for JS binary via spawnClaudeCodeProcess');
+  });
+});
