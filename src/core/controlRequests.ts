@@ -7,18 +7,18 @@
  * @internal
  */
 
-import type { McpServerConfig, PermissionMode } from '../types/index.ts';
-import { RequestSubtype } from '../types/control.ts';
 import type {
   InterruptRequest,
-  SetPermissionModeRequest,
-  SetModelRequest,
-  SetMaxThinkingTokensRequest,
-  McpStatusRequest,
   McpReconnectRequest,
-  McpToggleRequest,
   McpSetServersRequest,
+  McpStatusRequest,
+  McpToggleRequest,
+  SetMaxThinkingTokensRequest,
+  SetModelRequest,
+  SetPermissionModeRequest,
 } from '../types/control.ts';
+import { RequestSubtype } from '../types/control.ts';
+import type { McpServerConfig, PermissionMode } from '../types/index.ts';
 
 /**
  * Union of all outbound control request types (sent from SDK to CLI)

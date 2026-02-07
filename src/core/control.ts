@@ -9,12 +9,12 @@
 
 import type { Writable } from 'node:stream';
 import {
-  MessageType,
-  RequestSubtype,
-  ResponseSubtype,
   type ControlRequest,
   type ControlResponse,
   type InternalHookCallback,
+  MessageType,
+  RequestSubtype,
+  ResponseSubtype,
 } from '../types/control.ts';
 import type { Options, PermissionResult } from '../types/index.ts';
 import type { McpServerBridge } from './mcpBridge.ts';

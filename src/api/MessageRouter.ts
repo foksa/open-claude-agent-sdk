@@ -25,7 +25,9 @@ export type ControlResponsePayload = {
 };
 export type ControlResponseCallback = (response: ControlResponsePayload) => void;
 
-type RawMessage = StdoutMessage | { type: typeof MessageType.CONTROL_RESPONSE; response: ControlResponsePayload };
+type RawMessage =
+  | StdoutMessage
+  | { type: typeof MessageType.CONTROL_RESPONSE; response: ControlResponsePayload };
 
 export class MessageRouter {
   private readline: Interface | null = null;

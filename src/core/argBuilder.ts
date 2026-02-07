@@ -44,7 +44,11 @@ const FLAG_MAP: FlagMapping[] = [
   { key: 'maxBudgetUsd', flag: '--max-budget-usd', type: 'number' },
 
   // Boolean flags (present when truthy)
-  { key: 'allowDangerouslySkipPermissions', flag: '--allow-dangerously-skip-permissions', type: 'boolean' },
+  {
+    key: 'allowDangerouslySkipPermissions',
+    flag: '--allow-dangerously-skip-permissions',
+    type: 'boolean',
+  },
   { key: 'includePartialMessages', flag: '--include-partial-messages', type: 'boolean' },
   { key: 'continue', flag: '--continue', type: 'boolean' },
   { key: 'forkSession', flag: '--fork-session', type: 'boolean' },
