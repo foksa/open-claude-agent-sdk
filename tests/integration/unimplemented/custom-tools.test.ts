@@ -17,7 +17,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { testWithBothSDKs } from './comparison-utils.ts';
+import { testWithBothSDKs } from '../comparison-utils.ts';
 
 // =============================================================================
 // createSdkMcpServer Function

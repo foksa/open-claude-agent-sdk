@@ -27,8 +27,8 @@ import type {
   PreCompactHookInput,
   SessionEndHookInput,
   SessionStartHookInput,
-} from '../../src/types/index.ts';
-import { runWithSDK, testWithBothSDKsTodo } from './comparison-utils.ts';
+} from '../../../src/types/index.ts';
+import { runWithSDK, testWithBothSDKsTodo } from '../comparison-utils.ts';
 
 // =============================================================================
 // PostToolUseFailure Hook
