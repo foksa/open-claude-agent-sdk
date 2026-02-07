@@ -201,7 +201,7 @@ for await (const event of session.stream()) {
 | `allowedTools` | ✅ | ✅ | `--allowedTools` | Complete |
 | `disallowedTools` | ✅ | ✅ | `--disallowedTools` | Complete |
 | `mcpServers` | ✅ | ✅ | `--mcp-config` | Complete |
-| `agents` | ❌ | ✅ | (programmatic) | LOW |
+| `agents` | ✅ | ✅ | stdin init message | Complete |
 | `enableFileCheckpointing` | ❌ | ✅ | `--enable-checkpointing` | LOW |
 | `plugins` | ✅ | ✅ | `--plugin-dir` | Complete |
 
@@ -517,7 +517,7 @@ for await (const msg of query({ prompt: 'Hello', options: {} })) {
 
 **Not Ideal For:**
 - Self-contained deployments (no CLI)
-- Complex subagent orchestration (Phase 3)
+- Complex subagent orchestration (advanced resumption/forking)
 - File checkpointing workflows (Phase 3)
 
 ---

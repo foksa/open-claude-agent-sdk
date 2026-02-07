@@ -410,26 +410,28 @@ await query.rewindFiles('checkpoint-uuid');
 
 ---
 
-### 3.4 Subagent Management (3-5 days) 🔵 LOW
+### 3.4 Subagent Management ✅ COMPLETE
 
-**What:** Programmatic subagent definitions
+**What:** Programmatic subagent definitions via `agents` option
+
+**Status:** ✅ Implemented — `agents` passed in stdin init message
 
 **Implementation:**
 ```typescript
 query({
   options: {
-    agents: [
-      {
-        id: 'researcher',
-        systemPrompt: 'You research information',
-        allowedTools: ['WebSearch']
+    allowedTools: ['Read', 'Grep', 'Glob', 'Task'],
+    agents: {
+      'code-reviewer': {
+        description: 'Expert code reviewer',
+        prompt: 'You review code for quality.',
+        tools: ['Read', 'Grep', 'Glob'],
+        model: 'sonnet',
       }
-    ]
+    }
   }
 });
 ```
-
-**Priority:** LOW - Most users use Task tool instead
 
 ---
 

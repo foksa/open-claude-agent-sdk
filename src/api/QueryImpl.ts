@@ -483,6 +483,7 @@ export class QueryImpl implements Query {
         systemPrompt?: string;
         appendSystemPrompt?: string;
         sdkMcpServers?: string[];
+        agents?: Record<string, unknown>;
         hooks?: ReturnType<typeof buildHookConfig>;
       };
     } = {
@@ -493,6 +494,7 @@ export class QueryImpl implements Query {
         ...(systemPrompt !== undefined && { systemPrompt }),
         ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
         ...(this.sdkMcpServerNames.length > 0 && { sdkMcpServers: this.sdkMcpServerNames }),
+        ...(options.agents && { agents: options.agents }),
       },
     };
 
