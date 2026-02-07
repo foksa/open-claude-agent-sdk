@@ -3,7 +3,12 @@
  */
 
 import { expect } from 'bun:test';
-import type { Options, SDKMessage, SDKResultMessage, SDKResultSuccess } from '../../src/types/index.ts';
+import type {
+  Options,
+  SDKMessage,
+  SDKResultMessage,
+  SDKResultSuccess,
+} from '../../src/types/index.ts';
 
 /**
  * Assert result message exists and is successful, return it for further assertions
