@@ -4,7 +4,8 @@
  * Builds command-line arguments for spawning Claude CLI process.
  * Transforms Options object into the argument array expected by CLI.
  *
- * Reference: https://gist.github.com/SamSaffron/603648958a8c18ceae34939a8951d417
+ * Simple options are declared in FLAG_MAP (option key → CLI flag).
+ * Complex options with validation or transformation logic are handled explicitly below.
  *
  * @internal
  */
@@ -16,56 +17,97 @@ import {
   REQUIRED_CLI_FLAGS,
 } from './defaults.ts';
 
-/**
- * Build CLI arguments from Options
- *
- * Reference: https://gist.github.com/SamSaffron/603648958a8c18ceae34939a8951d417
- *
- * @param options Query options (prompt is optional for AsyncIterable input)
- * @returns Array of CLI arguments
- */
+// ============================================================================
+// Declarative flag mapping — option key → CLI flag + type
+// ============================================================================
+
+type FlagMapping =
+  | { key: keyof Options; flag: string; type: 'string' }
+  | { key: keyof Options; flag: string; type: 'number' }
+  | { key: keyof Options; flag: string; type: 'boolean' }
+  | { key: keyof Options; flag: string; type: 'boolean-inverted' }
+  | { key: keyof Options; flag: string; type: 'csv' }
+  | { key: keyof Options; flag: string; type: 'repeated' };
+
+const FLAG_MAP: FlagMapping[] = [
+  // String pass-through
+  { key: 'model', flag: '--model', type: 'string' },
+  { key: 'resume', flag: '--resume', type: 'string' },
+  { key: 'agent', flag: '--agent', type: 'string' },
+  { key: 'sessionId', flag: '--session-id', type: 'string' },
+  { key: 'resumeSessionAt', flag: '--resume-session-at', type: 'string' },
+  { key: 'debugFile', flag: '--debug-file', type: 'string' },
+
+  // Number → string
+  { key: 'maxTurns', flag: '--max-turns', type: 'number' },
+  { key: 'maxThinkingTokens', flag: '--max-thinking-tokens', type: 'number' },
+  { key: 'maxBudgetUsd', flag: '--max-budget-usd', type: 'number' },
+
+  // Boolean flags (present when truthy)
+  { key: 'allowDangerouslySkipPermissions', flag: '--allow-dangerously-skip-permissions', type: 'boolean' },
+  { key: 'includePartialMessages', flag: '--include-partial-messages', type: 'boolean' },
+  { key: 'continue', flag: '--continue', type: 'boolean' },
+  { key: 'forkSession', flag: '--fork-session', type: 'boolean' },
+  { key: 'strictMcpConfig', flag: '--strict-mcp-config', type: 'boolean' },
+
+  // Boolean inverted (flag present when value is false)
+  { key: 'persistSession', flag: '--no-session-persistence', type: 'boolean-inverted' },
+
+  // Array → comma-separated value
+  { key: 'allowedTools', flag: '--allowedTools', type: 'csv' },
+  { key: 'disallowedTools', flag: '--disallowedTools', type: 'csv' },
+  { key: 'betas', flag: '--betas', type: 'csv' },
+
+  // Array → one flag per element
+  { key: 'additionalDirectories', flag: '--add-dir', type: 'repeated' },
+];
+
+function applyFlagMap(args: string[], options: Options): void {
+  for (const mapping of FLAG_MAP) {
+    const value = options[mapping.key];
+    switch (mapping.type) {
+      case 'string':
+        if (value) args.push(mapping.flag, value as string);
+        break;
+      case 'number':
+        if (value !== undefined) args.push(mapping.flag, String(value));
+        break;
+      case 'boolean':
+        if (value) args.push(mapping.flag);
+        break;
+      case 'boolean-inverted':
+        if (value === false) args.push(mapping.flag);
+        break;
+      case 'csv': {
+        const arr = value as string[] | undefined;
+        if (arr && arr.length > 0) args.push(mapping.flag, arr.join(','));
+        break;
+      }
+      case 'repeated': {
+        const items = value as string[] | undefined;
+        if (items) {
+          for (const item of items) args.push(mapping.flag, item);
+        }
+        break;
+      }
+    }
+  }
+}
+
+// ============================================================================
+// Special cases — validation, complex transforms, conditional logic
+// ============================================================================
+
 export function buildCliArgs(options: Options & { prompt?: string }): string[] {
-  // Required flags for stream-json protocol (from defaults.ts)
   const args: string[] = [...REQUIRED_CLI_FLAGS];
 
-  // Permission mode - always pass explicitly (official SDK behavior)
-  const permissionMode = options.permissionMode ?? DEFAULT_PERMISSION_MODE;
-  args.push('--permission-mode', permissionMode);
+  // Permission mode — always pass explicitly (official SDK behavior)
+  args.push('--permission-mode', options.permissionMode ?? DEFAULT_PERMISSION_MODE);
 
-  // Allow dangerously skip permissions (for bypassPermissions mode)
-  if (options.allowDangerouslySkipPermissions) {
-    args.push('--allow-dangerously-skip-permissions');
-  }
+  // All simple flag mappings
+  applyFlagMap(args, options);
 
-  // Model
-  if (options.model) {
-    args.push('--model', options.model);
-  }
-
-  // Max turns
-  if (options.maxTurns) {
-    args.push('--max-turns', String(options.maxTurns));
-  }
-
-  // Max thinking tokens (extended thinking)
-  if (options.maxThinkingTokens !== undefined) {
-    args.push('--max-thinking-tokens', String(options.maxThinkingTokens));
-  }
-
-  // Max budget USD
-  if (options.maxBudgetUsd) {
-    args.push('--max-budget-usd', String(options.maxBudgetUsd));
-  }
-
-  // Include partial messages (streaming)
-  if (options.includePartialMessages) {
-    args.push('--include-partial-messages');
-  }
-
-  // Note: cwd is NOT a CLI argument. It's passed to spawn() as a process option.
-  // The CLI doesn't support --cwd flag.
-
-  // Permission prompt tool — canUseTool and permissionPromptToolName are mutually exclusive
+  // canUseTool / permissionPromptToolName — mutually exclusive
   if (options.canUseTool && options.permissionPromptToolName) {
     throw new Error(
       'canUseTool callback cannot be used with permissionPromptToolName. Please use one or the other.'
@@ -77,69 +119,7 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--permission-prompt-tool', options.permissionPromptToolName);
   }
 
-  // Output format (structured outputs)
-  if (options.outputFormat) {
-    if (options.outputFormat.type === 'json_schema') {
-      args.push('--json-schema', JSON.stringify(options.outputFormat.schema));
-    }
-  }
-
-  // Allowed tools - pass to CLI if specified (official SDK behavior)
-  if (options.allowedTools && options.allowedTools.length > 0) {
-    args.push('--allowedTools', options.allowedTools.join(','));
-  }
-
-  // Disallowed tools - pass to CLI if specified
-  if (options.disallowedTools && options.disallowedTools.length > 0) {
-    args.push('--disallowedTools', options.disallowedTools.join(','));
-  }
-
-  // Setting sources (for skills/commands)
-  // Official SDK default: [] (empty array) = no settings loaded
-  // CLI default when flag omitted: loads all settings (user+project+local)
-  // So we must explicitly pass empty string to match official SDK behavior
-  const settingSources = options.settingSources ?? DEFAULT_SETTING_SOURCES;
-  args.push('--setting-sources', settingSources.join(','));
-
-  // Debug options (added in SDK v0.2.30)
-  if (options.debugFile) {
-    args.push('--debug-file', options.debugFile);
-  } else if (options.debug) {
-    args.push('--debug');
-  }
-  // DEBUG_CLAUDE_AGENT_SDK env var enables debug to stderr
-  if (process.env.DEBUG_CLAUDE_AGENT_SDK) {
-    args.push('--debug-to-stderr');
-  }
-
-  // Resume session (pass existing session ID to continue conversation)
-  if (options.resume) {
-    args.push('--resume', options.resume);
-  }
-
-  // Continue most recent conversation
-  if (options.continue) {
-    args.push('--continue');
-  }
-
-  // Additional directories
-  if (options.additionalDirectories) {
-    for (const dir of options.additionalDirectories) {
-      args.push('--add-dir', dir);
-    }
-  }
-
-  // Agent name
-  if (options.agent) {
-    args.push('--agent', options.agent);
-  }
-
-  // Beta features
-  if (options.betas && options.betas.length > 0) {
-    args.push('--betas', options.betas.join(','));
-  }
-
-  // Fallback model (must differ from primary model)
+  // Fallback model — must differ from primary model
   if (options.fallbackModel) {
     if (options.fallbackModel === options.model) {
       throw new Error(
@@ -149,32 +129,24 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--fallback-model', options.fallbackModel);
   }
 
-  // Fork session (branch from resumed session)
-  if (options.forkSession) {
-    args.push('--fork-session');
+  // Output format (structured outputs)
+  if (options.outputFormat?.type === 'json_schema') {
+    args.push('--json-schema', JSON.stringify(options.outputFormat.schema));
   }
 
-  // Custom session ID
-  if (options.sessionId) {
-    args.push('--session-id', options.sessionId);
+  // Setting sources — default [] = no settings loaded (must pass explicitly)
+  const settingSources = options.settingSources ?? DEFAULT_SETTING_SOURCES;
+  args.push('--setting-sources', settingSources.join(','));
+
+  // Debug — debugFile takes priority over debug flag
+  if (!options.debugFile && options.debug) {
+    args.push('--debug');
+  }
+  if (process.env.DEBUG_CLAUDE_AGENT_SDK) {
+    args.push('--debug-to-stderr');
   }
 
-  // Resume at specific message
-  if (options.resumeSessionAt) {
-    args.push('--resume-session-at', options.resumeSessionAt);
-  }
-
-  // Disable session persistence (inverted: false → flag present)
-  if (options.persistSession === false) {
-    args.push('--no-session-persistence');
-  }
-
-  // Strict MCP config
-  if (options.strictMcpConfig) {
-    args.push('--strict-mcp-config');
-  }
-
-  // Tools option — official SDK: array → join or empty string; non-array → "default"
+  // Tools — array → csv, preset → "default"
   if (options.tools !== undefined) {
     if (Array.isArray(options.tools)) {
       args.push('--tools', options.tools.length > 0 ? options.tools.join(',') : '');
@@ -183,8 +155,7 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
   }
 
-  // extraArgs and sandbox — merged per official SDK behavior
-  // sandbox goes into extraArgs.settings as JSON
+  // extraArgs + sandbox — sandbox merges into extraArgs.settings as JSON
   const mergedExtraArgs = { ...(options.extraArgs ?? {}) };
   if (options.sandbox) {
     let settingsObj: Record<string, unknown> = { sandbox: options.sandbox };
@@ -205,15 +176,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
   }
 
-  // MCP servers → --mcp-config
-  // All servers go into --mcp-config. SDK-type servers have `instance` stripped
-  // (it's non-serializable) but still included with {type, name}. The in-process
-  // routing is handled by QueryImpl via sdkMcpServers in the init message.
+  // MCP servers → --mcp-config (strip non-serializable `instance` from SDK servers)
   if (options.mcpServers) {
     const serializedServers: Record<string, unknown> = {};
     for (const [name, config] of Object.entries(options.mcpServers)) {
       if ('instance' in config) {
-        // SDK server: strip instance, keep type/name
         const { instance: _, ...rest } = config;
         serializedServers[name] = rest;
       } else {
@@ -236,16 +203,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
   }
 
-  // With --input-format stream-json, prompt is sent via stdin
-  // as the first user message, not as a CLI argument.
-
-  // Test support: Allow injecting extra CLI args for testing
-  // Security: Only enabled in test environment to prevent misuse
+  // Test support: inject extra CLI args (test environment only)
   if (process.env.NODE_ENV === 'test' && (options as Record<string, unknown>)._testCliArgs) {
     args.push(...((options as Record<string, unknown>)._testCliArgs as string[]));
   }
 
-  // Debug: log args if DEBUG_HOOKS is set
   if (process.env.DEBUG_HOOKS) {
     console.error('[DEBUG] CLI args:', args.join(' '));
   }

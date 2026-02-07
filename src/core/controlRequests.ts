@@ -2,55 +2,23 @@
  * Type-safe control request builders
  *
  * Provides type-safe creation of control protocol requests sent to Claude CLI.
- * Replaces inline object literals with validated builder functions.
+ * Subtypes reference constants from types/control.ts — single source of truth.
  *
  * @internal
  */
 
 import type { McpServerConfig, PermissionMode } from '../types/index.ts';
-
-// ============================================================================
-// Control Request Types
-// ============================================================================
-
-export type InterruptRequest = {
-  subtype: 'interrupt';
-};
-
-export type SetPermissionModeRequest = {
-  subtype: 'set_permission_mode';
-  mode: PermissionMode;
-};
-
-export type SetModelRequest = {
-  subtype: 'set_model';
-  model?: string;
-};
-
-export type SetMaxThinkingTokensRequest = {
-  subtype: 'set_max_thinking_tokens';
-  max_thinking_tokens: number | null;
-};
-
-export type McpStatusRequest = {
-  subtype: 'mcp_status';
-};
-
-export type McpReconnectRequest = {
-  subtype: 'mcp_reconnect';
-  serverName: string;
-};
-
-export type McpToggleRequest = {
-  subtype: 'mcp_toggle';
-  serverName: string;
-  enabled: boolean;
-};
-
-export type McpSetServersRequest = {
-  subtype: 'mcp_set_servers';
-  servers: Record<string, McpServerConfig>;
-};
+import { RequestSubtype } from '../types/control.ts';
+import type {
+  InterruptRequest,
+  SetPermissionModeRequest,
+  SetModelRequest,
+  SetMaxThinkingTokensRequest,
+  McpStatusRequest,
+  McpReconnectRequest,
+  McpToggleRequest,
+  McpSetServersRequest,
+} from '../types/control.ts';
 
 /**
  * Union of all outbound control request types (sent from SDK to CLI)
@@ -65,10 +33,6 @@ export type OutboundControlRequest =
   | McpToggleRequest
   | McpSetServersRequest;
 
-// ============================================================================
-// Type-safe Request Builders
-// ============================================================================
-
 /**
  * Type-safe control request builder functions
  *
@@ -79,66 +43,42 @@ export type OutboundControlRequest =
  * ```
  */
 export const ControlRequests = {
-  /**
-   * Create interrupt request to stop current execution
-   */
   interrupt: (): InterruptRequest => ({
-    subtype: 'interrupt',
+    subtype: RequestSubtype.INTERRUPT,
   }),
 
-  /**
-   * Create permission mode change request
-   */
   setPermissionMode: (mode: PermissionMode): SetPermissionModeRequest => ({
-    subtype: 'set_permission_mode',
+    subtype: RequestSubtype.SET_PERMISSION_MODE,
     mode,
   }),
 
-  /**
-   * Create model change request
-   */
   setModel: (model?: string): SetModelRequest => ({
-    subtype: 'set_model',
+    subtype: RequestSubtype.SET_MODEL,
     model,
   }),
 
-  /**
-   * Create max thinking tokens change request
-   */
   setMaxThinkingTokens: (tokens: number | null): SetMaxThinkingTokensRequest => ({
-    subtype: 'set_max_thinking_tokens',
+    subtype: RequestSubtype.SET_MAX_THINKING_TOKENS,
     max_thinking_tokens: tokens,
   }),
 
-  /**
-   * Create MCP server status request
-   */
   mcpStatus: (): McpStatusRequest => ({
-    subtype: 'mcp_status',
+    subtype: RequestSubtype.MCP_STATUS,
   }),
 
-  /**
-   * Create MCP server reconnect request
-   */
   mcpReconnect: (serverName: string): McpReconnectRequest => ({
-    subtype: 'mcp_reconnect',
+    subtype: RequestSubtype.MCP_RECONNECT,
     serverName,
   }),
 
-  /**
-   * Create MCP server toggle request
-   */
   mcpToggle: (serverName: string, enabled: boolean): McpToggleRequest => ({
-    subtype: 'mcp_toggle',
+    subtype: RequestSubtype.MCP_TOGGLE,
     serverName,
     enabled,
   }),
 
-  /**
-   * Create MCP set servers request
-   */
   mcpSetServers: (servers: Record<string, McpServerConfig>): McpSetServersRequest => ({
-    subtype: 'mcp_set_servers',
+    subtype: RequestSubtype.MCP_SET_SERVERS,
     servers,
   }),
 };

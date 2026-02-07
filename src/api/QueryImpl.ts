@@ -14,6 +14,7 @@ import { ControlProtocolHandler } from '../core/control.ts';
 import { ControlRequests, type OutboundControlRequest } from '../core/controlRequests.ts';
 import { buildHookConfig } from '../core/hookConfig.ts';
 import { McpServerBridge } from '../core/mcpBridge.ts';
+import { MessageType, RequestSubtype, ResponseSubtype } from '../types/control.ts';
 import type {
   AccountInfo,
   McpServerConfig,
@@ -257,7 +258,7 @@ export class QueryImpl implements Query {
 
     // Check if this is the init response
     if (requestId === this.initRequestId) {
-      if (response.subtype === 'success') {
+      if (response.subtype === ResponseSubtype.SUCCESS) {
         this.initResolve(response.response as SDKControlInitializeResponse);
       } else {
         this.initReject(new Error(`Initialization failed: ${response.error || 'unknown error'}`));
@@ -270,7 +271,7 @@ export class QueryImpl implements Query {
     if (pending) {
       const { resolve, reject } = pending;
       this.pendingControlResponses.delete(requestId);
-      if (response.subtype === 'success') {
+      if (response.subtype === ResponseSubtype.SUCCESS) {
         resolve(response.response);
       } else {
         reject(new Error(`Control request failed: ${response.error || 'unknown error'}`));
@@ -326,7 +327,7 @@ export class QueryImpl implements Query {
 
   async streamInput(stream: AsyncIterable<SDKUserMessage>): Promise<void> {
     for await (const msg of stream) {
-      this.process.stdin?.write(`${JSON.stringify(msg)}\n`);
+      this.writeToStdin(msg);
     }
   }
 
@@ -418,15 +419,22 @@ export class QueryImpl implements Query {
     this.pendingControlResponses.clear();
   }
 
+  /** Write an NDJSON message to the CLI stdin */
+  private writeToStdin(msg: unknown): void {
+    this.process.stdin?.write(`${JSON.stringify(msg)}\n`);
+  }
+
+  /** Build a control_request envelope for the wire */
+  private buildControlRequest(request: OutboundControlRequest, requestId?: string) {
+    return {
+      type: MessageType.CONTROL_REQUEST,
+      request_id: requestId ?? this.generateRequestId(),
+      request,
+    };
+  }
+
   private sendControlRequest(request: OutboundControlRequest): void {
-    const requestId = this.generateRequestId();
-    this.process.stdin?.write(
-      `${JSON.stringify({
-        type: 'control_request',
-        request_id: requestId,
-        request,
-      })}\n`
-    );
+    this.writeToStdin(this.buildControlRequest(request));
   }
 
   /**
@@ -437,17 +445,11 @@ export class QueryImpl implements Query {
     if (this.closed) {
       return Promise.reject(new Error('Cannot send control request: query is closed'));
     }
-    const requestId = this.generateRequestId();
+    const envelope = this.buildControlRequest(request);
     const promise = new Promise<T>((resolve, reject) => {
-      this.pendingControlResponses.set(requestId, { resolve, reject });
+      this.pendingControlResponses.set(envelope.request_id, { resolve, reject });
     });
-    this.process.stdin?.write(
-      `${JSON.stringify({
-        type: 'control_request',
-        request_id: requestId,
-        request,
-      })}\n`
-    );
+    this.writeToStdin(envelope);
     return promise;
   }
 
@@ -475,39 +477,37 @@ export class QueryImpl implements Query {
       appendSystemPrompt = options.systemPrompt.append;
     }
 
-    const init: {
-      type: 'control_request';
-      request_id: string;
-      request: {
-        subtype: 'initialize';
-        systemPrompt?: string;
-        appendSystemPrompt?: string;
-        sdkMcpServers?: string[];
-        agents?: Record<string, unknown>;
-        hooks?: ReturnType<typeof buildHookConfig>;
-      };
+    const request: {
+      subtype: typeof RequestSubtype.INITIALIZE;
+      systemPrompt?: string;
+      appendSystemPrompt?: string;
+      sdkMcpServers?: string[];
+      agents?: Record<string, unknown>;
+      hooks?: ReturnType<typeof buildHookConfig>;
     } = {
-      type: 'control_request',
-      request_id: requestId,
-      request: {
-        subtype: 'initialize',
-        ...(systemPrompt !== undefined && { systemPrompt }),
-        ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
-        ...(this.sdkMcpServerNames.length > 0 && { sdkMcpServers: this.sdkMcpServerNames }),
-        ...(options.agents && { agents: options.agents }),
-      },
+      subtype: RequestSubtype.INITIALIZE,
+      ...(systemPrompt !== undefined && { systemPrompt }),
+      ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
+      ...(this.sdkMcpServerNames.length > 0 && { sdkMcpServers: this.sdkMcpServerNames }),
+      ...(options.agents && { agents: options.agents }),
     };
 
     // Register hooks if configured
     if (options.hooks) {
-      init.request.hooks = buildHookConfig(options.hooks, this.controlHandler);
+      request.hooks = buildHookConfig(options.hooks, this.controlHandler);
     }
+
+    const init = {
+      type: MessageType.CONTROL_REQUEST,
+      request_id: requestId,
+      request,
+    };
 
     if (process.env.DEBUG_HOOKS) {
       console.error('[DEBUG] Sending control protocol init:', JSON.stringify(init, null, 2));
     }
 
-    this.process.stdin?.write(`${JSON.stringify(init)}\n`);
+    this.writeToStdin(init);
   }
 
   private sendInitialPrompt(prompt: string): void {
@@ -521,13 +521,13 @@ export class QueryImpl implements Query {
       parent_tool_use_id: null,
     };
 
-    this.process.stdin?.write(`${JSON.stringify(initialMessage)}\n`);
+    this.writeToStdin(initialMessage);
   }
 
   private async consumeInputGenerator(generator: AsyncIterable<SDKUserMessage>): Promise<void> {
     try {
       for await (const userMsg of generator) {
-        this.process.stdin?.write(`${JSON.stringify(userMsg)}\n`);
+        this.writeToStdin(userMsg);
       }
     } catch (error: unknown) {
       const wrappedError = error instanceof Error ? error : new Error(String(error));

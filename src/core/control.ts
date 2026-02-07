@@ -8,7 +8,14 @@
  */
 
 import type { Writable } from 'node:stream';
-import type { ControlRequest, ControlResponse, InternalHookCallback } from '../types/control.ts';
+import {
+  MessageType,
+  RequestSubtype,
+  ResponseSubtype,
+  type ControlRequest,
+  type ControlResponse,
+  type InternalHookCallback,
+} from '../types/control.ts';
 import type { Options, PermissionResult } from '../types/index.ts';
 import type { McpServerBridge } from './mcpBridge.ts';
 
@@ -48,31 +55,31 @@ export class ControlProtocolHandler {
 
     try {
       switch (req.request.subtype) {
-        case 'can_use_tool':
+        case RequestSubtype.CAN_USE_TOOL:
           if (process.env.DEBUG_HOOKS) console.error('[DEBUG] Handling can_use_tool');
           await this.handleCanUseTool(req);
           break;
-        case 'hook_callback':
+        case RequestSubtype.HOOK_CALLBACK:
           if (process.env.DEBUG_HOOKS) console.error('[DEBUG] Handling hook_callback');
           await this.handleHookCallback(req);
           break;
-        case 'initialize':
+        case RequestSubtype.INITIALIZE:
           await this.handleInitialize(req);
           break;
-        case 'interrupt':
+        case RequestSubtype.INTERRUPT:
           await this.handleInterrupt(req);
           break;
-        case 'mcp_message':
+        case RequestSubtype.MCP_MESSAGE:
           await this.handleMcpMessage(req);
           break;
-        case 'set_permission_mode':
-        case 'set_model':
-        case 'set_max_thinking_tokens':
-        case 'mcp_status':
-        case 'rewind_files':
-        case 'mcp_set_servers':
-        case 'mcp_reconnect':
-        case 'mcp_toggle':
+        case RequestSubtype.SET_PERMISSION_MODE:
+        case RequestSubtype.SET_MODEL:
+        case RequestSubtype.SET_MAX_THINKING_TOKENS:
+        case RequestSubtype.MCP_STATUS:
+        case RequestSubtype.REWIND_FILES:
+        case RequestSubtype.MCP_SET_SERVERS:
+        case RequestSubtype.MCP_RECONNECT:
+        case RequestSubtype.MCP_TOGGLE:
           // These are sent FROM SDK TO CLI, not the other way around
           // If we receive them, just acknowledge
           this.sendSuccess(req.request_id, {});
@@ -93,7 +100,7 @@ export class ControlProtocolHandler {
    * Handle permission check request
    */
   private async handleCanUseTool(req: ControlRequest) {
-    if (req.request.subtype !== 'can_use_tool') return;
+    if (req.request.subtype !== RequestSubtype.CAN_USE_TOOL) return;
 
     const {
       tool_name,
@@ -128,7 +135,7 @@ export class ControlProtocolHandler {
    * Handle hook callback request
    */
   private async handleHookCallback(req: ControlRequest) {
-    if (req.request.subtype !== 'hook_callback') return;
+    if (req.request.subtype !== RequestSubtype.HOOK_CALLBACK) return;
 
     const { callback_id, input, tool_use_id } = req.request;
 
@@ -191,7 +198,7 @@ export class ControlProtocolHandler {
    * Handle MCP message from CLI — route to SDK MCP server bridge
    */
   private async handleMcpMessage(req: ControlRequest) {
-    if (req.request.subtype !== 'mcp_message') return;
+    if (req.request.subtype !== RequestSubtype.MCP_MESSAGE) return;
 
     const { server_name, message } = req.request;
     const bridge = this.mcpServerBridges.get(server_name);
@@ -210,9 +217,9 @@ export class ControlProtocolHandler {
    */
   private sendSuccess(request_id: string, response: Record<string, unknown>) {
     this.sendControlResponse({
-      type: 'control_response',
+      type: MessageType.CONTROL_RESPONSE,
       response: {
-        subtype: 'success',
+        subtype: ResponseSubtype.SUCCESS,
         request_id,
         response,
       },
@@ -224,9 +231,9 @@ export class ControlProtocolHandler {
    */
   private sendError(request_id: string, error: string) {
     this.sendControlResponse({
-      type: 'control_response',
+      type: MessageType.CONTROL_RESPONSE,
       response: {
-        subtype: 'error',
+        subtype: ResponseSubtype.ERROR,
         request_id,
         error,
       },
