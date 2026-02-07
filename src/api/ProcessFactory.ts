@@ -91,10 +91,22 @@ export class DefaultProcessFactory implements ProcessFactory {
     }
 
     // Default: use detected binary directly (shebang handles runtime)
-    // Only split native vs JS when executableArgs are provided
-    if (options.executableArgs && !isNativeBinary(scriptPath)) {
+    const executableArgs = options.executableArgs ?? [];
+
+    if (isNativeBinary(scriptPath)) {
+      // Native binary: command is the binary, executableArgs before CLI args
+      const fullArgs = [...executableArgs, ...args];
+      return spawnClaude(scriptPath, fullArgs, {
+        cwd: options.cwd,
+        env,
+        stderr: options.stderr,
+      });
+    }
+
+    // JS file with executableArgs: need explicit runtime
+    if (executableArgs.length > 0) {
       const executable = getDefaultExecutable();
-      const fullArgs = [...options.executableArgs, scriptPath, ...args];
+      const fullArgs = [...executableArgs, scriptPath, ...args];
       return spawnClaude(executable, fullArgs, {
         cwd: options.cwd,
         env,
@@ -102,6 +114,7 @@ export class DefaultProcessFactory implements ProcessFactory {
       });
     }
 
+    // JS file without executableArgs: use script directly (shebang handles runtime)
     return spawnClaude(scriptPath, args, {
       cwd: options.cwd,
       env,
