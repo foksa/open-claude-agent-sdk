@@ -49,7 +49,7 @@
 | `includePartialMessages` | ✅ | Streaming test verifies partial messages appear |
 | `cwd` | ✅ | Verified working directory is used |
 | `canUseTool` | ✅ | 7 behavioral tests (allow/deny/selective/async) |
-| `hooks` | ⚠️ | See Hooks section — only 6 of 15 events tested |
+| `hooks` | ⚠️ | See Hooks section — 8 of 15 events tested |
 | `allowDangerouslySkipPermissions` | ✅ | Verified in permission-modes.test.ts |
 | `outputFormat` | ✅ | JSON schema validation tested E2E |
 | `settingSources` | ✅ | Skills/commands loaded from fixtures |
@@ -59,7 +59,7 @@
 | `tools` | 🔌 | CLI flag verified, no behavioral test |
 | `mcpServers` | ✅ | In-process SDK MCP servers tested E2E |
 | `strictMcpConfig` | 🔌 | CLI flag passed |
-| `agents` | 🔌 | Init message matches official SDK; no test that subagent actually runs |
+| `agents` | ✅ | Subagent invocation, parent_tool_use_id, abort tested E2E |
 | `resume` | ✅ | Session resumed with context retained |
 | `continue` | ✅ | Tested in sessions.test.ts |
 | `forkSession` | ✅ | New session ID + retained context verified |
@@ -84,7 +84,7 @@
 | `env` | ⚠️ | Unit tested, needs integration test |
 | `stderr` | ⚠️ | Unit tested, needs integration test |
 | `spawnClaudeCodeProcess` | ⚠️ | Unit tested, needs integration test |
-| **Hooks (6 of 15 E2E tested)** |
+| **Hooks (8 of 15 E2E tested)** |
 | `PreToolUse` | ✅ | 4 behavioral tests (intercept, modify, cancel) |
 | `PostToolUse` | ✅ | 1 behavioral test |
 | `UserPromptSubmit` | ✅ | 1 behavioral test |
@@ -94,8 +94,8 @@
 | `SessionStart` | 📝 | TODO — declarative only (official SDK limitation) |
 | `SessionEnd` | 📝 | TODO — declarative only (official SDK limitation) |
 | `Notification` | 📝 | TODO — placeholder test |
-| `SubagentStart` | 📝 | TODO — placeholder test |
-| `SubagentStop` | 📝 | TODO — placeholder test |
+| `SubagentStart` | ✅ | Tested in subagents.test.ts |
+| `SubagentStop` | ✅ | Tested in subagents.test.ts |
 | `PreCompact` | 📝 | TODO — placeholder test |
 | `PermissionRequest` | 📝 | TODO — placeholder test |
 | `Setup` | 📝 | TODO — placeholder test |
@@ -110,7 +110,7 @@
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | 🔌 | reconnect/toggle/setServers — error-path only |
-| Subagent support (`agents`) | 🔌 | Protocol passes through; no E2E subagent invocation test |
+| Subagent support (`agents`) | ✅ | E2E tested: invocation, hooks, abort |
 | Agent teams | ❌ | Types exported only; no env var, no tests |
 | Output styles | ✅ | LiteQuery extension methods tested |
 | Plugin system | 🔌 | CLI flag passed, no behavioral test |
@@ -131,8 +131,7 @@
 ## What Needs Work
 
 ### High Value — E2E tests for core features
-- Subagent invocation (prompt triggers Task tool, subagent runs, results return)
-- Hook events beyond PreToolUse/PostToolUse (9 events are TODO)
+- Hook events beyond PreToolUse/PostToolUse (7 events are TODO)
 - MCP control methods happy-path (reconnect/toggle real servers)
 
 ### Medium Value — Integration tests for unit-tested features

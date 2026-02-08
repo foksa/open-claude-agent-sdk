@@ -129,56 +129,8 @@ testWithBothSDKsTodo('Notification hook receives agent notifications', async (sd
 });
 
 // =============================================================================
-// TRIGGER-DEPENDENT: SubagentStart / SubagentStop
+// SubagentStart / SubagentStop — moved to tests/integration/subagents.test.ts
 // =============================================================================
-
-testWithBothSDKsTodo('SubagentStart hook is called when subagent starts', async (sdk) => {
-  let subagentStartCalled = false;
-
-  await runWithSDK(sdk, 'Use the Task tool to have an agent research TypeScript best practices', {
-    maxTurns: 5,
-    permissionMode: 'default',
-    canUseTool: autoApprove,
-    hooks: {
-      SubagentStart: [
-        {
-          hooks: [
-            async (_input: HookInput) => {
-              subagentStartCalled = true;
-              return {};
-            },
-          ],
-        },
-      ],
-    },
-  });
-
-  expect(subagentStartCalled).toBe(true);
-});
-
-testWithBothSDKsTodo('SubagentStop hook is called when subagent stops', async (sdk) => {
-  let subagentStopCalled = false;
-
-  await runWithSDK(sdk, 'Use the Task tool to have an agent say hello', {
-    maxTurns: 5,
-    permissionMode: 'default',
-    canUseTool: autoApprove,
-    hooks: {
-      SubagentStop: [
-        {
-          hooks: [
-            async (_input: HookInput) => {
-              subagentStopCalled = true;
-              return {};
-            },
-          ],
-        },
-      ],
-    },
-  });
-
-  expect(subagentStopCalled).toBe(true);
-});
 
 // =============================================================================
 // TRIGGER-DEPENDENT: PreCompact
