@@ -268,55 +268,9 @@ describe('MCP Tool Search', () => {
 });
 
 // =============================================================================
-// MCP Server Control Methods (Query Interface)
+// MCP Server Control Methods — moved to tests/integration/control-methods.test.ts
+// (mcpServerStatus, reconnectMcpServer, toggleMcpServer, setMcpServers)
 // =============================================================================
-
-describe('MCP Server Control Methods', () => {
-  test.todo('mcpServerStatus(): should return connection status for all servers', async () => {
-    /**
-     * From QueryImpl.ts stub:
-     * ```typescript
-     * async mcpServerStatus(): Promise<any[]>
-     * ```
-     *
-     * Expected to return array of server statuses from the init message
-     * Should work after control protocol initialization
-     */
-  });
-
-  test.todo('reconnectMcpServer(): should reconnect a failed MCP server', async () => {
-    /**
-     * From QueryImpl.ts stub:
-     * ```typescript
-     * async reconnectMcpServer(serverName: string): Promise<void>
-     * ```
-     *
-     * Use case: Server connection failed at startup, want to retry
-     */
-  });
-
-  test.todo('toggleMcpServer(): should enable/disable MCP server', async () => {
-    /**
-     * From QueryImpl.ts stub:
-     * ```typescript
-     * async toggleMcpServer(serverName: string, enabled: boolean): Promise<void>
-     * ```
-     *
-     * Use case: Temporarily disable a server without removing config
-     */
-  });
-
-  test.todo('setMcpServers(): should dynamically update MCP server configuration', async () => {
-    /**
-     * From QueryImpl.ts stub:
-     * ```typescript
-     * async setMcpServers(servers: Record<string, any>): Promise<any>
-     * ```
-     *
-     * Use case: Add/remove MCP servers during a conversation
-     */
-  });
-});
 
 // =============================================================================
 // MCP Error Handling

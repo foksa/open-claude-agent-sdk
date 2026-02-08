@@ -4,7 +4,8 @@
  */
 
 import { expect } from 'bun:test';
-import type { HookCallbackMatcher, PreToolUseHookInput } from '../../src/types/index.ts';
+import type { HookCallbackMatcher, HookInput, PreToolUseHookInput } from '../../src/types/index.ts';
+import { createSdkMcpServer, tool } from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
 /** Auto-approve all tool usage (replaces bypassPermissions) */
@@ -335,3 +336,92 @@ testWithBothSDKs('multiple matchers can coexist', async (sdk) => {
     `   [${sdk}] Multiple matchers - Read: ${matcherACalls.length}, Glob: ${matcherBCalls.length}`
   );
 });
+
+// =============================================================================
+// Stop hook
+// =============================================================================
+
+testWithBothSDKs('Stop hook fires on query completion', async (sdk) => {
+  let stopCalled = false;
+  let capturedInput: HookInput | null = null;
+
+  const hooks: Record<string, HookCallbackMatcher[]> = {
+    Stop: [
+      {
+        hooks: [
+          async (input: HookInput) => {
+            stopCalled = true;
+            capturedInput = input;
+            return {};
+          },
+        ],
+      },
+    ],
+  };
+
+  const messages = await runWithSDK(sdk, 'Say "hello"', {
+    maxTurns: 1,
+    permissionMode: 'default',
+    hooks,
+  });
+
+  const result = messages.find((m) => m.type === 'result');
+  expect(result).toBeTruthy();
+  console.log(`   [${sdk}] Stop called: ${stopCalled}, input: ${capturedInput?.hook_event_name}`);
+  expect(stopCalled).toBe(true);
+});
+
+// =============================================================================
+// PostToolUseFailure hook (via throwing MCP tool)
+// =============================================================================
+
+testWithBothSDKs(
+  'PostToolUseFailure hook fires when MCP tool throws',
+  async (sdk) => {
+    let failureCalled = false;
+    let capturedInput: HookInput | null = null;
+
+    const server = createSdkMcpServer({
+      name: 'failing-tools',
+      tools: [
+        tool(
+          'always_fail',
+          'A tool that always fails. Call this tool when asked to fail.',
+          {},
+          async () => {
+            throw new Error('Intentional tool failure for testing');
+          }
+        ),
+      ],
+    });
+
+    const hooks: Record<string, HookCallbackMatcher[]> = {
+      PostToolUseFailure: [
+        {
+          hooks: [
+            async (input: HookInput) => {
+              failureCalled = true;
+              capturedInput = input;
+              return {};
+            },
+          ],
+        },
+      ],
+    };
+
+    await runWithSDK(sdk, 'Call the always_fail tool. You MUST use the always_fail tool.', {
+      maxTurns: 5,
+      permissionMode: 'default',
+      canUseTool: autoApprove,
+      mcpServers: { 'failing-tools': server },
+      allowedTools: ['mcp__failing-tools__*'],
+      hooks,
+    });
+
+    console.log(
+      `   [${sdk}] PostToolUseFailure called: ${failureCalled}, input: ${capturedInput?.hook_event_name}`
+    );
+    expect(failureCalled).toBe(true);
+  },
+  120000
+);

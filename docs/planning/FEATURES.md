@@ -34,11 +34,11 @@
 | `streamInput()` | ✅ | Tested in multi-turn.test.ts |
 | `supportedCommands()` | ✅ | Returns array with name/description |
 | `supportedModels()` | ✅ | Returns array with value/displayName |
-| `mcpServerStatus()` | 🔌 | Returns response, no real server status verified |
+| `mcpServerStatus()` | ✅ | Returns status with and without SDK MCP servers |
 | `accountInfo()` | ✅ | Returns account data with expected shape |
-| `reconnectMcpServer()` | 🔌 | Only error-path tested (server not found) |
-| `toggleMcpServer()` | 🔌 | Only error-path tested (server not found) |
-| `setMcpServers()` | 🔌 | Response shape verified, behavior not tested |
+| `reconnectMcpServer()` | ✅ | Tested with minimal stdio MCP server |
+| `toggleMcpServer()` | ✅ | Disable and re-enable tested with stdio MCP server |
+| `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs |
 | `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
 | **Query Options** |
 | `prompt` | ✅ | String and AsyncIterable |
@@ -49,7 +49,7 @@
 | `includePartialMessages` | ✅ | Streaming test verifies partial messages appear |
 | `cwd` | ✅ | Verified working directory is used |
 | `canUseTool` | ✅ | 7 behavioral tests (allow/deny/selective/async) |
-| `hooks` | ⚠️ | See Hooks section — 8 of 15 events tested |
+| `hooks` | ⚠️ | See Hooks section — 10 of 15 events tested |
 | `allowDangerouslySkipPermissions` | ✅ | Verified in permission-modes.test.ts |
 | `outputFormat` | ✅ | JSON schema validation tested E2E |
 | `settingSources` | ✅ | Skills/commands loaded from fixtures |
@@ -84,21 +84,21 @@
 | `env` | ⚠️ | Unit tested, needs integration test |
 | `stderr` | ⚠️ | Unit tested, needs integration test |
 | `spawnClaudeCodeProcess` | ⚠️ | Unit tested, needs integration test |
-| **Hooks (8 of 15 E2E tested)** |
+| **Hooks (10 of 15 E2E tested)** |
 | `PreToolUse` | ✅ | 4 behavioral tests (intercept, modify, cancel) |
 | `PostToolUse` | ✅ | 1 behavioral test |
 | `UserPromptSubmit` | ✅ | 1 behavioral test |
 | Hook matchers | ✅ | 2 tests for tool name filtering |
-| `PostToolUseFailure` | 📝 | TODO — placeholder test, no real test |
-| `Stop` | 📝 | TODO — placeholder test |
-| `SessionStart` | 📝 | TODO — declarative only (official SDK limitation) |
-| `SessionEnd` | 📝 | TODO — declarative only (official SDK limitation) |
-| `Notification` | 📝 | TODO — placeholder test |
+| `PostToolUseFailure` | ✅ | Triggered via throwing MCP tool |
+| `Stop` | ✅ | Fires on query completion |
+| `SessionStart` | 📝 | Declarative only (official SDK issue #83) |
+| `SessionEnd` | 📝 | Declarative only (official SDK issue #83) |
+| `Notification` | 📝 | Does not fire when canUseTool handles permissions |
 | `SubagentStart` | ✅ | Tested in subagents.test.ts |
 | `SubagentStop` | ✅ | Tested in subagents.test.ts |
 | `PreCompact` | 📝 | TODO — placeholder test |
-| `PermissionRequest` | 📝 | TODO — placeholder test |
-| `Setup` | 📝 | TODO — placeholder test |
+| `PermissionRequest` | 📝 | Does not fire when canUseTool handles permissions |
+| `Setup` | 📝 | Does not fire via programmatic hooks |
 | `TeammateIdle` | 📝 | TODO — types exported, no test |
 | `TaskCompleted` | 📝 | TODO — types exported, no test |
 | **Advanced Features** |
@@ -109,7 +109,7 @@
 | Session management | ✅ | Resume, fork, continue, sessionId all E2E tested |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
-| MCP: control methods | 🔌 | reconnect/toggle/setServers — error-path only |
+| MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |
 | Subagent support (`agents`) | ✅ | E2E tested: invocation, hooks, abort |
 | Agent teams | ❌ | Types exported only; no env var, no tests |
 | Output styles | ✅ | LiteQuery extension methods tested |
@@ -131,8 +131,7 @@
 ## What Needs Work
 
 ### High Value — E2E tests for core features
-- Hook events beyond PreToolUse/PostToolUse (7 events are TODO)
-- MCP control methods happy-path (reconnect/toggle real servers)
+- Hook events: 5 remain untestable programmatically (SessionStart/End, Notification, PermissionRequest, Setup)
 
 ### Medium Value — Integration tests for unit-tested features
 - `resumeSessionAt`, `enableFileCheckpointing`

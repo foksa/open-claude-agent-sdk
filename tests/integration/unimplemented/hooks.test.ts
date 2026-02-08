@@ -5,9 +5,17 @@
  * These tests document hook events that require triggers not practical
  * in standard integration tests (subagents, compaction, teams, etc.)
  *
- * Hook events that only work declaratively (.claude/settings.json):
- *   - SessionStart/SessionEnd — known limitation in official SDK
- *     See: github.com/anthropics/claude-agent-sdk-typescript/issues/83
+ * Moved to hooks.test.ts (E2E tested):
+ *   - Stop, PostToolUseFailure
+ *
+ * Moved to subagents.test.ts (E2E tested):
+ *   - SubagentStart, SubagentStop
+ *
+ * Investigated but not testable programmatically:
+ *   - Setup — does not fire via programmatic hooks (tested, confirmed)
+ *   - Notification — does not fire when canUseTool handles permissions
+ *   - PermissionRequest — does not fire when canUseTool handles permissions
+ *   - SessionStart/SessionEnd — declarative only (official SDK issue #83)
  */
 
 import { expect } from 'bun:test';
@@ -18,35 +26,6 @@ import { runWithSDK, testWithBothSDKsTodo } from '../comparison-utils.ts';
 const autoApprove = async (_toolName: string, input: Record<string, unknown>) => {
   return { behavior: 'allow' as const, updatedInput: input };
 };
-
-// =============================================================================
-// TRIGGER-DEPENDENT: PostToolUseFailure
-// =============================================================================
-
-testWithBothSDKsTodo('PostToolUseFailure hook fires on tool execution failure', async (sdk) => {
-  let failureHookCalled = false;
-
-  await runWithSDK(sdk, 'Read the file /etc/passwd', {
-    maxTurns: 3,
-    permissionMode: 'default',
-    canUseTool: autoApprove,
-    sandbox: { enabled: true },
-    hooks: {
-      PostToolUseFailure: [
-        {
-          hooks: [
-            async (_input: HookInput) => {
-              failureHookCalled = true;
-              return {};
-            },
-          ],
-        },
-      ],
-    },
-  });
-
-  expect(failureHookCalled).toBe(true);
-});
 
 // =============================================================================
 // DECLARATIVE-ONLY: SessionStart / SessionEnd
@@ -101,35 +80,10 @@ testWithBothSDKsTodo('SessionEnd hook is called at session end', async (sdk) => 
 });
 
 // =============================================================================
-// TRIGGER-DEPENDENT: Notification
-// =============================================================================
-
-testWithBothSDKsTodo('Notification hook receives agent notifications', async (sdk) => {
-  let notificationCalled = false;
-
-  await runWithSDK(sdk, 'Do a complex task that would generate notifications', {
-    maxTurns: 5,
-    permissionMode: 'default',
-    canUseTool: autoApprove,
-    hooks: {
-      Notification: [
-        {
-          hooks: [
-            async (_input: HookInput) => {
-              notificationCalled = true;
-              return {};
-            },
-          ],
-        },
-      ],
-    },
-  });
-
-  expect(notificationCalled).toBe(true);
-});
-
-// =============================================================================
+// Notification — does not fire when canUseTool handles permissions (investigated)
 // SubagentStart / SubagentStop — moved to tests/integration/subagents.test.ts
+// Setup — does not fire via programmatic hooks (investigated)
+// PermissionRequest — does not fire when canUseTool handles permissions (investigated)
 // =============================================================================
 
 // =============================================================================
