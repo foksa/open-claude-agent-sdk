@@ -11,6 +11,43 @@
 
 import type { HookInput, PermissionMode, PermissionUpdate, SDKMessage } from './index.ts';
 
+// ============================================================================
+// Protocol constants — single source of truth for all wire format strings
+// ============================================================================
+
+/** Message types on the wire (stdout/stdin) */
+export const MessageType = {
+  CONTROL_REQUEST: 'control_request',
+  CONTROL_RESPONSE: 'control_response',
+} as const;
+
+/** Control request subtypes (CLI → SDK and SDK → CLI) */
+export const RequestSubtype = {
+  CAN_USE_TOOL: 'can_use_tool',
+  HOOK_CALLBACK: 'hook_callback',
+  INITIALIZE: 'initialize',
+  INTERRUPT: 'interrupt',
+  SET_PERMISSION_MODE: 'set_permission_mode',
+  SET_MODEL: 'set_model',
+  SET_MAX_THINKING_TOKENS: 'set_max_thinking_tokens',
+  MCP_STATUS: 'mcp_status',
+  MCP_MESSAGE: 'mcp_message',
+  REWIND_FILES: 'rewind_files',
+  MCP_SET_SERVERS: 'mcp_set_servers',
+  MCP_RECONNECT: 'mcp_reconnect',
+  MCP_TOGGLE: 'mcp_toggle',
+} as const;
+
+/** Control response subtypes */
+export const ResponseSubtype = {
+  SUCCESS: 'success',
+  ERROR: 'error',
+} as const;
+
+// ============================================================================
+// Types
+// ============================================================================
+
 /**
  * Internal hook callback function type
  *
@@ -33,7 +70,7 @@ export type StdoutMessage = SDKMessage | ControlRequest;
  * Control request from CLI - requires SDK to send response on stdin
  */
 export type ControlRequest = {
-  type: 'control_request';
+  type: typeof MessageType.CONTROL_REQUEST;
   request_id: string;
   request: ControlRequestInner;
 };
@@ -56,11 +93,8 @@ export type ControlRequestInner =
   | McpReconnectRequest
   | McpToggleRequest;
 
-/**
- * Permission check request
- */
 export type CanUseToolRequest = {
-  subtype: 'can_use_tool';
+  subtype: typeof RequestSubtype.CAN_USE_TOOL;
   tool_name: string;
   input: Record<string, unknown>;
   tool_use_id: string;
@@ -70,21 +104,15 @@ export type CanUseToolRequest = {
   agent_id?: string;
 };
 
-/**
- * Hook callback request
- */
 export type HookCallbackRequest = {
-  subtype: 'hook_callback';
+  subtype: typeof RequestSubtype.HOOK_CALLBACK;
   callback_id: string;
   input: HookInput;
   tool_use_id?: string;
 };
 
-/**
- * Session initialization request
- */
 export type InitializeRequest = {
-  subtype: 'initialize';
+  subtype: typeof RequestSubtype.INITIALIZE;
   hooks?: Record<string, unknown>;
   sdkMcpServers?: string[];
   jsonSchema?: Record<string, unknown>;
@@ -93,83 +121,53 @@ export type InitializeRequest = {
   agents?: Record<string, unknown>;
 };
 
-/**
- * Interrupt execution request
- */
 export type InterruptRequest = {
-  subtype: 'interrupt';
+  subtype: typeof RequestSubtype.INTERRUPT;
 };
 
-/**
- * Change permission mode request
- */
 export type SetPermissionModeRequest = {
-  subtype: 'set_permission_mode';
+  subtype: typeof RequestSubtype.SET_PERMISSION_MODE;
   mode: PermissionMode;
 };
 
-/**
- * Change model request
- */
 export type SetModelRequest = {
-  subtype: 'set_model';
+  subtype: typeof RequestSubtype.SET_MODEL;
   model?: string;
 };
 
-/**
- * Set max thinking tokens request
- */
 export type SetMaxThinkingTokensRequest = {
-  subtype: 'set_max_thinking_tokens';
+  subtype: typeof RequestSubtype.SET_MAX_THINKING_TOKENS;
   max_thinking_tokens: number | null;
 };
 
-/**
- * Get MCP server status request
- */
 export type McpStatusRequest = {
-  subtype: 'mcp_status';
+  subtype: typeof RequestSubtype.MCP_STATUS;
 };
 
-/**
- * Send message to MCP server request
- */
 export type McpMessageRequest = {
-  subtype: 'mcp_message';
+  subtype: typeof RequestSubtype.MCP_MESSAGE;
   server_name: string;
   message: Record<string, unknown>;
 };
 
-/**
- * Rewind files to previous state request
- */
 export type RewindFilesRequest = {
-  subtype: 'rewind_files';
+  subtype: typeof RequestSubtype.REWIND_FILES;
   user_message_id: string;
   dry_run?: boolean;
 };
 
-/**
- * Set MCP servers dynamically request
- */
 export type McpSetServersRequest = {
-  subtype: 'mcp_set_servers';
+  subtype: typeof RequestSubtype.MCP_SET_SERVERS;
   servers: Record<string, unknown>;
 };
 
-/**
- * Reconnect MCP server request
- */
 export type McpReconnectRequest = {
-  subtype: 'mcp_reconnect';
+  subtype: typeof RequestSubtype.MCP_RECONNECT;
   serverName: string;
 };
 
-/**
- * Toggle MCP server enabled/disabled request
- */
 export type McpToggleRequest = {
-  subtype: 'mcp_toggle';
+  subtype: typeof RequestSubtype.MCP_TOGGLE;
   serverName: string;
   enabled: boolean;
 };
@@ -178,29 +176,20 @@ export type McpToggleRequest = {
  * Control response sent to CLI via stdin
  */
 export type ControlResponse = {
-  type: 'control_response';
+  type: typeof MessageType.CONTROL_RESPONSE;
   response: ControlResponseInner;
 };
 
-/**
- * Response payload (success or error)
- */
 export type ControlResponseInner = ControlResponseSuccess | ControlResponseError;
 
-/**
- * Successful control response
- */
 export type ControlResponseSuccess = {
-  subtype: 'success';
+  subtype: typeof ResponseSubtype.SUCCESS;
   request_id: string;
   response?: Record<string, unknown>;
 };
 
-/**
- * Error control response
- */
 export type ControlResponseError = {
-  subtype: 'error';
+  subtype: typeof ResponseSubtype.ERROR;
   request_id: string;
   error: string;
   pending_permission_requests?: ControlRequest[];

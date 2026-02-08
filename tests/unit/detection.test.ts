@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { chmodSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { detectClaudeBinary } from '../../src/core/detection.ts';
+import { detectClaudeBinary } from '../../src/core/spawn.ts';
 
 describe('detectClaudeBinary', () => {
   let tempFile: string | null = null;

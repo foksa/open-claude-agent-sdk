@@ -1,16 +1,104 @@
 /**
- * Control Protocol Handler
+ * Control Protocol
  *
- * Handles bidirectional control protocol communication with Claude CLI.
- * Routes control requests from CLI and sends responses back via stdin.
+ * Handles bidirectional control protocol communication with Claude CLI:
+ * - ControlProtocolHandler: routes incoming requests, sends responses
+ * - ControlRequests: type-safe builders for outbound requests
+ * - OutboundControlRequest: union type for all SDK → CLI requests
  *
  * @internal
  */
 
 import type { Writable } from 'node:stream';
-import type { ControlRequest, ControlResponse, InternalHookCallback } from '../types/control.ts';
-import type { Options, PermissionResult } from '../types/index.ts';
+import {
+  type ControlRequest,
+  type ControlResponse,
+  type InternalHookCallback,
+  type InterruptRequest,
+  type McpReconnectRequest,
+  type McpSetServersRequest,
+  type McpStatusRequest,
+  type McpToggleRequest,
+  MessageType,
+  RequestSubtype,
+  ResponseSubtype,
+  type SetMaxThinkingTokensRequest,
+  type SetModelRequest,
+  type SetPermissionModeRequest,
+} from '../types/control.ts';
+import type { McpServerConfig, Options, PermissionMode, PermissionResult } from '../types/index.ts';
 import type { McpServerBridge } from './mcpBridge.ts';
+
+// ============================================================================
+// Outbound request builders (SDK → CLI)
+// ============================================================================
+
+/**
+ * Union of all outbound control request types (sent from SDK to CLI)
+ */
+export type OutboundControlRequest =
+  | InterruptRequest
+  | SetPermissionModeRequest
+  | SetModelRequest
+  | SetMaxThinkingTokensRequest
+  | McpStatusRequest
+  | McpReconnectRequest
+  | McpToggleRequest
+  | McpSetServersRequest;
+
+/**
+ * Type-safe control request builder functions
+ *
+ * Usage:
+ * ```typescript
+ * this.sendControlRequest(ControlRequests.interrupt());
+ * this.sendControlRequest(ControlRequests.setPermissionMode('bypassPermissions'));
+ * ```
+ */
+export const ControlRequests = {
+  interrupt: (): InterruptRequest => ({
+    subtype: RequestSubtype.INTERRUPT,
+  }),
+
+  setPermissionMode: (mode: PermissionMode): SetPermissionModeRequest => ({
+    subtype: RequestSubtype.SET_PERMISSION_MODE,
+    mode,
+  }),
+
+  setModel: (model?: string): SetModelRequest => ({
+    subtype: RequestSubtype.SET_MODEL,
+    model,
+  }),
+
+  setMaxThinkingTokens: (tokens: number | null): SetMaxThinkingTokensRequest => ({
+    subtype: RequestSubtype.SET_MAX_THINKING_TOKENS,
+    max_thinking_tokens: tokens,
+  }),
+
+  mcpStatus: (): McpStatusRequest => ({
+    subtype: RequestSubtype.MCP_STATUS,
+  }),
+
+  mcpReconnect: (serverName: string): McpReconnectRequest => ({
+    subtype: RequestSubtype.MCP_RECONNECT,
+    serverName,
+  }),
+
+  mcpToggle: (serverName: string, enabled: boolean): McpToggleRequest => ({
+    subtype: RequestSubtype.MCP_TOGGLE,
+    serverName,
+    enabled,
+  }),
+
+  mcpSetServers: (servers: Record<string, McpServerConfig>): McpSetServersRequest => ({
+    subtype: RequestSubtype.MCP_SET_SERVERS,
+    servers,
+  }),
+};
+
+// ============================================================================
+// Inbound request handler (CLI → SDK)
+// ============================================================================
 
 export class ControlProtocolHandler {
   private callbackMap: Map<string, InternalHookCallback> = new Map();
@@ -40,7 +128,6 @@ export class ControlProtocolHandler {
    * Routes to appropriate handler based on request subtype
    */
   async handleControlRequest(req: ControlRequest): Promise<void> {
-    // Debug logging (enable via DEBUG_HOOKS env var)
     if (process.env.DEBUG_HOOKS) {
       console.error('[DEBUG] Control request:', JSON.stringify(req, null, 2));
       console.error('[DEBUG] Subtype:', req.request.subtype);
@@ -48,31 +135,31 @@ export class ControlProtocolHandler {
 
     try {
       switch (req.request.subtype) {
-        case 'can_use_tool':
+        case RequestSubtype.CAN_USE_TOOL:
           if (process.env.DEBUG_HOOKS) console.error('[DEBUG] Handling can_use_tool');
           await this.handleCanUseTool(req);
           break;
-        case 'hook_callback':
+        case RequestSubtype.HOOK_CALLBACK:
           if (process.env.DEBUG_HOOKS) console.error('[DEBUG] Handling hook_callback');
           await this.handleHookCallback(req);
           break;
-        case 'initialize':
+        case RequestSubtype.INITIALIZE:
           await this.handleInitialize(req);
           break;
-        case 'interrupt':
+        case RequestSubtype.INTERRUPT:
           await this.handleInterrupt(req);
           break;
-        case 'mcp_message':
+        case RequestSubtype.MCP_MESSAGE:
           await this.handleMcpMessage(req);
           break;
-        case 'set_permission_mode':
-        case 'set_model':
-        case 'set_max_thinking_tokens':
-        case 'mcp_status':
-        case 'rewind_files':
-        case 'mcp_set_servers':
-        case 'mcp_reconnect':
-        case 'mcp_toggle':
+        case RequestSubtype.SET_PERMISSION_MODE:
+        case RequestSubtype.SET_MODEL:
+        case RequestSubtype.SET_MAX_THINKING_TOKENS:
+        case RequestSubtype.MCP_STATUS:
+        case RequestSubtype.REWIND_FILES:
+        case RequestSubtype.MCP_SET_SERVERS:
+        case RequestSubtype.MCP_RECONNECT:
+        case RequestSubtype.MCP_TOGGLE:
           // These are sent FROM SDK TO CLI, not the other way around
           // If we receive them, just acknowledge
           this.sendSuccess(req.request_id, {});
@@ -89,11 +176,8 @@ export class ControlProtocolHandler {
     }
   }
 
-  /**
-   * Handle permission check request
-   */
   private async handleCanUseTool(req: ControlRequest) {
-    if (req.request.subtype !== 'can_use_tool') return;
+    if (req.request.subtype !== RequestSubtype.CAN_USE_TOOL) return;
 
     const {
       tool_name,
@@ -105,15 +189,13 @@ export class ControlProtocolHandler {
       agent_id,
     } = req.request;
 
-    // If no callback provided, allow by default
     if (!this.options.canUseTool) {
       this.sendSuccess(req.request_id, { behavior: 'allow' });
       return;
     }
 
-    // Call user-provided permission callback
     const result: PermissionResult = await this.options.canUseTool(tool_name, input, {
-      signal: new AbortController().signal, // TODO: proper abort signal handling
+      signal: new AbortController().signal,
       suggestions: permission_suggestions,
       blockedPath: blocked_path,
       decisionReason: decision_reason,
@@ -124,11 +206,8 @@ export class ControlProtocolHandler {
     this.sendSuccess(req.request_id, result);
   }
 
-  /**
-   * Handle hook callback request
-   */
   private async handleHookCallback(req: ControlRequest) {
-    if (req.request.subtype !== 'hook_callback') return;
+    if (req.request.subtype !== RequestSubtype.HOOK_CALLBACK) return;
 
     const { callback_id, input, tool_use_id } = req.request;
 
@@ -140,11 +219,9 @@ export class ControlProtocolHandler {
       });
     }
 
-    // Find the hook function by callback_id
     const hookFn = this.callbackMap.get(callback_id);
 
     if (!hookFn) {
-      // No matching callback found, continue by default
       if (process.env.DEBUG_HOOKS) {
         console.error('[DEBUG] No hook found for callback_id:', callback_id);
       }
@@ -152,7 +229,6 @@ export class ControlProtocolHandler {
       return;
     }
 
-    // Execute the specific hook
     try {
       if (process.env.DEBUG_HOOKS) {
         console.error('[DEBUG] Executing hook:', callback_id);
@@ -168,30 +244,16 @@ export class ControlProtocolHandler {
     }
   }
 
-  /**
-   * Handle initialization request
-   *
-   * NOTE: We don't handle hooks here - QueryImpl already sends hooks config
-   * in the initial control_request. This just acknowledges the response.
-   */
   private async handleInitialize(req: ControlRequest) {
-    // Just acknowledge - hooks are already configured in the request
     this.sendSuccess(req.request_id, {});
   }
 
-  /**
-   * Handle interrupt request
-   */
   private async handleInterrupt(req: ControlRequest) {
-    // Acknowledge interrupt
     this.sendSuccess(req.request_id, {});
   }
 
-  /**
-   * Handle MCP message from CLI — route to SDK MCP server bridge
-   */
   private async handleMcpMessage(req: ControlRequest) {
-    if (req.request.subtype !== 'mcp_message') return;
+    if (req.request.subtype !== RequestSubtype.MCP_MESSAGE) return;
 
     const { server_name, message } = req.request;
     const bridge = this.mcpServerBridges.get(server_name);
@@ -205,39 +267,29 @@ export class ControlProtocolHandler {
     this.sendSuccess(req.request_id, { mcp_response: response });
   }
 
-  /**
-   * Send success response to CLI
-   */
   private sendSuccess(request_id: string, response: Record<string, unknown>) {
     this.sendControlResponse({
-      type: 'control_response',
+      type: MessageType.CONTROL_RESPONSE,
       response: {
-        subtype: 'success',
+        subtype: ResponseSubtype.SUCCESS,
         request_id,
         response,
       },
     });
   }
 
-  /**
-   * Send error response to CLI
-   */
   private sendError(request_id: string, error: string) {
     this.sendControlResponse({
-      type: 'control_response',
+      type: MessageType.CONTROL_RESPONSE,
       response: {
-        subtype: 'error',
+        subtype: ResponseSubtype.ERROR,
         request_id,
         error,
       },
     });
   }
 
-  /**
-   * Write control response to stdin
-   */
   private sendControlResponse(response: ControlResponse) {
-    const json = JSON.stringify(response);
-    this.stdin.write(`${json}\n`);
+    this.stdin.write(`${JSON.stringify(response)}\n`);
   }
 }

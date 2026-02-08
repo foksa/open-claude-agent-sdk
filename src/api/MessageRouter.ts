@@ -12,7 +12,7 @@
 import { createInterface, type Interface } from 'node:readline';
 import type { Readable } from 'node:stream';
 import type { ControlProtocolHandler } from '../core/control.ts';
-import type { StdoutMessage } from '../types/control.ts';
+import { MessageType, type StdoutMessage } from '../types/control.ts';
 import type { SDKMessage } from '../types/index.ts';
 
 export type MessageCallback = (msg: SDKMessage) => void;
@@ -25,7 +25,9 @@ export type ControlResponsePayload = {
 };
 export type ControlResponseCallback = (response: ControlResponsePayload) => void;
 
-type RawMessage = StdoutMessage | { type: 'control_response'; response: ControlResponsePayload };
+type RawMessage =
+  | StdoutMessage
+  | { type: typeof MessageType.CONTROL_RESPONSE; response: ControlResponsePayload };
 
 export class MessageRouter {
   private readline: Interface | null = null;
@@ -65,13 +67,13 @@ export class MessageRouter {
             console.error('[DEBUG] Message type:', msg.type);
           }
 
-          if (msg.type === 'control_request') {
+          if (msg.type === MessageType.CONTROL_REQUEST) {
             if (process.env.DEBUG_HOOKS) {
               console.error('[DEBUG] !!! CONTROL REQUEST !!!:', msg.request?.subtype);
             }
             // Handle control request internally (don't yield to user)
             await this.controlHandler.handleControlRequest(msg);
-          } else if (msg.type === 'control_response') {
+          } else if (msg.type === MessageType.CONTROL_RESPONSE) {
             // Route control_response to callback if provided, otherwise filter silently
             if (process.env.DEBUG_HOOKS) {
               console.error('[DEBUG] control_response received');
