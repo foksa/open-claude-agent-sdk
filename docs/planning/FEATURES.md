@@ -1,6 +1,6 @@
 # Feature Comparison: Lite SDK vs Official SDK
 
-**Last Updated:** 2026-02-07
+**Last Updated:** 2026-02-08
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---

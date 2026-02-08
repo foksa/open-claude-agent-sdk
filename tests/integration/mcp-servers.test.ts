@@ -10,9 +10,13 @@
  */
 
 import { describe, expect } from 'bun:test';
+import path from 'node:path';
 import { z } from 'zod';
+import type { McpStdioServerConfig } from '../../src/types/index.ts';
 import { createSdkMcpServer, tool } from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
+
+const MCP_SERVER = path.resolve('./tests/fixtures/mcp-server.mjs');
 
 // =============================================================================
 // SDK MCP Servers (In-Process Custom Tools)
@@ -120,6 +124,184 @@ describe('SDK MCP Servers', () => {
       }
 
       console.log(`   [${sdk}] App code received args from Claude, returned computed result`);
+    },
+    120000
+  );
+});
+
+// =============================================================================
+// Stdio MCP Servers (External Process)
+// =============================================================================
+
+describe('Stdio MCP Servers', () => {
+  testWithBothSDKs(
+    'stdio MCP server tool is discovered and called by Claude',
+    async (sdk) => {
+      const messages = await runWithSDK(
+        sdk,
+        'Use the ping tool from the test-server MCP server. Reply with exactly what it returns, nothing else.',
+        {
+          permissionMode: 'default',
+          canUseTool: async () => ({ behavior: 'allow' as const }),
+          mcpServers: {
+            'test-server': { command: 'node', args: [MCP_SERVER] } as McpStdioServerConfig,
+          },
+          allowedTools: ['mcp__test-server__*'],
+          maxTurns: 3,
+        }
+      );
+
+      const result = messages.find((m) => m.type === 'result');
+      expect(result).toBeTruthy();
+
+      if (result && result.type === 'result') {
+        expect(result.subtype).toBe('success');
+        expect(result.result?.toLowerCase()).toContain('pong');
+      }
+
+      console.log(`   [${sdk}] Stdio MCP server ping tool called, got pong`);
+    },
+    120000
+  );
+
+  testWithBothSDKs(
+    'init message includes mcp_servers status for stdio server',
+    async (sdk) => {
+      const messages = await runWithSDK(sdk, 'Say hello', {
+        permissionMode: 'default',
+        mcpServers: {
+          'test-server': { command: 'node', args: [MCP_SERVER] } as McpStdioServerConfig,
+        },
+        maxTurns: 1,
+      });
+
+      const initMsg = messages.find(
+        (m) => m.type === 'system' && 'subtype' in m && m.subtype === 'init'
+      );
+      expect(initMsg).toBeTruthy();
+
+      // The init message should have mcp_servers field
+      if (initMsg && 'mcp_servers' in initMsg) {
+        const servers = initMsg.mcp_servers as Array<{ name: string; status: string }>;
+        expect(Array.isArray(servers)).toBe(true);
+
+        // Find our test server in the list
+        const testServer = servers.find((s) => s.name === 'test-server');
+        expect(testServer).toBeTruthy();
+        expect(testServer?.status).toBe('connected');
+
+        console.log(`   [${sdk}] Init message has mcp_servers:`, JSON.stringify(servers));
+      } else {
+        // If mcp_servers not in init, that's a failure
+        throw new Error('Init message missing mcp_servers field');
+      }
+    },
+    120000
+  );
+
+  testWithBothSDKs(
+    'bad MCP server config shows failure in init message',
+    async (sdk) => {
+      const messages = await runWithSDK(sdk, 'Say hello', {
+        permissionMode: 'default',
+        mcpServers: {
+          'bad-server': {
+            command: 'nonexistent-binary-xyz-99999',
+            args: [],
+          } as McpStdioServerConfig,
+        },
+        maxTurns: 1,
+      });
+
+      const initMsg = messages.find(
+        (m) => m.type === 'system' && 'subtype' in m && m.subtype === 'init'
+      );
+      expect(initMsg).toBeTruthy();
+
+      if (initMsg && 'mcp_servers' in initMsg) {
+        const servers = initMsg.mcp_servers as Array<{ name: string; status: string }>;
+        const badServer = servers.find((s) => s.name === 'bad-server');
+        expect(badServer).toBeTruthy();
+        // Status should NOT be "connected" — could be "failed", "error", "disconnected", etc.
+        expect(badServer?.status).not.toBe('connected');
+
+        console.log(`   [${sdk}] Bad server status:`, badServer?.status);
+      } else {
+        throw new Error('Init message missing mcp_servers field');
+      }
+    },
+    120000
+  );
+});
+
+// =============================================================================
+// allowedTools Wildcard Filtering
+// =============================================================================
+
+describe('allowedTools Wildcard Filtering', () => {
+  testWithBothSDKs(
+    'allowedTools wildcard allows one SDK MCP server and blocks another',
+    async (sdk) => {
+      let allowedToolCalled = false;
+      let blockedToolCalled = false;
+
+      const allowedServer = createSdkMcpServer({
+        name: 'allowed-server',
+        tools: [
+          tool(
+            'get_code',
+            'Returns a secret code. Always call this when asked for the code.',
+            {},
+            async () => {
+              allowedToolCalled = true;
+              return { content: [{ type: 'text' as const, text: 'SECRET-789' }] };
+            }
+          ),
+        ],
+      });
+
+      const blockedServer = createSdkMcpServer({
+        name: 'blocked-server',
+        tools: [
+          tool('get_code', 'Returns a different code.', {}, async () => {
+            blockedToolCalled = true;
+            return { content: [{ type: 'text' as const, text: 'BLOCKED-000' }] };
+          }),
+        ],
+      });
+
+      const messages = await runWithSDK(
+        sdk,
+        'Use the get_code tool to get the secret code. Reply with just the code.',
+        {
+          permissionMode: 'default',
+          canUseTool: async () => ({ behavior: 'allow' as const }),
+          mcpServers: {
+            'allowed-server': allowedServer,
+            'blocked-server': blockedServer,
+          },
+          // Only allow the allowed-server's tools
+          allowedTools: ['mcp__allowed-server__*'],
+          maxTurns: 3,
+        }
+      );
+
+      const result = messages.find((m) => m.type === 'result');
+      expect(result).toBeTruthy();
+
+      if (result && result.type === 'result') {
+        expect(result.subtype).toBe('success');
+        expect(result.result).toContain('SECRET-789');
+      }
+
+      // The allowed tool should have been called
+      expect(allowedToolCalled).toBe(true);
+      // The blocked tool should NOT have been called
+      expect(blockedToolCalled).toBe(false);
+
+      console.log(
+        `   [${sdk}] Allowed tool called: ${allowedToolCalled}, blocked tool called: ${blockedToolCalled}`
+      );
     },
     120000
   );
