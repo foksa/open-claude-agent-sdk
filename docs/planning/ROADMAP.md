@@ -17,16 +17,17 @@ The SDK has protocol-level parity with the official `@anthropic-ai/claude-agent-
 - Structured outputs, extended thinking, skills/commands
 - canUseTool callback (7 behavioral tests)
 - PreToolUse/PostToolUse/UserPromptSubmit hooks
+- SubagentStart/SubagentStop hooks
+- Subagent invocation (`agents` option, `parent_tool_use_id`, abort)
 - In-process MCP servers (`createSdkMcpServer()`, `tool()`)
 - Cost tracking, system prompts, permission modes
 
 ### What's Protocol-Only (likely works, not E2E verified)
-- `agents` option — init message passes through, no test that Claude invokes subagents
 - MCP control methods — `reconnectMcpServer()`, `toggleMcpServer()`, `setMcpServers()` error-path only
 - Many CLI flag options (betas, fallbackModel, debug, plugins, etc.)
 
 ### What's Untested
-- 9 of 15 hook events (PostToolUseFailure, Stop, SessionStart/End, Notification, SubagentStart/Stop, PreCompact, PermissionRequest, Setup) — placeholder `.test.todo()` only
+- 7 of 15 hook events (PostToolUseFailure, Stop, SessionStart/End, Notification, PreCompact, PermissionRequest, Setup) — placeholder `.test.todo()` only
 - TeammateIdle, TaskCompleted — types exported, nothing else
 
 ### What's Not Implemented
@@ -39,36 +40,29 @@ The SDK has protocol-level parity with the official `@anthropic-ai/claude-agent-
 
 ## Priority Work
 
-### 1. Subagent E2E Test
-**Why:** `agents` is a headline feature. Currently only protocol-tested.
-- Write test that passes agent definitions, prompts Claude to use Task tool
-- Verify subagent actually runs and results return
-- Verify `parent_tool_use_id` on subagent messages
-
-### 2. Remaining Hook Events (9 TODO tests)
-**Why:** Hooks are claimed as "all 15 supported" but only 6 are tested.
+### 1. Remaining Hook Events (7 TODO tests)
+**Why:** Hooks are claimed as "all 15 supported" but only 8 are tested.
 - `PostToolUseFailure` — trigger a tool error, verify hook fires
 - `Stop` — verify hook fires on query completion
-- `SubagentStart`/`SubagentStop` — requires working subagent test first
 - `Notification` — verify notification hook fires
 - `PermissionRequest` — verify hook fires for permission prompts
 - `PreCompact` — may require long conversation to trigger
 - `SessionStart`/`SessionEnd` — declarative only (official SDK limitation)
 - `Setup` — verify hook fires on session setup
 
-### 3. MCP Control Methods Happy-Path
+### 2. MCP Control Methods Happy-Path
 **Why:** Only error-path tested currently.
 - Configure a real MCP server, then toggle it off/on
 - Reconnect a server after it's running
 - Add servers via setMcpServers and verify they become available
 
-### 4. Modular MCP Entry Point (Bundle Size)
+### 3. Modular MCP Entry Point (Bundle Size)
 **Why:** MCP dependencies (ajv + zod-to-json-schema + @modelcontextprotocol/sdk) account for ~660KB — 97% of the bundle. Users who only need `query()` shouldn't pay that cost.
 - Add `@lite-claude/agent-sdk/query` sub-path export (~18KB, no MCP deps)
 - Keep main `"."` export unchanged (full compatibility)
 - No breaking changes — sub-paths are additive
 
-### 5. Integration Tests for Unit-Tested Options
+### 4. Integration Tests for Unit-Tested Options
 - `resumeSessionAt`, `enableFileCheckpointing`
 - Spawner options (`executable`, `executableArgs`, `env`, `stderr`)
 
