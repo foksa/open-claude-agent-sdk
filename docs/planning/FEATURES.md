@@ -165,7 +165,7 @@ Handled by the CLI subprocess:
 |--------|----------|--------------|
 | Bundle size | ~488KB | ~13MB |
 | Source code | ~2,500 LOC | ~50,000+ LOC |
-| Test files | 36 (28 integration + 8 unit) | — |
+| Test files | 38 (29 integration + 1 unimplemented + 8 unit) | — |
 | Dependencies | CLI (external) | Self-contained |
 
 ---
