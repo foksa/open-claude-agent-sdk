@@ -77,6 +77,8 @@ const FLAG_MAP: FlagMapping[] = [
   { key: 'betas', flag: '--betas', type: 'csv' },
 
   // Array → one flag per element
+  // NOTE: To load CLAUDE.md from these directories, users must also set
+  // env: { CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD: '1' }
   { key: 'additionalDirectories', flag: '--add-dir', type: 'repeated' },
 ];
 
