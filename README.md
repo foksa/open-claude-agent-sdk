@@ -6,12 +6,14 @@ A compatible open-source replacement for `@anthropic-ai/claude-agent-sdk` — th
 
 | | Lite SDK | Official SDK |
 |---|---|---|
-| **Size** | ~120KB | 69MB |
+| **Bundle size** | ~488KB | ~13MB |
 | **How it works** | Spawns local CLI | Bundles CLI |
 | **Type compatible** | Yes (re-exports) | - |
 | **Streaming** | Yes | Yes |
 | **Multi-turn** | Yes | Yes |
-| **Control methods** | Yes | Yes |
+| **MCP servers** | Yes | Yes |
+| **Subagents** | Yes | Yes |
+| **Hooks** | Yes | Yes |
 
 Same API, same types, much smaller.
 
@@ -49,21 +51,31 @@ Drop-in replacement — just change the import:
 
 ## Features
 
-### Implemented
+### Core
 
 - **Query modes** — one-shot, multi-turn (AsyncIterable + streamInput), streaming
-- **Control methods** — interrupt, setModel, setPermissionMode, setMaxThinkingTokens, close
-- **Query methods** — supportedCommands, supportedModels, accountInfo, mcpServerStatus, initializationResult
-- **MCP management** — reconnectMcpServer, toggleMcpServer, setMcpServers
+- **Control methods** — interrupt, close, setModel, setPermissionMode, setMaxThinkingTokens
+- **Query methods** — supportedCommands, supportedModels, accountInfo, mcpServerStatus
 - **Structured outputs** — JSON schema with `outputFormat`
 - **Extended thinking** — `maxThinkingTokens` option
-- **Skills & commands** — via `settingSources` + `.claude/` directories
 - **System prompts** — string, preset (`claude_code`), preset with append
-- **Output styles** — custom styles via `.claude/output-styles/`
-- **Hooks** — all 15 events (PreToolUse, PostToolUse, Stop, SessionStart/End, SubagentStart/Stop, etc.)
-- **Permission callbacks** — canUseTool
-- **Session resume** — `resume` option
+- **Permission callbacks** — `canUseTool` with allow/deny/selective/async
 - **AbortController** — signal-based cancellation
+- **Session management** — resume, fork, continue, custom sessionId
+- **Cost tracking** — `total_cost_usd`, usage, modelUsage
+
+### MCP Servers
+
+- **In-process SDK servers** — `createSdkMcpServer()` + `tool()` helper with Zod schemas
+- **Process-based servers** — stdio MCP server config via `mcpServers` option
+- **Control methods** — `reconnectMcpServer()`, `toggleMcpServer()`, `setMcpServers()`
+
+### Subagents & Hooks
+
+- **Programmatic subagents** — `agents` option, Task tool invocation, `parent_tool_use_id`
+- **Hooks** — 10 of 15 events tested E2E (PreToolUse, PostToolUse, PostToolUseFailure, UserPromptSubmit, Stop, SubagentStart, SubagentStop, plus matchers)
+- **Skills & commands** — via `settingSources` + `.claude/` directories
+- **Output styles** — custom styles via `.claude/output-styles/`
 - **Sandbox** — sandbox configuration pass-through
 
 ### Lite SDK Extensions
@@ -81,13 +93,9 @@ await q.currentOutputStyle();    // string
 
 ### Not Yet Implemented
 
-- Budget tracking (`maxDollars` — partial)
-- Process-based MCP servers (`mcpServers` option)
-- In-process SDK MCP servers (`createSdkMcpServer`)
-- File checkpointing / rewindFiles
-- Session forking
-- Plugins system
-- Context compaction
+- `rewindFiles()` — no CLI protocol support
+- Agent teams — experimental, no env var support
+- V2 API (`unstable_v2_*`) — experimental preview
 
 See [FEATURES.md](./docs/planning/FEATURES.md) for full status matrix.
 
