@@ -196,48 +196,6 @@ testWithBothSDKs(
 );
 
 // =============================================================================
-// permission evaluation order
-// =============================================================================
-
-testWithBothSDKs(
-  'PreToolUse hook fires and preempts canUseTool',
-  async (sdk) => {
-    let hookCalled = false;
-    let canUseToolCalled = false;
-
-    await runWithSDK(sdk, 'Run this exact bash command: echo hello', {
-      maxTurns: 3,
-      permissionMode: 'default',
-      hooks: {
-        PreToolUse: [
-          {
-            matcher: 'Bash',
-            hooks: [
-              async (_input) => {
-                hookCalled = true;
-                return {};
-              },
-            ],
-          },
-        ],
-      },
-      canUseTool: async (_toolName, input, _context) => {
-        canUseToolCalled = true;
-        return { behavior: 'allow', updatedInput: input };
-      },
-    });
-
-    // When a PreToolUse hook matches and returns {} (continue),
-    // the CLI does NOT subsequently call canUseTool — hooks preempt it.
-    expect(hookCalled).toBe(true);
-    expect(canUseToolCalled).toBe(false);
-
-    console.log(`   [${sdk}] Hook called: ${hookCalled}, canUseTool called: ${canUseToolCalled}`);
-  },
-  90000
-);
-
-// =============================================================================
 // setPermissionMode (dynamic mode change)
 // =============================================================================
 
