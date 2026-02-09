@@ -157,7 +157,7 @@ bun tests/research/test-official-proxy.ts
 
 2. **Run Open SDK through proxy:**
 ```bash
-bun tests/research/test-lite-only.ts
+bun tests/research/test-open-only.ts
 ```
 
 3. **Compare logs:**
@@ -192,7 +192,7 @@ Message 1:
   ❌ Different!
      Field 'request' differs:
        Official: {"subtype":"initialize","systemPrompt":""}
-       Lite: {"subtype":"initialize"}
+       Open: {"subtype":"initialize"}
 ```
 
 ---
@@ -275,7 +275,7 @@ This suggests the API uses the control_request structure as part of the cache ke
 
 ```bash
 diff -u <(cat logs/official.log | grep STDIN) \
-        <(cat logs/lite.log | grep STDIN)
+        <(cat logs/open.log | grep STDIN)
 ```
 
 ### 2. Extract Just JSON Messages
@@ -376,12 +376,8 @@ Build tests that:
 
 ## Related Files
 
-- **Proxy Implementation:** `tests/utils/proxy-cli.js` (permanent utility)
-- **Comparison Tests:** `tests/research/compare-with-proxy.ts`
-- **Test Scripts:** `tests/research/test-official-proxy.ts`, `test-lite-only.ts`
-- **Archived Scripts:** `tests/research/archived/` (historical investigations)
-- **Performance Research:** `tests/research/performance/` (performance studies)
-- **Case Study:** `docs/research/cache-token-investigation.md`
+- **Proxy Implementation:** `src/tools/proxy-cli.cjs`
+- **Capture CLI:** `src/tools/capture-cli.cjs`
 - **Fix Commit:** Search for "systemPrompt" in git history
 
 ---

@@ -123,7 +123,7 @@ console.log(captured.stdin);  // [{type: 'control_request', ...}, {type: 'user',
 
 - Unit tests verifying CLI argument generation
 - Unit tests verifying stdin message format
-- Comparing lite SDK behavior with official SDK
+- Comparing open SDK behavior with official SDK
 - Fast tests that don't need real API calls
 
 ---

@@ -180,7 +180,7 @@ export type SDKControlInitializeResponse = {
 };
 
 // ============================================================================
-// LITE SDK EXTENSIONS (beyond official SDK)
+// OPEN SDK EXTENSIONS (beyond official SDK)
 // ============================================================================
 
 /**

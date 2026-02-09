@@ -109,7 +109,7 @@ describe('CLI arguments compatibility', () => {
       expect(openSettings.sandbox).toEqual(officialSettings.sandbox);
 
       console.log('   sandbox args match');
-      console.log('   Lite sandbox:', openSettings.sandbox);
+      console.log('   Open sandbox:', openSettings.sandbox);
       console.log('   Official sandbox:', officialSettings.sandbox);
     },
     { timeout: 60000 }

@@ -40,7 +40,10 @@ describe('stdin message compatibility', () => {
         expect(openInit.request.systemPrompt).toBe(officialInit.request.systemPrompt);
       }
 
-      console.log('   Init messages captured:', { open: !!openInit, official: !!officialInit });
+      console.log('   Init messages captured:', {
+        open: !!openInit,
+        official: !!officialInit,
+      });
     },
     { timeout: 60000 }
   );
@@ -83,7 +86,10 @@ describe('stdin message compatibility', () => {
         }
       }
 
-      console.log('   User messages captured:', { open: !!openUser, official: !!officialUser });
+      console.log('   User messages captured:', {
+        open: !!openUser,
+        official: !!officialUser,
+      });
     },
     { timeout: 60000 }
   );
@@ -162,7 +168,10 @@ describe('stdin message compatibility', () => {
       // Both should have same message sequence
       expect(openTypes).toEqual(officialTypes);
 
-      console.log('   Message order:', { open: openTypes, official: officialTypes });
+      console.log('   Message order:', {
+        open: openTypes,
+        official: officialTypes,
+      });
     },
     { timeout: 60000 }
   );
@@ -388,7 +397,7 @@ describe('stdin message compatibility', () => {
       expect(officialInit?.request?.systemPrompt).toBe(systemPrompt);
 
       console.log('   systemPrompt option test passed');
-      console.log('   Lite systemPrompt:', openInit?.request?.systemPrompt);
+      console.log('   Open systemPrompt:', openInit?.request?.systemPrompt);
       console.log('   Official systemPrompt:', officialInit?.request?.systemPrompt);
     },
     { timeout: 60000 }
@@ -659,8 +668,12 @@ describe('stdin message compatibility', () => {
         required: ['name'],
       };
       const [open, official] = await Promise.all([
-        capture(openQuery, 'test', { outputFormat: { type: 'json_schema', schema } }),
-        capture(officialQuery, 'test', { outputFormat: { type: 'json_schema', schema } }),
+        capture(openQuery, 'test', {
+          outputFormat: { type: 'json_schema', schema },
+        }),
+        capture(officialQuery, 'test', {
+          outputFormat: { type: 'json_schema', schema },
+        }),
       ]);
 
       expect(open.args).toContain('--json-schema');
@@ -720,8 +733,12 @@ describe('stdin message compatibility', () => {
         });
 
       const [open, official] = await Promise.all([
-        capture(openQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
-        capture(officialQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
+        capture(openQuery, 'test', {
+          mcpServers: { 'test-tools': makeServer() },
+        }),
+        capture(officialQuery, 'test', {
+          mcpServers: { 'test-tools': makeServer() },
+        }),
       ]);
 
       // Both should have --mcp-config with the SDK server (stripped of instance)

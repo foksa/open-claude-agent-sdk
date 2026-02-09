@@ -11,7 +11,7 @@ async function main() {
       maxTurns: 100,
       cwd: path.join(process.cwd(), 'agent'),
       model: 'opus',
-      // Note: executable option removed - lite SDK uses CLI directly
+      // Note: executable option removed - open SDK uses CLI directly
       allowedTools: [
         'Task',
         'Bash',

@@ -1,5 +1,5 @@
 {
-  "name": "resume-generator-lite",
+  "name": "resume-generator-open",
   "type": "module",
   "description": "Generate professional resumes using open-claude-agent-sdk with web search",
   "scripts": {
