@@ -188,7 +188,7 @@ export type SDKControlInitializeResponse = {
  * Use this type instead of Query to access extra methods like
  * availableOutputStyles() and currentOutputStyle().
  */
-export type LiteQuery = import('@anthropic-ai/claude-agent-sdk').Query & {
+export type ExtendedQuery = import('@anthropic-ai/claude-agent-sdk').Query & {
   availableOutputStyles(): Promise<string[]>;
   currentOutputStyle(): Promise<string>;
 };

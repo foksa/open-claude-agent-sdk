@@ -1,13 +1,13 @@
 # Query Control Methods
 
-The `Query` object in lite-claude-agent-sdk is an `AsyncGenerator<SDKMessage>` that also provides control methods for managing the Claude CLI subprocess during execution.
+The `Query` object in open-claude-agent-sdk is an `AsyncGenerator<SDKMessage>` that also provides control methods for managing the Claude CLI subprocess during execution.
 
 ## Overview
 
 When you call `query()`, it returns a `Query` object that you can iterate over to receive messages. The Query object also exposes control methods that send commands to the CLI via stdin.
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 const q = query({
   prompt: 'Hello, Claude!',

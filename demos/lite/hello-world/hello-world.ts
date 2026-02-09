@@ -1,4 +1,4 @@
-// Using lite-claude-agent-sdk instead of official SDK
+// Using open-claude-agent-sdk instead of official SDK
 
 import * as path from 'path';
 import { query } from '../../../src/index.ts';

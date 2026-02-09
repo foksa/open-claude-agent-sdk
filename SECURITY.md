@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability, please report it via [GitHub Issues](https://github.com/foksa/lite-claude-agent-sdk/issues) with the label `security`.
+If you discover a security vulnerability, please report it via [GitHub Issues](https://github.com/foksa/open-claude-agent-sdk/issues) with the label `security`.
 
 For sensitive vulnerabilities that should not be disclosed publicly, email the maintainers directly.
 

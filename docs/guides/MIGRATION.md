@@ -1,6 +1,6 @@
-# Migration Guide: Official SDK to Lite SDK
+# Migration Guide: Official SDK to Open SDK
 
-Migrate from `@anthropic-ai/claude-agent-sdk` to `lite-claude-agent-sdk`.
+Migrate from `@anthropic-ai/claude-agent-sdk` to `open-claude-agent-sdk`.
 
 ---
 
@@ -22,10 +22,10 @@ Migrate from `@anthropic-ai/claude-agent-sdk` to `lite-claude-agent-sdk`.
 
 ## Migration Steps
 
-### Step 1: Install Lite SDK
+### Step 1: Install Open SDK
 
 ```bash
-bun add lite-claude-agent-sdk
+bun add open-claude-agent-sdk
 
 # Requires Claude CLI
 npm install -g @anthropic-ai/claude-code
@@ -36,8 +36,8 @@ npm install -g @anthropic-ai/claude-code
 ```diff
 - import { query } from '@anthropic-ai/claude-agent-sdk';
 - import type { SDKMessage, Options } from '@anthropic-ai/claude-agent-sdk';
-+ import { query } from 'lite-claude-agent-sdk';
-+ import type { SDKMessage, Options } from 'lite-claude-agent-sdk';
++ import { query } from 'open-claude-agent-sdk';
++ import type { SDKMessage, Options } from 'open-claude-agent-sdk';
 ```
 
 That's it. Most code works identically.
@@ -57,7 +57,7 @@ All of these work identically between both SDKs — only the import changes.
 ### One-Shot Query
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 for await (const msg of query({
   prompt: 'Write a haiku about coding',
@@ -75,7 +75,7 @@ for await (const msg of query({
 ### Multi-Turn with streamInput()
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 const q = query({
   prompt: 'Hello',
@@ -193,14 +193,14 @@ bun install
 
 1. Check [FEATURES.md](../planning/FEATURES.md) for known differences
 2. Verify CLI version: `claude --version`
-3. Report issue on [GitHub](https://github.com/foksa/lite-claude-agent-sdk/issues)
+3. Report issue on [GitHub](https://github.com/foksa/open-claude-agent-sdk/issues)
 
 ---
 
 ## Rollback
 
 ```bash
-bun remove lite-claude-agent-sdk
+bun remove open-claude-agent-sdk
 bun add @anthropic-ai/claude-agent-sdk
 ```
 

@@ -8,7 +8,7 @@
  *
  * @example
  * ```typescript
- * import { query } from 'lite-claude-agent-sdk';
+ * import { query } from 'open-claude-agent-sdk';
  *
  * const outputFile = `/tmp/capture-${Date.now()}.json`;
  * process.env.CAPTURE_OUTPUT_FILE = outputFile;

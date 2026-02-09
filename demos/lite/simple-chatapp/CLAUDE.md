@@ -2,7 +2,7 @@
 
 > Ported from [claude-agent-sdk-demos](https://github.com/anthropics/claude-agent-sdk-demos)
 
-A minimal chat application demonstrating the **lite-claude-agent-sdk**.
+A minimal chat application demonstrating the **open-claude-agent-sdk**.
 Only change from official: `import { query } from "../../../src/index.ts"` in `ai-client.ts`.
 
 ## Architecture

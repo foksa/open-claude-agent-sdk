@@ -1,6 +1,6 @@
 {
   "name": "hello-world",
-  "description": "Hello World demo using lite-claude-agent-sdk (ported from official SDK demos)",
+  "description": "Hello World demo using open-claude-agent-sdk (ported from official SDK demos)",
   "dependencies": {
     "zod": "^4.1.12"
   },

@@ -53,7 +53,7 @@ test.skipIf(!hasPlaywright)(
       expect(page).toContain('SDK Comparison Demo');
       expect(page).toContain('Multi-Turn Support');
       expect(page).toContain('Official SDK');
-      expect(page).toContain('Lite SDK');
+      expect(page).toContain('Open SDK');
     } finally {
       // Clean up
       try {
@@ -119,7 +119,7 @@ test.skipIf(!hasPlaywright)(
       expect(page).toContain('assistant');
 
       // Should show some output in both panels
-      const hasOutput = page.includes('Official SDK') && page.includes('Lite SDK');
+      const hasOutput = page.includes('Official SDK') && page.includes('Open SDK');
       expect(hasOutput).toBe(true);
     } finally {
       try {

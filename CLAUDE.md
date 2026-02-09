@@ -1,4 +1,4 @@
-# Lite Claude Agent SDK
+# Open Claude Agent SDK
 
 A lightweight wrapper around Claude CLI - we're building a thin SDK that re-uses the local Claude binary instead of embedding it.
 

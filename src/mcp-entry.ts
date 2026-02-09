@@ -1,11 +1,11 @@
 /**
  * MCP entry point — createSdkMcpServer() and tool() helpers
  *
- * Import from '@lite-claude/agent-sdk/mcp' when you need in-process MCP servers.
+ * Import from 'open-claude-agent-sdk/mcp' when you need in-process MCP servers.
  *
  * @example
  * ```typescript
- * import { createSdkMcpServer, tool } from '@lite-claude/agent-sdk/mcp';
+ * import { createSdkMcpServer, tool } from 'open-claude-agent-sdk/mcp';
  * import { z } from 'zod';
  *
  * const server = createSdkMcpServer({

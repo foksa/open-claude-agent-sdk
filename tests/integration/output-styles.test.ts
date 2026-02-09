@@ -13,7 +13,7 @@
 
 import { expect } from 'bun:test';
 import path from 'node:path';
-import type { LiteQuery } from '../../src/types/index.ts';
+import type { ExtendedQuery } from '../../src/types/index.ts';
 import { testWithBothSDKs } from './comparison-utils.ts';
 
 const fixturesDir = path.join(import.meta.dir, '../fixtures');
@@ -104,7 +104,7 @@ testWithBothSDKs(
 );
 
 // ============================================================================
-// Lite SDK Extension Tests (availableOutputStyles / currentOutputStyle)
+// Open SDK Extension Tests (availableOutputStyles / currentOutputStyle)
 // ============================================================================
 
 testWithBothSDKs(
@@ -152,7 +152,7 @@ testWithBothSDKs(
           './node_modules/@anthropic-ai/claude-agent-sdk/cli.js'
         ),
       },
-    }) as LiteQuery;
+    }) as ExtendedQuery;
 
     const styles = await q.availableOutputStyles();
     const current = await q.currentOutputStyle();

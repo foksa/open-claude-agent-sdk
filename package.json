@@ -1,17 +1,17 @@
 {
-  "name": "lite-claude-agent-sdk",
+  "name": "open-claude-agent-sdk",
   "version": "0.9.0",
   "description": "A lightweight alternative to Claude Agent SDK - 70x smaller, uses local CLI",
   "license": "MIT",
-  "author": "lite-claude contributors",
+  "author": "open-claude contributors",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/foksa/lite-claude-agent-sdk.git"
+    "url": "git+https://github.com/foksa/open-claude-agent-sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/foksa/lite-claude-agent-sdk/issues"
+    "url": "https://github.com/foksa/open-claude-agent-sdk/issues"
   },
-  "homepage": "https://github.com/foksa/lite-claude-agent-sdk#readme",
+  "homepage": "https://github.com/foksa/open-claude-agent-sdk#readme",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

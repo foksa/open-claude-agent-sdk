@@ -8,7 +8,7 @@
 
 This guide documents the proxy CLI technique used to discover protocol details that fixed our 73% cost difference with Official SDK.
 
-**Problem:** Lite SDK was using 3,300 extra cache tokens per turn (73% more expensive)
+**Problem:** Open SDK was using 3,300 extra cache tokens per turn (73% more expensive)
 **Solution:** Create a proxy CLI that logs all stdin/stdout to discover what Official SDK does differently
 **Result:** Found missing `systemPrompt: ""` field, achieved full parity
 
@@ -27,7 +27,7 @@ SDK → Proxy CLI (logs everything) → Real CLI → Claude API
 By intercepting all communication between SDK and CLI, we can:
 - See exact message formats
 - Discover undocumented protocol details
-- Compare Official SDK vs Lite SDK behavior
+- Compare Official SDK vs Open SDK behavior
 - Find hidden flags, options, or fields
 
 ### Implementation
@@ -67,7 +67,7 @@ realCli.stdout.on('data', (chunk) => {
 **Step 1: Reproduce the issue**
 ```bash
 bun tests/research/multi-turn-comparison.ts
-# Result: Lite SDK costs $0.051 vs Official $0.029 (73% more)
+# Result: Open SDK costs $0.051 vs Official $0.029 (73% more)
 ```
 
 **Step 2: Run both SDKs through proxy**
@@ -80,7 +80,7 @@ const options = {
 // Run Official SDK
 for await (const msg of officialQuery({ prompt, options })) { ... }
 
-// Run Lite SDK
+// Run Open SDK
 for await (const msg of liteQuery({ prompt, options })) { ... }
 ```
 
@@ -102,7 +102,7 @@ STDIN #1:
 }
 ```
 
-**Lite SDK log (before fix):**
+**Open SDK log (before fix):**
 ```json
 STDIN #1:
 {
@@ -155,7 +155,7 @@ this.sendControlProtocolInit(options);
 bun tests/research/test-official-proxy.ts
 ```
 
-2. **Run Lite SDK through proxy:**
+2. **Run Open SDK through proxy:**
 ```bash
 bun tests/research/test-lite-only.ts
 ```
@@ -184,7 +184,7 @@ STDIN MESSAGE COMPARISON
 =========================================
 
 Official SDK sent: 1 stdin messages
-Lite SDK sent: 1 stdin messages
+Open SDK sent: 1 stdin messages
 
 ✅ Same number of messages
 
@@ -314,7 +314,7 @@ When Official SDK adds features:
 
 1. Run Official SDK through proxy
 2. Examine logs for new fields/messages
-3. Implement in Lite SDK
+3. Implement in Open SDK
 4. Verify with proxy comparison
 
 ### API Protocol Evolution
@@ -334,7 +334,7 @@ diff baselines/v0.1.0.log logs/proxy-*.log
 
 Build tests that:
 - Run Official SDK through proxy (golden output)
-- Run Lite SDK through proxy
+- Run Open SDK through proxy
 - Assert logs are identical
 - Fail if protocol diverges
 

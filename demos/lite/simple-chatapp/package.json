@@ -2,7 +2,7 @@
   "name": "simple-chatapp",
   "version": "1.0.0",
   "type": "module",
-  "description": "A simple chat application using lite-claude-agent-sdk (ported from official SDK demos)",
+  "description": "A simple chat application using open-claude-agent-sdk (ported from official SDK demos)",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "tsx watch server/server.ts",

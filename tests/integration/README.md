@@ -1,6 +1,6 @@
 # Integration Tests
 
-This directory contains integration tests for the Lite Claude Agent SDK.
+This directory contains integration tests for the Open Claude Agent SDK.
 
 ## Test Philosophy
 
@@ -16,7 +16,7 @@ These tests run the **exact same test** with both lite and official SDKs:
 - `hooks.test.ts` - Hook system (PreToolUse, PostToolUse, UserPromptSubmit, etc.)
 
 Each test runs **twice**:
-- `[lite]` prefix - uses our lightweight SDK (`@lite-claude/agent-sdk`)
+- `[lite]` prefix - uses our lightweight SDK (`open-claude-agent-sdk`)
 - `[official]` prefix - uses official SDK (`@anthropic-ai/claude-agent-sdk`)
 
 This ensures we maintain 100% compatibility with the official SDK.

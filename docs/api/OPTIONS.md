@@ -1,11 +1,11 @@
-# Lite Claude Agent SDK - Options Reference
+# Open Claude Agent SDK - Options Reference
 
-This document describes all options supported by the `lite-claude-agent-sdk` when calling the `query()` function.
+This document describes all options supported by the `open-claude-agent-sdk` when calling the `query()` function.
 
 ## Basic Usage
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 const result = query({
   prompt: 'What files are in this directory?',

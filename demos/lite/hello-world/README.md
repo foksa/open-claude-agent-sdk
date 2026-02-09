@@ -1,7 +1,7 @@
 # Hello World
 
 > **Ported from [claude-agent-sdk-demos](https://github.com/anthropics/claude-agent-sdk-demos)**
-> This demo uses **lite-claude-agent-sdk** instead of the official SDK.
+> This demo uses **open-claude-agent-sdk** instead of the official SDK.
 
 A simple example demonstrating how to use the Claude Agent SDK to create autonomous agents that can interact with Claude.
 
@@ -12,7 +12,7 @@ The Claude Agent SDK allows you to programmatically build AI agents with Claude'
 ## Installation
 
 ```bash
-# From lite-claude-agent-sdk root
+# From open-claude-agent-sdk root
 cd examples/hello-world
 npm install
 ```
@@ -38,7 +38,7 @@ The `agent` directory is used as the working directory for the Claude agent, and
 The SDK uses a `query()` function that returns an async iterable of messages:
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';  // or official: '@anthropic-ai/claude-agent-sdk'
+import { query } from 'open-claude-agent-sdk';  // or official: '@anthropic-ai/claude-agent-sdk'
 
 const q = query({
   prompt: 'Your prompt here',

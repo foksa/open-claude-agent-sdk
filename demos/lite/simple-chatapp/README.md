@@ -1,7 +1,7 @@
 # Simple Chat App
 
 > **Ported from [claude-agent-sdk-demos](https://github.com/anthropics/claude-agent-sdk-demos)**
-> This demo uses **lite-claude-agent-sdk** instead of the official SDK.
+> This demo uses **open-claude-agent-sdk** instead of the official SDK.
 
 A demo chat application using the Claude Agent SDK with a React frontend and Express backend.
 
@@ -17,7 +17,7 @@ A demo chat application using the Claude Agent SDK with a React frontend and Exp
 ### Installation
 
 ```bash
-# From lite-claude-agent-sdk root
+# From open-claude-agent-sdk root
 cd examples/simple-chatapp
 npm install
 ```

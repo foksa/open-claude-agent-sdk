@@ -1,7 +1,7 @@
 {
   "name": "resume-generator-lite",
   "type": "module",
-  "description": "Generate professional resumes using lite-claude-agent-sdk with web search",
+  "description": "Generate professional resumes using open-claude-agent-sdk with web search",
   "scripts": {
     "start": "bun resume-generator.ts"
   },

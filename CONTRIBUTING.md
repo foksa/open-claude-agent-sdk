@@ -1,4 +1,4 @@
-# Contributing to lite-claude-agent-sdk
+# Contributing to open-claude-agent-sdk
 
 Thank you for your interest in contributing!
 
