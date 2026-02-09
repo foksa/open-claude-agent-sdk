@@ -10,6 +10,8 @@ import { unlinkSync, writeFileSync } from 'node:fs';
 import { query } from '../../src/api/query.ts';
 import type { SDKMessage } from '../../src/types/index.ts';
 
+// NOTE: These tests use fake bash scripts as CLI — no API calls, zero cost.
+
 /**
  * Create a temporary executable script, returning its path.
  * Caller is responsible for cleanup.

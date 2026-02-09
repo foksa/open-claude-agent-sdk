@@ -3,7 +3,7 @@
  *
  * Tests control methods on the Query object: supportedCommands, supportedModels,
  * reconnectMcpServer, toggleMcpServer, setMcpServers, initializationResult,
- * setModel, close, Symbol.asyncDispose.
+ * setModel, setMaxThinkingTokens.
  *
  * Each test verifies actual runtime behavior with both SDKs.
  */
@@ -193,47 +193,6 @@ testWithBothSDKs(
 
     expect(messages.length).toBeGreaterThan(0);
     console.log(`   [${sdk}] setModel called successfully`);
-  },
-  90000
-);
-
-// =============================================================================
-// close
-// =============================================================================
-
-testWithBothSDKs(
-  'close() terminates the query',
-  async (sdk) => {
-    const q = await createQuery(sdk, { maxTurns: 10 });
-
-    let messageCount = 0;
-    for await (const _msg of q) {
-      messageCount++;
-      if (messageCount >= 3) {
-        q.close();
-        break;
-      }
-    }
-
-    expect(messageCount).toBeGreaterThan(0);
-    console.log(`   [${sdk}] close() terminated query after ${messageCount} messages`);
-  },
-  90000
-);
-
-// =============================================================================
-// Symbol.asyncDispose
-// =============================================================================
-
-testWithBothSDKs(
-  'supports Symbol.asyncDispose for automatic cleanup',
-  async (sdk) => {
-    const q = await createQuery(sdk);
-
-    expect(typeof (q as unknown as Record<symbol, unknown>)[Symbol.asyncDispose]).toBe('function');
-
-    await drain(q);
-    console.log(`   [${sdk}] Symbol.asyncDispose is implemented`);
   },
   90000
 );

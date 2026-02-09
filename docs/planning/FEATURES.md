@@ -1,6 +1,6 @@
 # Feature Comparison: Lite SDK vs Official SDK
 
-**Last Updated:** 2026-02-07
+**Last Updated:** 2026-02-08
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -165,7 +165,7 @@ Handled by the CLI subprocess:
 |--------|----------|--------------|
 | Bundle size | ~488KB | ~13MB |
 | Source code | ~2,500 LOC | ~50,000+ LOC |
-| Test files | 36 (28 integration + 8 unit) | — |
+| Test files | 36 (23 integration + 1 unimplemented + 12 unit) | — |
 | Dependencies | CLI (external) | Self-contained |
 
 ---

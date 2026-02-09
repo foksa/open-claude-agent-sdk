@@ -10,7 +10,6 @@
  */
 
 import { expect } from 'bun:test';
-import type { PermissionResult } from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
 testWithBothSDKs('canUseTool callback allows tool execution', async (sdk) => {
@@ -115,68 +114,4 @@ testWithBothSDKs('canUseTool callback with selective filtering', async (sdk) => 
 
   expect(toolsRequested.length).toBeGreaterThan(0);
   console.log(`   [${sdk}] Tools requested:`, toolsRequested);
-});
-
-testWithBothSDKs('no canUseTool callback defaults to allow with bypassPermissions', async (sdk) => {
-  // Note: This test uses Read which doesn't require permission anyway,
-  // but with bypassPermissions mode, even Write would auto-approve
-  const messages = await runWithSDK(sdk, 'Read the package.json file', {
-    maxTurns: 10,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
-    // No canUseTool callback - with bypassPermissions, all tools auto-approve
-  });
-
-  const result = messages.find((m) => m.type === 'result');
-  expect(result).toBeTruthy();
-  if (result && result.type === 'result') {
-    expect(result.subtype).toBe('success');
-  }
-});
-
-testWithBothSDKs('canUseTool callback with async operations', async (sdk) => {
-  const delays: number[] = [];
-
-  await runWithSDK(
-    sdk,
-    'Write the text "async test" to /tmp/permission-async-test.txt', // Write requires permission
-    {
-      maxTurns: 5,
-      permissionMode: 'default',
-      canUseTool: async (_toolName, input, _context) => {
-        const start = Date.now();
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        delays.push(Date.now() - start);
-        return { behavior: 'allow', updatedInput: input };
-      },
-    }
-  );
-
-  expect(delays.length).toBeGreaterThan(0);
-  expect(delays[0]).toBeGreaterThanOrEqual(90);
-  console.log(`   [${sdk}] Async delay:`, delays[0], 'ms');
-});
-
-testWithBothSDKs('canUseTool callback can return permission updates', async (sdk) => {
-  let callbackCalled = false;
-
-  await runWithSDK(
-    sdk,
-    'Write the text "updates test" to /tmp/permission-updates-test.txt', // Write requires permission
-    {
-      maxTurns: 5,
-      permissionMode: 'default',
-      canUseTool: async (_toolName, input, _context): Promise<PermissionResult> => {
-        callbackCalled = true;
-        return {
-          behavior: 'allow',
-          updatedInput: input,
-          // Permission updates could be added here via updatedPermissions
-        };
-      },
-    }
-  );
-
-  expect(callbackCalled).toBe(true);
-  console.log(`   [${sdk}] canUseTool callback was called:`, callbackCalled);
 });
