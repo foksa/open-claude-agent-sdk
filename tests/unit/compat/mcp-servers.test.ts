@@ -6,7 +6,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { createSdkMcpServer, tool } from '../../../src/types/index.ts';
-import { capture, liteQuery, officialQuery } from './capture-utils.ts';
+import { capture, officialQuery, openQuery } from './capture-utils.ts';
 
 describe('mcpServers init message compatibility', () => {
   test.concurrent(
@@ -23,19 +23,19 @@ describe('mcpServers init message compatibility', () => {
           ],
         });
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
         capture(officialQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       // Both should have sdkMcpServers
-      expect(liteInit?.request?.sdkMcpServers).toEqual(['test-tools']);
+      expect(openInit?.request?.sdkMcpServers).toEqual(['test-tools']);
       expect(officialInit?.request?.sdkMcpServers).toEqual(['test-tools']);
 
       console.log('   sdkMcpServers in init message matches');
@@ -49,19 +49,19 @@ describe('mcpServers init message compatibility', () => {
       const mcpServers = {
         playwright: { command: 'npx', args: ['@playwright/mcp@latest'] },
       };
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { mcpServers }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { mcpServers }),
         capture(officialQuery, 'test', { mcpServers }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       // Neither should have sdkMcpServers
-      expect(liteInit?.request?.sdkMcpServers).toBeUndefined();
+      expect(openInit?.request?.sdkMcpServers).toBeUndefined();
       expect(officialInit?.request?.sdkMcpServers).toBeUndefined();
 
       console.log('   process-only mcpServers: no sdkMcpServers in init');
@@ -83,8 +83,8 @@ describe('mcpServers init message compatibility', () => {
           ],
         });
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', {
           mcpServers: {
             playwright: { command: 'npx', args: ['@playwright/mcp@latest'] },
             'custom-tools': makeServer(),
@@ -99,19 +99,19 @@ describe('mcpServers init message compatibility', () => {
       ]);
 
       // CLI args: --mcp-config should include both (SDK server stripped of instance)
-      const liteIdx = lite.args.indexOf('--mcp-config');
+      const openIdx = open.args.indexOf('--mcp-config');
       const officialIdx = official.args.indexOf('--mcp-config');
 
-      const liteMcpConfig = JSON.parse(lite.args[liteIdx + 1]);
+      const openMcpConfig = JSON.parse(open.args[openIdx + 1]);
       const officialMcpConfig = JSON.parse(official.args[officialIdx + 1]);
 
-      expect(liteMcpConfig).toEqual(officialMcpConfig);
+      expect(openMcpConfig).toEqual(officialMcpConfig);
 
       // Init message: should have sdkMcpServers with only SDK server name
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit?.request?.sdkMcpServers).toEqual(['custom-tools']);
+      expect(openInit?.request?.sdkMcpServers).toEqual(['custom-tools']);
       expect(officialInit?.request?.sdkMcpServers).toEqual(['custom-tools']);
 
       console.log('   mixed mcpServers match');

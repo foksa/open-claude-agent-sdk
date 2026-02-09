@@ -16,9 +16,9 @@ import { expect } from 'bun:test';
 import { testWithBothSDKsTodo } from '../comparison-utils.ts';
 
 testWithBothSDKsTodo('rewindFiles() restores files to checkpoint state', async (sdk) => {
-  const { query: liteQuery } = await import('../../src/api/query.ts');
+  const { query: openQuery } = await import('../../src/api/query.ts');
   const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
-  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+  const queryFn = sdk === 'open' ? openQuery : officialQuery;
   const fs = await import('node:fs/promises');
 
   const testFile = '/tmp/rewind-test.txt';

@@ -1,7 +1,7 @@
 /**
  * Tests for cost/usage tracking in SDK result and assistant messages.
  *
- * The lite SDK is a pass-through wrapper — cost data flows through from CLI
+ * The open SDK is a pass-through wrapper — cost data flows through from CLI
  * without any src/ code changes. These tests verify the data arrives correctly.
  */
 

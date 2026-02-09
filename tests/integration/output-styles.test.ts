@@ -25,9 +25,9 @@ const fixturesDir = path.join(import.meta.dir, '../fixtures');
 testWithBothSDKs(
   'custom output style appears in initializationResult',
   async (sdk) => {
-    const { query: liteQuery } = await import('../../src/api/query.ts');
+    const { query: openQuery } = await import('../../src/api/query.ts');
     const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
-    const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+    const queryFn = sdk === 'open' ? openQuery : officialQuery;
 
     const q = queryFn({
       prompt: 'Say hello',
@@ -67,9 +67,9 @@ testWithBothSDKs(
 testWithBothSDKs(
   'custom output style not loaded without settingSources',
   async (sdk) => {
-    const { query: liteQuery } = await import('../../src/api/query.ts');
+    const { query: openQuery } = await import('../../src/api/query.ts');
     const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
-    const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+    const queryFn = sdk === 'open' ? openQuery : officialQuery;
 
     const q = queryFn({
       prompt: 'Say hello',
@@ -108,7 +108,7 @@ testWithBothSDKs(
 // ============================================================================
 
 testWithBothSDKs(
-  'availableOutputStyles() returns custom styles (lite extension)',
+  'availableOutputStyles() returns custom styles (open extension)',
   async (sdk) => {
     if (sdk === 'official') {
       // Official SDK doesn't have this method — verify via initializationResult
@@ -138,8 +138,8 @@ testWithBothSDKs(
       return;
     }
 
-    const { query: liteQuery } = await import('../../src/api/query.ts');
-    const q = liteQuery({
+    const { query: openQuery } = await import('../../src/api/query.ts');
+    const q = openQuery({
       prompt: 'Say hello',
       options: {
         permissionMode: 'bypassPermissions',
@@ -165,7 +165,7 @@ testWithBothSDKs(
       if (msg.type === 'result') break;
     }
 
-    console.log(`   [lite] currentOutputStyle: "${current}", styles: [${styles.join(', ')}]`);
+    console.log(`   [open] currentOutputStyle: "${current}", styles: [${styles.join(', ')}]`);
   },
   90000
 );

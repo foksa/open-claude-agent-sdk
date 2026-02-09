@@ -1,16 +1,16 @@
 /**
  * Shared capture infrastructure for SDK compatibility tests
  *
- * Provides utilities to run both lite and official SDKs through a capture proxy
+ * Provides utilities to run both open and official SDKs through a capture proxy
  * and compare CLI arguments and stdin messages.
  */
 
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
-import { query as liteQuery } from '../../../src/api/query.ts';
+import { query as openQuery } from '../../../src/api/query.ts';
 import type { Query } from '../../../src/types/index.ts';
 
-export { liteQuery, officialQuery };
+export { openQuery, officialQuery };
 
 export const CAPTURE_CLI = './src/tools/capture-cli.cjs';
 
@@ -55,7 +55,7 @@ export type CaptureResult = {
  * Run SDK query and capture CLI args + stdin messages
  */
 export async function capture(
-  queryFn: typeof liteQuery,
+  queryFn: typeof openQuery,
   prompt: string,
   options: Record<string, unknown> = {}
 ): Promise<CaptureResult> {
@@ -115,7 +115,7 @@ CAPTURE_OUTPUT_FILE="${outputFile}" exec node "${process.cwd()}/${CAPTURE_CLI}" 
  * Run SDK query, call a method on the Query object, then consume and capture
  */
 export async function captureWithQuery(
-  queryFn: typeof liteQuery,
+  queryFn: typeof openQuery,
   prompt: string,
   queryCallback: (q: Query) => Promise<void>,
   options: Record<string, unknown> = {}

@@ -24,10 +24,10 @@ const baseOptions = {
 };
 
 /** Create a query using the correct SDK */
-async function createQuery(sdk: 'lite' | 'official', opts = {}) {
-  const { query: liteQuery } = await import('../../src/api/query.ts');
+async function createQuery(sdk: 'open' | 'official', opts = {}) {
+  const { query: openQuery } = await import('../../src/api/query.ts');
   const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
-  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+  const queryFn = sdk === 'open' ? openQuery : officialQuery;
   return queryFn({
     prompt: 'Say hello',
     options: { ...baseOptions, ...opts },

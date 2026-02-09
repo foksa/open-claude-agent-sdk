@@ -5,7 +5,7 @@
 
 import { expect } from 'bun:test';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
-import { query as liteQuery } from '../../src/api/query.ts';
+import { query as openQuery } from '../../src/api/query.ts';
 import type { SDKUserMessage } from '../../src/types/index.ts';
 import { testWithBothSDKs } from './comparison-utils.ts';
 
@@ -15,7 +15,7 @@ const RED_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAEklEQVR4nGP4z8CAB+GTG8HSALfKY52fTcuYAAAAAElFTkSuQmCC';
 
 testWithBothSDKs('image upload via streaming input', async (sdk) => {
-  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+  const queryFn = sdk === 'open' ? openQuery : officialQuery;
 
   const q = queryFn({
     prompt: 'Say "ready" in one word',

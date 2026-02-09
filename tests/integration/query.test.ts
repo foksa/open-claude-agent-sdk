@@ -1,5 +1,5 @@
 /**
- * Comparison tests: Same tests run with both lite and official SDKs
+ * Comparison tests: Same tests run with both open and official SDKs
  * Validates that our SDK produces compatible results
  */
 
@@ -81,7 +81,7 @@ testWithBothSDKs('custom model', async (sdk) => {
 test(
   'structure comparison: both SDKs produce similar message flow',
   async () => {
-    const liteMessages = await runWithSDK('lite', 'Say hello', {
+    const openMessages = await runWithSDK('open', 'Say hello', {
       maxTurns: 1,
     });
 
@@ -89,10 +89,10 @@ test(
       maxTurns: 1,
     });
 
-    const comparison = compareMessageStructures(liteMessages, officialMessages);
+    const comparison = compareMessageStructures(openMessages, officialMessages);
 
     console.log('   Structure comparison:', {
-      lite: `${comparison.liteCount} messages`,
+      open: `${comparison.openCount} messages`,
       official: `${comparison.officialCount} messages`,
     });
 
@@ -101,7 +101,7 @@ test(
     expect(comparison.bothHaveResult).toBe(true);
 
     // Message counts should be similar (within reasonable range)
-    const ratio = comparison.liteCount / comparison.officialCount;
+    const ratio = comparison.openCount / comparison.officialCount;
     expect(ratio).toBeGreaterThan(0.5);
     expect(ratio).toBeLessThan(2.0);
   },

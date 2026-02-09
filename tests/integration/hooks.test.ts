@@ -1,6 +1,6 @@
 /**
  * Comparison tests for hook system
- * Same tests run with both lite and official SDKs
+ * Same tests run with both open and official SDKs
  */
 
 import { expect } from 'bun:test';

@@ -202,9 +202,9 @@ testWithBothSDKs(
 testWithBothSDKs(
   'setPermissionMode() changes mode during streaming',
   async (sdk) => {
-    const { query: liteQuery } = await import('../../src/api/query.ts');
+    const { query: openQuery } = await import('../../src/api/query.ts');
     const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
-    const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+    const queryFn = sdk === 'open' ? openQuery : officialQuery;
 
     let permissionCallsBeforeChange = 0;
     let permissionCallsAfterChange = 0;

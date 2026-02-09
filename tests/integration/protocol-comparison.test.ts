@@ -8,7 +8,7 @@
 import { describe, expect, test } from 'bun:test';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
-import { query as liteQuery } from '../../src/api/query.ts';
+import { query as openQuery } from '../../src/api/query.ts';
 import type { HookCallbackMatcher, Options } from '../../src/types/index.ts';
 
 const COMPARE_CLI = './tests/utils/compare-cli.cjs';
@@ -34,7 +34,7 @@ interface CaptureResult {
 let captureCounter = 0;
 
 async function captureProtocol(
-  queryFn: typeof liteQuery,
+  queryFn: typeof openQuery,
   prompt: string,
   options: Options = {}
 ): Promise<CaptureResult> {
@@ -122,14 +122,14 @@ describe('protocol comparison', () => {
   test.concurrent(
     'stdin sequence matches',
     async () => {
-      const [lite, official] = await Promise.all([
-        captureProtocol(liteQuery, 'Say hi'),
+      const [open, official] = await Promise.all([
+        captureProtocol(openQuery, 'Say hi'),
         captureProtocol(officialQuery, 'Say hi'),
       ]);
-      const liteTypes = lite.stdin.map(getMessageType);
+      const openTypes = open.stdin.map(getMessageType);
       const officialTypes = official.stdin.map(getMessageType);
-      expect(liteTypes).toEqual(officialTypes);
-      console.log('   Stdin:', liteTypes);
+      expect(openTypes).toEqual(officialTypes);
+      console.log('   Stdin:', openTypes);
     },
     { timeout: 60000 }
   );
@@ -137,16 +137,16 @@ describe('protocol comparison', () => {
   test.concurrent(
     'init structure matches',
     async () => {
-      const [lite, official] = await Promise.all([
-        captureProtocol(liteQuery, 'test'),
+      const [open, official] = await Promise.all([
+        captureProtocol(openQuery, 'test'),
         captureProtocol(officialQuery, 'test'),
       ]);
-      const liteInit = lite.stdin.find((m) => m.message?.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.message?.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.message?.request?.subtype === 'initialize');
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
-      if (liteInit && officialInit) {
-        const l = normalizeMessage(liteInit.message);
+      if (openInit && officialInit) {
+        const l = normalizeMessage(openInit.message);
         const o = normalizeMessage(officialInit.message);
         expect(l.type).toBe(o.type);
         expect(l.request.subtype).toBe(o.request.subtype);
@@ -160,17 +160,17 @@ describe('protocol comparison', () => {
   test.concurrent(
     'user message matches',
     async () => {
-      const [lite, official] = await Promise.all([
-        captureProtocol(liteQuery, 'Protocol test'),
+      const [open, official] = await Promise.all([
+        captureProtocol(openQuery, 'Protocol test'),
         captureProtocol(officialQuery, 'Protocol test'),
       ]);
-      const liteUser = lite.stdin.find((m) => m.message?.type === 'user');
+      const openUser = open.stdin.find((m) => m.message?.type === 'user');
       const officialUser = official.stdin.find((m) => m.message?.type === 'user');
-      expect(liteUser).toBeTruthy();
+      expect(openUser).toBeTruthy();
       expect(officialUser).toBeTruthy();
-      if (liteUser && officialUser) {
-        expect(liteUser.message.message.role).toBe(officialUser.message.message.role);
-        expect(liteUser.message.message.content[0].text).toBe(
+      if (openUser && officialUser) {
+        expect(openUser.message.message.role).toBe(officialUser.message.message.role);
+        expect(openUser.message.message.content[0].text).toBe(
           officialUser.message.message.content[0].text
         );
       }
@@ -186,14 +186,14 @@ describe('protocol comparison', () => {
         PreToolUse: [{ matcher: 'Read', hooks: [async () => ({})] }],
         PostToolUse: [{ hooks: [async () => ({})] }],
       };
-      const [lite, official] = await Promise.all([
-        captureProtocol(liteQuery, 'test', { hooks }),
+      const [open, official] = await Promise.all([
+        captureProtocol(openQuery, 'test', { hooks }),
         captureProtocol(officialQuery, 'test', { hooks }),
       ]);
-      const liteInit = lite.stdin.find((m) => m.message?.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.message?.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.message?.request?.subtype === 'initialize');
-      if (liteInit && officialInit) {
-        expect(Object.keys(liteInit.message.request.hooks || {}).sort()).toEqual(
+      if (openInit && officialInit) {
+        expect(Object.keys(openInit.message.request.hooks || {}).sort()).toEqual(
           Object.keys(officialInit.message.request.hooks || {}).sort()
         );
       }
@@ -205,17 +205,17 @@ describe('protocol comparison', () => {
   test.concurrent(
     'stdout has expected messages',
     async () => {
-      const [lite, official] = await Promise.all([
-        captureProtocol(liteQuery, 'Say ok'),
+      const [open, official] = await Promise.all([
+        captureProtocol(openQuery, 'Say ok'),
         captureProtocol(officialQuery, 'Say ok'),
       ]);
-      const liteTypes = lite.stdout.map(getMessageType);
+      const openTypes = open.stdout.map(getMessageType);
       const officialTypes = official.stdout.map(getMessageType);
-      expect(liteTypes.includes('system:init')).toBe(officialTypes.includes('system:init'));
-      expect(liteTypes.some((t) => t.startsWith('result'))).toBe(
+      expect(openTypes.includes('system:init')).toBe(officialTypes.includes('system:init'));
+      expect(openTypes.some((t) => t.startsWith('result'))).toBe(
         officialTypes.some((t) => t.startsWith('result'))
       );
-      console.log('   Stdout lite:', liteTypes.slice(0, 4));
+      console.log('   Stdout open:', openTypes.slice(0, 4));
       console.log('   Stdout official:', officialTypes.slice(0, 4));
     },
     { timeout: 60000 }

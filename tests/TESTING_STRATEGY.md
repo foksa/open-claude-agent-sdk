@@ -12,8 +12,8 @@ Running the exact same test with both SDKs tells us:
 |---------|----------------|
 | ✅ **Both pass** | Our SDK works correctly! |
 | ❌ **Both fail** | The test itself has an issue (bad prompt, timeout, etc.) |
-| ⚠️ **Lite fails, official passes** | **BUG in our SDK** - needs fixing |
-| ⚠️ **Official fails, lite passes** | Rare edge case, good to investigate |
+| ⚠️ **Open fails, official passes** | **BUG in our SDK** - needs fixing |
+| ⚠️ **Official fails, open passes** | Rare edge case, good to investigate |
 
 This approach eliminates ambiguity: we know immediately if a failure is our fault or a test issue.
 
@@ -28,7 +28,7 @@ Total: **61 test executions**
 ### Test Files
 
 #### Comparison Tests (Both SDKs)
-Each test case runs twice with `[lite]` and `[official]` prefixes:
+Each test case runs twice with `[open]` and `[official]` prefixes:
 
 - **query.test.ts** (5 tests × 2 = 10 executions)
   - Basic hello world query
@@ -82,8 +82,8 @@ bun test
 # Run specific feature
 bun test tests/integration/permissions.test.ts
 
-# Run only [lite] tests (our SDK)
-bun test -t "\\[lite\\]"
+# Run only [open] tests (our SDK)
+bun test -t "\\[open\\]"
 
 # Run only [official] tests (official SDK)
 bun test -t "\\[official\\]"
@@ -127,8 +127,8 @@ bun test --verbose
 ## Next Steps
 
 1. **Run all tests:** `bun test`
-2. **Identify failures:** Check if [lite] or [official] or both fail
-3. **Fix bugs:** Address any [lite]-only failures
+2. **Identify failures:** Check if [open] or [official] or both fail
+3. **Fix bugs:** Address any [open]-only failures
 4. **Document findings:** Update test snapshots and fix flaky tests
 5. **Mark Phase 0.5 complete:** Once all tests pass with both SDKs
 
@@ -136,6 +136,6 @@ bun test --verbose
 
 Phase 0.5 validation is complete when:
 - [ ] All comparison tests pass with both SDKs
-- [ ] No [lite]-only failures (compatibility achieved)
+- [ ] No [open]-only failures (compatibility achieved)
 - [ ] Bundle size stays < 500KB
 - [ ] Documentation updated with findings

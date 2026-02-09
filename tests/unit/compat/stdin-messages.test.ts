@@ -1,7 +1,7 @@
 /**
  * Stdin message compatibility tests
  *
- * Verifies that lite SDK sends the same stdin messages as official SDK.
+ * Verifies that open SDK sends the same stdin messages as official SDK.
  */
 
 import { describe, expect, test } from 'bun:test';
@@ -10,37 +10,37 @@ import { createSdkMcpServer, tool } from '../../../src/types/index.ts';
 import {
   capture,
   captureWithQuery,
-  liteQuery,
   normalizeMessage,
   officialQuery,
+  openQuery,
 } from './capture-utils.ts';
 
 describe('stdin message compatibility', () => {
   test.concurrent(
     'init message structure matches official SDK',
     async () => {
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test'),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test'),
         capture(officialQuery, 'test'),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
-      if (liteInit && officialInit) {
+      if (openInit && officialInit) {
         // Compare structure (not request_id which is random)
-        expect(liteInit.type).toBe(officialInit.type);
-        expect(liteInit.request.subtype).toBe(officialInit.request.subtype);
+        expect(openInit.type).toBe(officialInit.type);
+        expect(openInit.request.subtype).toBe(officialInit.request.subtype);
 
         // Critical: systemPrompt field must be present (caused 73% cost increase when missing)
-        expect('systemPrompt' in liteInit.request).toBe('systemPrompt' in officialInit.request);
-        expect(liteInit.request.systemPrompt).toBe(officialInit.request.systemPrompt);
+        expect('systemPrompt' in openInit.request).toBe('systemPrompt' in officialInit.request);
+        expect(openInit.request.systemPrompt).toBe(officialInit.request.systemPrompt);
       }
 
-      console.log('   Init messages captured:', { lite: !!liteInit, official: !!officialInit });
+      console.log('   Init messages captured:', { open: !!openInit, official: !!officialInit });
     },
     { timeout: 60000 }
   );
@@ -50,40 +50,40 @@ describe('stdin message compatibility', () => {
     async () => {
       const testPrompt = 'hello world test';
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, testPrompt),
+      const [open, official] = await Promise.all([
+        capture(openQuery, testPrompt),
         capture(officialQuery, testPrompt),
       ]);
 
-      const liteUser = lite.stdin.find((m) => m.type === 'user');
+      const openUser = open.stdin.find((m) => m.type === 'user');
       const officialUser = official.stdin.find((m) => m.type === 'user');
 
-      expect(liteUser).toBeTruthy();
+      expect(openUser).toBeTruthy();
       expect(officialUser).toBeTruthy();
 
-      if (liteUser && officialUser) {
-        expect(liteUser.message.role).toBe(officialUser.message.role);
+      if (openUser && officialUser) {
+        expect(openUser.message.role).toBe(officialUser.message.role);
 
         // Content structure should match
-        expect(Array.isArray(liteUser.message.content)).toBe(
+        expect(Array.isArray(openUser.message.content)).toBe(
           Array.isArray(officialUser.message.content)
         );
 
         if (
-          Array.isArray(liteUser.message.content) &&
+          Array.isArray(openUser.message.content) &&
           Array.isArray(officialUser.message.content)
         ) {
-          expect(liteUser.message.content.length).toBe(officialUser.message.content.length);
+          expect(openUser.message.content.length).toBe(officialUser.message.content.length);
 
           // First content item should be text with same content
-          const liteText = liteUser.message.content[0];
+          const openText = openUser.message.content[0];
           const officialText = officialUser.message.content[0];
-          expect(liteText.type).toBe(officialText.type);
-          expect(liteText.text).toBe(officialText.text);
+          expect(openText.type).toBe(officialText.type);
+          expect(openText.text).toBe(officialText.text);
         }
       }
 
-      console.log('   User messages captured:', { lite: !!liteUser, official: !!officialUser });
+      console.log('   User messages captured:', { open: !!openUser, official: !!officialUser });
     },
     { timeout: 60000 }
   );
@@ -100,44 +100,44 @@ describe('stdin message compatibility', () => {
         ],
       };
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { hooks }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { hooks }),
         capture(officialQuery, 'test', { hooks }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
-      if (liteInit && officialInit) {
+      if (openInit && officialInit) {
         // Both should have hooks
-        expect(!!liteInit.request.hooks).toBe(!!officialInit.request.hooks);
+        expect(!!openInit.request.hooks).toBe(!!officialInit.request.hooks);
 
-        if (liteInit.request.hooks && officialInit.request.hooks) {
+        if (openInit.request.hooks && officialInit.request.hooks) {
           // Same hook event types registered
-          expect(Object.keys(liteInit.request.hooks).sort()).toEqual(
+          expect(Object.keys(openInit.request.hooks).sort()).toEqual(
             Object.keys(officialInit.request.hooks).sort()
           );
 
           // Same structure for PreToolUse
-          const litePreToolUse = liteInit.request.hooks.PreToolUse;
+          const openPreToolUse = openInit.request.hooks.PreToolUse;
           const officialPreToolUse = officialInit.request.hooks.PreToolUse;
 
-          expect(litePreToolUse.length).toBe(officialPreToolUse.length);
+          expect(openPreToolUse.length).toBe(officialPreToolUse.length);
 
           // Matcher should be same
-          expect(litePreToolUse[0].matcher).toBe(officialPreToolUse[0].matcher);
+          expect(openPreToolUse[0].matcher).toBe(officialPreToolUse[0].matcher);
 
           // Should have hookCallbackIds array
-          expect(Array.isArray(litePreToolUse[0].hookCallbackIds)).toBe(true);
+          expect(Array.isArray(openPreToolUse[0].hookCallbackIds)).toBe(true);
           expect(Array.isArray(officialPreToolUse[0].hookCallbackIds)).toBe(true);
         }
       }
 
       console.log('   Hooks registration captured:', {
-        lite: !!liteInit?.request?.hooks,
+        open: !!openInit?.request?.hooks,
         official: !!officialInit?.request?.hooks,
       });
     },
@@ -147,8 +147,8 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'message ordering matches official SDK',
     async () => {
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test'),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test'),
         capture(officialQuery, 'test'),
       ]);
 
@@ -156,13 +156,13 @@ describe('stdin message compatibility', () => {
       const getType = (m: { type: string; request?: { subtype: string } }) =>
         m.type === 'control_request' ? m.request?.subtype : m.type;
 
-      const liteTypes = lite.stdin.map(getType);
+      const openTypes = open.stdin.map(getType);
       const officialTypes = official.stdin.map(getType);
 
       // Both should have same message sequence
-      expect(liteTypes).toEqual(officialTypes);
+      expect(openTypes).toEqual(officialTypes);
 
-      console.log('   Message order:', { lite: liteTypes, official: officialTypes });
+      console.log('   Message order:', { open: openTypes, official: officialTypes });
     },
     { timeout: 60000 }
   );
@@ -180,21 +180,21 @@ describe('stdin message compatibility', () => {
         ],
       };
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { hooks }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { hooks }),
         capture(officialQuery, 'test', { hooks }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      if (liteInit && officialInit) {
+      if (openInit && officialInit) {
         // Normalize for comparison
-        const liteNorm = normalizeMessage(liteInit);
+        const openNorm = normalizeMessage(openInit);
         const officialNorm = normalizeMessage(officialInit);
 
         // Hooks structure should match
-        expect(liteNorm.request.hooks).toEqual(officialNorm.request.hooks);
+        expect(openNorm.request.hooks).toEqual(officialNorm.request.hooks);
       }
 
       console.log('   Multiple hooks test passed');
@@ -205,15 +205,15 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'permissionMode flag is passed correctly',
     async () => {
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { permissionMode: 'acceptEdits' }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { permissionMode: 'acceptEdits' }),
         capture(officialQuery, 'test', { permissionMode: 'acceptEdits' }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       console.log('   Permission mode test passed');
@@ -224,15 +224,15 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'model option is serialized correctly',
     async () => {
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { model: 'claude-sonnet-4-20250514' }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { model: 'claude-sonnet-4-20250514' }),
         capture(officialQuery, 'test', { model: 'claude-sonnet-4-20250514' }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       console.log('   Model option test passed');
@@ -243,15 +243,15 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'maxTurns option is serialized correctly',
     async () => {
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { maxTurns: 10 }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { maxTurns: 10 }),
         capture(officialQuery, 'test', { maxTurns: 10 }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       console.log('   maxTurns option test passed');
@@ -268,18 +268,18 @@ describe('stdin message compatibility', () => {
         UserPromptSubmit: [{ hooks: [async () => ({})] }],
       };
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { hooks }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { hooks }),
         capture(officialQuery, 'test', { hooks }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      if (liteInit && officialInit) {
-        const liteHookTypes = Object.keys(liteInit.request.hooks || {}).sort();
+      if (openInit && officialInit) {
+        const openHookTypes = Object.keys(openInit.request.hooks || {}).sort();
         const officialHookTypes = Object.keys(officialInit.request.hooks || {}).sort();
-        expect(liteHookTypes).toEqual(officialHookTypes);
+        expect(openHookTypes).toEqual(officialHookTypes);
       }
 
       console.log('   All hook event types test passed');
@@ -314,30 +314,30 @@ describe('stdin message compatibility', () => {
         hooks[event] = [{ hooks: [async () => ({})] }];
       }
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { hooks }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { hooks }),
         capture(officialQuery, 'test', { hooks }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
-      if (liteInit && officialInit) {
-        const liteHookTypes = Object.keys(liteInit.request.hooks || {}).sort();
+      if (openInit && officialInit) {
+        const openHookTypes = Object.keys(openInit.request.hooks || {}).sort();
         const officialHookTypes = Object.keys(officialInit.request.hooks || {}).sort();
-        expect(liteHookTypes).toEqual(officialHookTypes);
-        expect(liteHookTypes).toEqual(allHookEvents.sort());
+        expect(openHookTypes).toEqual(officialHookTypes);
+        expect(openHookTypes).toEqual(allHookEvents.sort());
 
         // Each event should have exactly 1 matcher with 1 callback ID
         for (const event of allHookEvents) {
-          const liteEvent = liteInit.request.hooks?.[event];
+          const openEvent = openInit.request.hooks?.[event];
           const officialEvent = officialInit.request.hooks?.[event];
-          expect(liteEvent).toHaveLength(1);
+          expect(openEvent).toHaveLength(1);
           expect(officialEvent).toHaveLength(1);
-          expect(liteEvent?.[0].hookCallbackIds).toHaveLength(1);
+          expect(openEvent?.[0].hookCallbackIds).toHaveLength(1);
           expect(officialEvent?.[0].hookCallbackIds).toHaveLength(1);
         }
       }
@@ -350,16 +350,16 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'empty prompt handling matches',
     async () => {
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, ''),
+      const [open, official] = await Promise.all([
+        capture(openQuery, ''),
         capture(officialQuery, ''),
       ]);
 
-      const liteUser = lite.stdin.find((m) => m.type === 'user');
+      const openUser = open.stdin.find((m) => m.type === 'user');
       const officialUser = official.stdin.find((m) => m.type === 'user');
 
-      if (liteUser && officialUser) {
-        expect(liteUser.message.role).toBe(officialUser.message.role);
+      if (openUser && officialUser) {
+        expect(openUser.message.role).toBe(officialUser.message.role);
       }
 
       console.log('   Empty prompt handling test passed');
@@ -372,23 +372,23 @@ describe('stdin message compatibility', () => {
     async () => {
       const systemPrompt = 'You are a helpful assistant named TestBot.';
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { systemPrompt }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { systemPrompt }),
         capture(officialQuery, 'test', { systemPrompt }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       // Both should have systemPrompt in the init request
-      expect(liteInit?.request?.systemPrompt).toBe(systemPrompt);
+      expect(openInit?.request?.systemPrompt).toBe(systemPrompt);
       expect(officialInit?.request?.systemPrompt).toBe(systemPrompt);
 
       console.log('   systemPrompt option test passed');
-      console.log('   Lite systemPrompt:', liteInit?.request?.systemPrompt);
+      console.log('   Lite systemPrompt:', openInit?.request?.systemPrompt);
       console.log('   Official systemPrompt:', officialInit?.request?.systemPrompt);
     },
     { timeout: 60000 }
@@ -402,20 +402,20 @@ describe('stdin message compatibility', () => {
         preset: 'claude_code' as const,
       };
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { systemPrompt }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { systemPrompt }),
         capture(officialQuery, 'test', { systemPrompt }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       // Neither systemPrompt nor appendSystemPrompt should be present
-      expect(liteInit?.request?.systemPrompt).toBeUndefined();
-      expect(liteInit?.request?.appendSystemPrompt).toBeUndefined();
+      expect(openInit?.request?.systemPrompt).toBeUndefined();
+      expect(openInit?.request?.appendSystemPrompt).toBeUndefined();
       expect(officialInit?.request?.systemPrompt).toBeUndefined();
       expect(officialInit?.request?.appendSystemPrompt).toBeUndefined();
 
@@ -433,20 +433,20 @@ describe('stdin message compatibility', () => {
         append: 'Additional instructions here.',
       };
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { systemPrompt }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { systemPrompt }),
         capture(officialQuery, 'test', { systemPrompt }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       // Should have appendSystemPrompt, not systemPrompt
-      expect(liteInit?.request?.systemPrompt).toBeUndefined();
-      expect(liteInit?.request?.appendSystemPrompt).toBe('Additional instructions here.');
+      expect(openInit?.request?.systemPrompt).toBeUndefined();
+      expect(openInit?.request?.appendSystemPrompt).toBe('Additional instructions here.');
       expect(officialInit?.request?.systemPrompt).toBeUndefined();
       expect(officialInit?.request?.appendSystemPrompt).toBe('Additional instructions here.');
 
@@ -458,15 +458,15 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'settingSources with project matches official SDK',
     async () => {
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { settingSources: ['project'] }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { settingSources: ['project'] }),
         capture(officialQuery, 'test', { settingSources: ['project'] }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       console.log('   settingSources: [project] test passed');
@@ -477,15 +477,15 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'settingSources with user matches official SDK',
     async () => {
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { settingSources: ['user'] }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { settingSources: ['user'] }),
         capture(officialQuery, 'test', { settingSources: ['user'] }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       console.log('   settingSources: [user] test passed');
@@ -496,15 +496,15 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'settingSources with multiple sources matches official SDK',
     async () => {
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { settingSources: ['user', 'project'] }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { settingSources: ['user', 'project'] }),
         capture(officialQuery, 'test', { settingSources: ['user', 'project'] }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       console.log('   settingSources: [user, project] test passed');
@@ -515,15 +515,15 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'settingSources empty array matches official SDK',
     async () => {
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { settingSources: [] }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { settingSources: [] }),
         capture(officialQuery, 'test', { settingSources: [] }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       console.log('   settingSources: [] test passed');
@@ -534,8 +534,8 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'mcpServerStatus sends mcp_status control request matching official SDK',
     async () => {
-      const [lite, official] = await Promise.all([
-        captureWithQuery(liteQuery, 'test', async (q) => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
           await q.mcpServerStatus();
         }),
         captureWithQuery(officialQuery, 'test', async (q) => {
@@ -543,16 +543,16 @@ describe('stdin message compatibility', () => {
         }),
       ]);
 
-      const liteMcp = lite.stdin.find((m) => m.request?.subtype === 'mcp_status');
+      const openMcp = open.stdin.find((m) => m.request?.subtype === 'mcp_status');
       const officialMcp = official.stdin.find((m) => m.request?.subtype === 'mcp_status');
 
-      expect(liteMcp).toBeTruthy();
+      expect(openMcp).toBeTruthy();
       expect(officialMcp).toBeTruthy();
 
-      if (liteMcp && officialMcp) {
-        const liteNorm = normalizeMessage(liteMcp);
+      if (openMcp && officialMcp) {
+        const openNorm = normalizeMessage(openMcp);
         const officialNorm = normalizeMessage(officialMcp);
-        expect(liteNorm).toEqual(officialNorm);
+        expect(openNorm).toEqual(officialNorm);
       }
 
       console.log('   mcpServerStatus stdin messages match');
@@ -563,8 +563,8 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'reconnectMcpServer sends mcp_reconnect control request matching official SDK',
     async () => {
-      const [lite, official] = await Promise.all([
-        captureWithQuery(liteQuery, 'test', async (q) => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
           await q.reconnectMcpServer('test-server');
         }),
         captureWithQuery(officialQuery, 'test', async (q) => {
@@ -572,16 +572,16 @@ describe('stdin message compatibility', () => {
         }),
       ]);
 
-      const liteMcp = lite.stdin.find((m) => m.request?.subtype === 'mcp_reconnect');
+      const openMcp = open.stdin.find((m) => m.request?.subtype === 'mcp_reconnect');
       const officialMcp = official.stdin.find((m) => m.request?.subtype === 'mcp_reconnect');
 
-      expect(liteMcp).toBeTruthy();
+      expect(openMcp).toBeTruthy();
       expect(officialMcp).toBeTruthy();
 
-      if (liteMcp && officialMcp) {
-        const liteNorm = normalizeMessage(liteMcp);
+      if (openMcp && officialMcp) {
+        const openNorm = normalizeMessage(openMcp);
         const officialNorm = normalizeMessage(officialMcp);
-        expect(liteNorm).toEqual(officialNorm);
+        expect(openNorm).toEqual(officialNorm);
       }
 
       console.log('   reconnectMcpServer stdin messages match');
@@ -592,8 +592,8 @@ describe('stdin message compatibility', () => {
   test.concurrent(
     'toggleMcpServer sends mcp_toggle control request matching official SDK',
     async () => {
-      const [lite, official] = await Promise.all([
-        captureWithQuery(liteQuery, 'test', async (q) => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
           await q.toggleMcpServer('test-server', false);
         }),
         captureWithQuery(officialQuery, 'test', async (q) => {
@@ -601,16 +601,16 @@ describe('stdin message compatibility', () => {
         }),
       ]);
 
-      const liteMcp = lite.stdin.find((m) => m.request?.subtype === 'mcp_toggle');
+      const openMcp = open.stdin.find((m) => m.request?.subtype === 'mcp_toggle');
       const officialMcp = official.stdin.find((m) => m.request?.subtype === 'mcp_toggle');
 
-      expect(liteMcp).toBeTruthy();
+      expect(openMcp).toBeTruthy();
       expect(officialMcp).toBeTruthy();
 
-      if (liteMcp && officialMcp) {
-        const liteNorm = normalizeMessage(liteMcp);
+      if (openMcp && officialMcp) {
+        const openNorm = normalizeMessage(openMcp);
         const officialNorm = normalizeMessage(officialMcp);
-        expect(liteNorm).toEqual(officialNorm);
+        expect(openNorm).toEqual(officialNorm);
       }
 
       console.log('   toggleMcpServer stdin messages match');
@@ -624,8 +624,8 @@ describe('stdin message compatibility', () => {
       const servers = {
         playwright: { command: 'npx', args: ['@playwright/mcp@latest'] },
       };
-      const [lite, official] = await Promise.all([
-        captureWithQuery(liteQuery, 'test', async (q) => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
           await q.setMcpServers(servers);
         }),
         captureWithQuery(officialQuery, 'test', async (q) => {
@@ -633,16 +633,16 @@ describe('stdin message compatibility', () => {
         }),
       ]);
 
-      const liteMcp = lite.stdin.find((m) => m.request?.subtype === 'mcp_set_servers');
+      const openMcp = open.stdin.find((m) => m.request?.subtype === 'mcp_set_servers');
       const officialMcp = official.stdin.find((m) => m.request?.subtype === 'mcp_set_servers');
 
-      expect(liteMcp).toBeTruthy();
+      expect(openMcp).toBeTruthy();
       expect(officialMcp).toBeTruthy();
 
-      if (liteMcp && officialMcp) {
-        const liteNorm = normalizeMessage(liteMcp);
+      if (openMcp && officialMcp) {
+        const openNorm = normalizeMessage(openMcp);
         const officialNorm = normalizeMessage(officialMcp);
-        expect(liteNorm).toEqual(officialNorm);
+        expect(openNorm).toEqual(officialNorm);
       }
 
       console.log('   setMcpServers stdin messages match');
@@ -658,18 +658,18 @@ describe('stdin message compatibility', () => {
         properties: { name: { type: 'string' } },
         required: ['name'],
       };
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { outputFormat: { type: 'json_schema', schema } }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { outputFormat: { type: 'json_schema', schema } }),
         capture(officialQuery, 'test', { outputFormat: { type: 'json_schema', schema } }),
       ]);
 
-      expect(lite.args).toContain('--json-schema');
+      expect(open.args).toContain('--json-schema');
       expect(official.args).toContain('--json-schema');
 
       // Find and compare the schema values
-      const liteIdx = lite.args.indexOf('--json-schema');
+      const openIdx = open.args.indexOf('--json-schema');
       const officialIdx = official.args.indexOf('--json-schema');
-      expect(JSON.parse(lite.args[liteIdx + 1])).toEqual(
+      expect(JSON.parse(open.args[openIdx + 1])).toEqual(
         JSON.parse(official.args[officialIdx + 1])
       );
 
@@ -684,19 +684,19 @@ describe('stdin message compatibility', () => {
       const mcpServers = {
         playwright: { command: 'npx', args: ['@playwright/mcp@latest'] },
       };
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { mcpServers }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { mcpServers }),
         capture(officialQuery, 'test', { mcpServers }),
       ]);
 
-      expect(lite.args).toContain('--mcp-config');
+      expect(open.args).toContain('--mcp-config');
       expect(official.args).toContain('--mcp-config');
 
       // Find and compare the --mcp-config values
-      const liteIdx = lite.args.indexOf('--mcp-config');
+      const openIdx = open.args.indexOf('--mcp-config');
       const officialIdx = official.args.indexOf('--mcp-config');
 
-      expect(JSON.parse(lite.args[liteIdx + 1])).toEqual(
+      expect(JSON.parse(open.args[openIdx + 1])).toEqual(
         JSON.parse(official.args[officialIdx + 1])
       );
 
@@ -719,27 +719,27 @@ describe('stdin message compatibility', () => {
           ],
         });
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
         capture(officialQuery, 'test', { mcpServers: { 'test-tools': makeServer() } }),
       ]);
 
       // Both should have --mcp-config with the SDK server (stripped of instance)
-      expect(lite.args).toContain('--mcp-config');
+      expect(open.args).toContain('--mcp-config');
       expect(official.args).toContain('--mcp-config');
 
-      const liteIdx = lite.args.indexOf('--mcp-config');
+      const openIdx = open.args.indexOf('--mcp-config');
       const officialIdx = official.args.indexOf('--mcp-config');
 
-      const liteMcpConfig = JSON.parse(lite.args[liteIdx + 1]);
+      const openMcpConfig = JSON.parse(open.args[openIdx + 1]);
       const officialMcpConfig = JSON.parse(official.args[officialIdx + 1]);
 
-      expect(liteMcpConfig).toEqual(officialMcpConfig);
+      expect(openMcpConfig).toEqual(officialMcpConfig);
 
       // Should have type: 'sdk' and name, but no instance
-      expect(liteMcpConfig.mcpServers['test-tools'].type).toBe('sdk');
-      expect(liteMcpConfig.mcpServers['test-tools'].name).toBe('test-tools');
-      expect(liteMcpConfig.mcpServers['test-tools'].instance).toBeUndefined();
+      expect(openMcpConfig.mcpServers['test-tools'].type).toBe('sdk');
+      expect(openMcpConfig.mcpServers['test-tools'].name).toBe('test-tools');
+      expect(openMcpConfig.mcpServers['test-tools'].instance).toBeUndefined();
 
       console.log('   SDK mcpServers --mcp-config args match');
     },

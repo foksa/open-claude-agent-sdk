@@ -93,9 +93,9 @@ testWithBothSDKs(
 testWithBothSDKs(
   'AsyncIterable prompt enables streaming input mode',
   async (sdk) => {
-    const { query: liteQuery } = await import('../../src/api/query.ts');
+    const { query: openQuery } = await import('../../src/api/query.ts');
     const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
-    const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+    const queryFn = sdk === 'open' ? openQuery : officialQuery;
 
     async function* messageGenerator() {
       yield {
@@ -138,9 +138,9 @@ testWithBothSDKs(
 testWithBothSDKs(
   'interrupt() cancels in-progress generation',
   async (sdk) => {
-    const { query: liteQuery } = await import('../../src/api/query.ts');
+    const { query: openQuery } = await import('../../src/api/query.ts');
     const { query: officialQuery } = await import('@anthropic-ai/claude-agent-sdk');
-    const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+    const queryFn = sdk === 'open' ? openQuery : officialQuery;
 
     const q = queryFn({
       prompt: 'Write a very long story about a dragon. Make it at least 1000 words.',

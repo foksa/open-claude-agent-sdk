@@ -9,14 +9,14 @@ This directory contains integration tests for the Open Claude Agent SDK.
 ## Test Files
 
 ### Core Comparison Tests (Both SDKs)
-These tests run the **exact same test** with both lite and official SDKs:
+These tests run the **exact same test** with both open and official SDKs:
 - `query.test.ts` - Basic query functionality (streaming, plan mode, model selection)
 - `multi-turn.test.ts` - Multi-turn conversations and control methods (interrupt, close, setModel)
 - `permissions.test.ts` - canUseTool callback functionality (allow/deny, filtering, async)
 - `hooks.test.ts` - Hook system (PreToolUse, PostToolUse, UserPromptSubmit, etc.)
 
 Each test runs **twice**:
-- `[lite]` prefix - uses our lightweight SDK (`open-claude-agent-sdk`)
+- `[open]` prefix - uses our open SDK (`open-claude-agent-sdk`)
 - `[official]` prefix - uses official SDK (`@anthropic-ai/claude-agent-sdk`)
 
 This ensures we maintain 100% compatibility with the official SDK.
@@ -29,7 +29,7 @@ This ensures we maintain 100% compatibility with the official SDK.
 Running with both SDKs tells us:
 - ✅ If a test **passes with both**: Our SDK works correctly!
 - ❌ If a test **fails with both**: The test itself has an issue
-- ⚠️ If a test **fails with lite only**: We have a bug in our SDK
+- ⚠️ If a test **fails with open only**: We have a bug in our SDK
 - ⚠️ If a test **fails with official only**: Rare, but good to know
 
 ## Running Tests
@@ -41,8 +41,8 @@ bun test
 # Run specific test file
 bun test tests/integration/permissions.test.ts
 
-# Run only [lite] tests
-bun test -t "\\[lite\\]"
+# Run only [open] tests
+bun test -t "\\[open\\]"
 
 # Run only [official] tests
 bun test -t "\\[official\\]"
