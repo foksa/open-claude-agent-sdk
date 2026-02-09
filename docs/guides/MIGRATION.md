@@ -123,13 +123,27 @@ for await (const msg of query({
   prompt: 'Do something',
   options: {
     hooks: {
-      PreToolUse: async (input) => {
-        console.log('About to call:', input.tool_name);
-        return { behavior: 'allow' };
-      },
-      PostToolUse: async (input) => {
-        console.log('Tool result:', input.tool_result);
-      }
+      PreToolUse: [
+        {
+          matcher: 'Bash|Write|Edit',
+          hooks: [
+            async (input) => {
+              console.log('About to call:', input.tool_name);
+              return { decision: 'allow', continue: true };
+            }
+          ]
+        }
+      ],
+      PostToolUse: [
+        {
+          matcher: '*',
+          hooks: [
+            async (input) => {
+              console.log('Tool result:', input.tool_result);
+            }
+          ]
+        }
+      ]
     }
   }
 })) {

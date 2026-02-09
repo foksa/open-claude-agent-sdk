@@ -13,7 +13,7 @@ The Claude Agent SDK allows you to programmatically build AI agents with Claude'
 
 ```bash
 # From open-claude-agent-sdk root
-cd examples/hello-world
+cd demos/open/hello-world
 npm install
 ```
 

@@ -170,4 +170,4 @@ Handled by the CLI subprocess:
 
 ---
 
-**See Also:** [ROADMAP.md](./ROADMAP.md) for remaining work
+**See Also:** [GitHub Issues](https://github.com/foksa/open-claude-agent-sdk/issues) for remaining work

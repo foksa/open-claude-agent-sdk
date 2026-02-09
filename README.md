@@ -105,13 +105,13 @@ Three demo apps ported from the official SDK, running on both SDKs:
 
 ```bash
 # Hello world
-bun demos/open/hello-world/index.ts
+bun demos/open/hello-world/hello-world.ts
 
-# Interactive chat
-bun demos/open/simple-chatapp/index.ts
+# Interactive chat (has its own dev server)
+cd demos/open/simple-chatapp && npm install && npm run dev
 
 # Resume generator
-bun demos/open/resume-generator/index.ts
+bun demos/open/resume-generator/resume-generator.ts
 ```
 
 ## Testing
