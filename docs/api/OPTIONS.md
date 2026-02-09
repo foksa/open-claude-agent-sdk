@@ -206,8 +206,6 @@ options: {
 
 **Default:** `undefined`
 
-**Status:** NOT YET IMPLEMENTED
-
 List of tool names that are disallowed.
 
 ### `tools`
@@ -215,8 +213,6 @@ List of tool names that are disallowed.
 **Type:** `string[] | { type: 'preset'; preset: 'claude_code' }`
 
 **Default:** All Claude Code tools
-
-**Status:** NOT YET IMPLEMENTED
 
 Specify the base set of available built-in tools.
 
@@ -423,22 +419,8 @@ options: {
 
 ---
 
-## Not Yet Implemented Options
+## Not Supported
 
-The following options exist in the official SDK but are not yet implemented:
-
-| Option | Description |
-|--------|-------------|
-| `disallowedTools` | Block specific tools |
-| `tools` | Specify available tools |
-| `betas` | Enable beta features (1M context) |
-| `forkSession` | Fork session on resume |
-| `continue` | Continue most recent session |
-| `additionalDirectories` | Additional allowed directories |
-| `maxThinkingTokens` | Limit thinking tokens |
-| `fallbackModel` | Fallback model on failure |
-| `mcpServers` | MCP server configurations |
-| `agents` | Custom agent definitions |
-| `plugins` | Plugin configurations |
-| `enableFileCheckpointing` | Enable file rewind |
-| `persistSession` | Control session persistence |
+| Option | Reason |
+|--------|--------|
+| `enableFileCheckpointing` | No CLI protocol support |

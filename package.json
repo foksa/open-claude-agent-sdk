@@ -1,6 +1,6 @@
 {
-  "name": "@lite-claude/agent-sdk",
-  "version": "0.0.0",
+  "name": "lite-claude-agent-sdk",
+  "version": "0.9.0",
   "description": "A lightweight alternative to Claude Agent SDK - 70x smaller, uses local CLI",
   "license": "MIT",
   "author": "lite-claude contributors",

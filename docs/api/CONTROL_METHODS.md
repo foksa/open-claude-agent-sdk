@@ -250,17 +250,7 @@ try {
 
 ---
 
-## Not Yet Implemented Methods
-
-The following methods exist on the Query interface but throw "not implemented" errors:
-
-### `initializationResult()`
-
-```typescript
-async initializationResult(): Promise<SDKControlInitializeResponse>
-```
-
-Returns initialization data from the CLI (commands, models, account info).
+## Query Methods
 
 ### `supportedCommands()`
 
@@ -294,16 +284,9 @@ async accountInfo(): Promise<AccountInfo>
 
 Returns account information.
 
-### `rewindFiles(userMessageId, options?)`
+---
 
-```typescript
-async rewindFiles(
-  userMessageId: string,
-  options?: { dryRun?: boolean }
-): Promise<RewindFilesResult>
-```
-
-Reverts file changes to a previous state.
+## MCP Control Methods
 
 ### `reconnectMcpServer(serverName)`
 
@@ -328,6 +311,21 @@ async setMcpServers(servers: Record<string, McpServerConfig>): Promise<McpSetSer
 ```
 
 Dynamically configures MCP servers.
+
+---
+
+## Not Supported
+
+### `rewindFiles(userMessageId, options?)`
+
+```typescript
+async rewindFiles(
+  userMessageId: string,
+  options?: { dryRun?: boolean }
+): Promise<RewindFilesResult>
+```
+
+Throws "not yet implemented" — no CLI protocol support.
 
 ---
 

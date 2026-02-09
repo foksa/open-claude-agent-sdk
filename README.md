@@ -129,9 +129,10 @@ bun run typecheck
 
 ## Documentation
 
-- [Feature Comparison](./docs/planning/FEATURES.md) — full feature matrix
+- [API Reference](./docs/api/API.md) — query function, message types, examples
+- [Options Reference](./docs/api/OPTIONS.md) — all query options
+- [Feature Matrix](./docs/planning/FEATURES.md) — full feature comparison
 - [Migration Guide](./docs/guides/MIGRATION.md) — migrate from official SDK
-- [Development Roadmap](./docs/planning/ROADMAP.md) — priorities and timeline
 
 ## License
 

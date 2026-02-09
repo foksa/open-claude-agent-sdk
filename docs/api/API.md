@@ -2,7 +2,7 @@
 
 ## Overview
 
-Lite Claude Agent SDK is a lightweight alternative to `@anthropic-ai/claude-agent-sdk`. It provides the same API surface while being 65x smaller (~200KB vs 13MB) by spawning the locally-installed Claude CLI as a subprocess instead of embedding it.
+Lite Claude Agent SDK is a lightweight alternative to `@anthropic-ai/claude-agent-sdk`. It provides the same API surface while being ~27x smaller (~488KB vs ~13MB) by spawning the locally-installed Claude CLI as a subprocess instead of embedding it.
 
 **Key Features:**
 - 100% type-compatible with the official SDK
@@ -14,9 +14,9 @@ Lite Claude Agent SDK is a lightweight alternative to `@anthropic-ai/claude-agen
 ## Installation
 
 ```bash
-npm install lite-claude-agent-sdk
-# or
 bun add lite-claude-agent-sdk
+# or
+npm install lite-claude-agent-sdk
 ```
 
 **Prerequisite:** Claude CLI must be installed separately:
@@ -391,16 +391,12 @@ export type { OutputFormat, JsonSchemaOutputFormat };
 
 | Feature | Official SDK | Lite SDK |
 |---------|--------------|----------|
-| Bundle size | ~13MB | ~200KB |
+| Bundle size | ~13MB | ~488KB |
 | CLI embedded | Yes | No (uses installed CLI) |
 | Type compatibility | Native | Re-exported (100% compatible) |
-| Control methods | Full | Most implemented |
+| Control methods | Full | All except `rewindFiles()` |
 
-**Not yet implemented:**
-- `initializationResult()`
-- `supportedCommands()`
-- `supportedModels()`
-- `mcpServerStatus()`
-- `accountInfo()`
-- `rewindFiles()`
-- MCP server management methods
+**Not supported:**
+- `rewindFiles()` — no CLI protocol support
+- Agent Teams — experimental
+- V2 API (`unstable_v2_*`) — experimental preview

@@ -35,12 +35,10 @@ tests/
   └── snapshots/            # NDJSON expected outputs
 
 docs/
-  ├── planning/             # ROADMAP, FEATURES, gap analysis
-  ├── guides/               # IMPLEMENTATION_GUIDE, MIGRATION
-  ├── research/             # Protocol research, findings, official-sdk-unminified.mjs
-  ├── official-agent-sdk-docs/  # Downloaded official SDK docs (reference)
-  ├── analysis/             # Codebase analysis (architecture, coverage)
-  └── api/                  # API documentation
+  ├── api/                  # API reference (API.md, OPTIONS.md, CONTROL_METHODS.md)
+  ├── guides/               # MIGRATION, REVERSE_ENGINEERING
+  ├── planning/             # FEATURES.md (feature matrix)
+  └── research/             # official-sdk-unminified.mjs (reference)
 ```
 
 ## How to Work Here
@@ -148,7 +146,7 @@ bun run typecheck
 - ✅ Control protocol (stdin/stdout)
 - ✅ Skills, commands, structured outputs, system prompts
 - ✅ MCP control methods
-- ⚠️ canUseTool & hooks (code exists, needs tests)
+- ✅ canUseTool & hooks (E2E tested)
 
 **See:** `docs/planning/FEATURES.md` for full status matrix
 
