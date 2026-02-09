@@ -234,6 +234,6 @@ console.log(`
 🧪 SDK Comparison Demo running at:
    http://localhost:${PORT}
 
-Compare Official SDK vs Lite SDK side-by-side!
+Compare Official SDK vs Open SDK side-by-side!
 ✨ Multi-Turn Conversations Working! (Both SDKs)
 `);

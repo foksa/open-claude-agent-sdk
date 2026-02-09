@@ -10,7 +10,7 @@ const promptInput = document.getElementById('prompt') as HTMLInputElement;
 const sendBtn = document.getElementById('send') as HTMLButtonElement;
 const continueBtn = document.getElementById('continue-btn') as HTMLButtonElement;
 const officialOutput = document.getElementById('official-output') as HTMLDivElement;
-const liteOutput = document.getElementById('lite-output') as HTMLDivElement;
+const openOutput = document.getElementById('open-output') as HTMLDivElement;
 
 // Track session IDs for multi-turn
 let liteSessionId: string | null = null;
@@ -59,8 +59,8 @@ function connect() {
 }
 
 // Handle incoming messages
-function handleMessage(data: { sdk: 'official' | 'lite'; message: any; error?: string }) {
-  const outputDiv = data.sdk === 'official' ? officialOutput : liteOutput;
+function handleMessage(data: { sdk: 'official' | 'open'; message: any; error?: string }) {
+  const outputDiv = data.sdk === 'official' ? officialOutput : openOutput;
 
   if (data.error) {
     appendMessage(outputDiv, {
@@ -75,7 +75,7 @@ function handleMessage(data: { sdk: 'official' | 'lite'; message: any; error?: s
 
     // Track session IDs for multi-turn
     if (data.message.type === 'system' && data.message.session_id) {
-      if (data.sdk === 'lite') {
+      if (data.sdk === 'open') {
         liteSessionId = data.message.session_id;
       } else {
         officialSessionId = data.message.session_id;
@@ -202,7 +202,7 @@ function sendPrompt() {
   ws.send(
     JSON.stringify({
       prompt,
-      sdk: 'lite',
+      sdk: 'open',
     })
   );
 
@@ -232,7 +232,7 @@ function continueConversation() {
     ws.send(
       JSON.stringify({
         prompt,
-        sdk: 'lite',
+        sdk: 'open',
         continue: true,
         sessionId: liteSessionId,
       })
@@ -254,12 +254,12 @@ function continueConversation() {
 }
 
 // Clear output for a specific SDK
-(window as any).clearOutput = (sdk: 'official' | 'lite') => {
-  const container = sdk === 'official' ? officialOutput : liteOutput;
+(window as any).clearOutput = (sdk: 'official' | 'open') => {
+  const container = sdk === 'official' ? officialOutput : openOutput;
   container.innerHTML = '';
 
   // Reset session IDs
-  if (sdk === 'lite') {
+  if (sdk === 'open') {
     liteSessionId = null;
   } else {
     officialSessionId = null;
