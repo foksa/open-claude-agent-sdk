@@ -1,4 +1,4 @@
-# Lite Claude Agent SDK
+# Open Claude Agent SDK
 
 A lightweight wrapper around Claude CLI - we're building a thin SDK that re-uses the local Claude binary instead of embedding it.
 
@@ -35,12 +35,9 @@ tests/
   └── snapshots/            # NDJSON expected outputs
 
 docs/
-  ├── planning/             # ROADMAP, FEATURES, gap analysis
-  ├── guides/               # IMPLEMENTATION_GUIDE, MIGRATION
-  ├── research/             # Protocol research, findings, official-sdk-unminified.mjs
-  ├── official-agent-sdk-docs/  # Downloaded official SDK docs (reference)
-  ├── analysis/             # Codebase analysis (architecture, coverage)
-  └── api/                  # API documentation
+  ├── api/                  # API reference (API.md, OPTIONS.md, CONTROL_METHODS.md)
+  ├── guides/               # MIGRATION, REVERSE_ENGINEERING
+  └── planning/             # FEATURES.md (feature matrix)
 ```
 
 ## How to Work Here
@@ -84,7 +81,7 @@ bun run typecheck
 - `src/tools/proxy-cli.cjs` - Proxy interceptor for debugging protocol
 
 **Official SDK source:**
-- `docs/research/official-sdk-unminified.mjs` - Readable (unminified) version of the official SDK source (~19k lines). Use this instead of the minified `node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs` when researching how the official SDK works.
+- `node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs` - Official SDK source (minified). Use for researching how the official SDK works.
 
 ### What NOT to Do
 
@@ -148,7 +145,7 @@ bun run typecheck
 - ✅ Control protocol (stdin/stdout)
 - ✅ Skills, commands, structured outputs, system prompts
 - ✅ MCP control methods
-- ⚠️ canUseTool & hooks (code exists, needs tests)
+- ✅ canUseTool & hooks (E2E tested)
 
 **See:** `docs/planning/FEATURES.md` for full status matrix
 

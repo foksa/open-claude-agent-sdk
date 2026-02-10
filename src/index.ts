@@ -1,5 +1,5 @@
 /**
- * Lite Claude Agent SDK
+ * Open Claude Agent SDK
  * A lightweight alternative to Claude Agent SDK - uses local CLI
  */
 

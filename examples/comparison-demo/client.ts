@@ -5,44 +5,48 @@
 let ws: WebSocket | null = null;
 
 // DOM elements
-const statusEl = document.getElementById('status') as HTMLDivElement;
-const promptInput = document.getElementById('prompt') as HTMLInputElement;
-const sendBtn = document.getElementById('send') as HTMLButtonElement;
-const continueBtn = document.getElementById('continue-btn') as HTMLButtonElement;
-const officialOutput = document.getElementById('official-output') as HTMLDivElement;
-const liteOutput = document.getElementById('lite-output') as HTMLDivElement;
+const statusEl = document.getElementById("status") as HTMLDivElement;
+const promptInput = document.getElementById("prompt") as HTMLInputElement;
+const sendBtn = document.getElementById("send") as HTMLButtonElement;
+const continueBtn = document.getElementById(
+  "continue-btn"
+) as HTMLButtonElement;
+const officialOutput = document.getElementById(
+  "official-output"
+) as HTMLDivElement;
+const openOutput = document.getElementById("open-output") as HTMLDivElement;
 
 // Track session IDs for multi-turn
-let liteSessionId: string | null = null;
+let openSessionId: string | null = null;
 let officialSessionId: string | null = null;
 
 // Connect to WebSocket
 function connect() {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${protocol}//${window.location.host}`;
 
   ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
-    statusEl.textContent = '✓ Connected';
-    statusEl.className = 'status connected';
+    statusEl.textContent = "✓ Connected";
+    statusEl.className = "status connected";
     promptInput.disabled = false;
     sendBtn.disabled = false;
-    console.log('WebSocket connected');
+    console.log("WebSocket connected");
   };
 
   ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
-    statusEl.textContent = '✗ Connection error';
-    statusEl.className = 'status error';
+    console.error("WebSocket error:", error);
+    statusEl.textContent = "✗ Connection error";
+    statusEl.className = "status error";
   };
 
   ws.onclose = () => {
-    statusEl.textContent = '○ Disconnected';
-    statusEl.className = 'status';
+    statusEl.textContent = "○ Disconnected";
+    statusEl.className = "status";
     promptInput.disabled = true;
     sendBtn.disabled = true;
-    console.log('WebSocket closed');
+    console.log("WebSocket closed");
 
     // Try to reconnect after 2 seconds
     setTimeout(connect, 2000);
@@ -53,18 +57,22 @@ function connect() {
       const data = JSON.parse(event.data);
       handleMessage(data);
     } catch (e) {
-      console.error('Failed to parse message:', e);
+      console.error("Failed to parse message:", e);
     }
   };
 }
 
 // Handle incoming messages
-function handleMessage(data: { sdk: 'official' | 'lite'; message: any; error?: string }) {
-  const outputDiv = data.sdk === 'official' ? officialOutput : liteOutput;
+function handleMessage(data: {
+  sdk: "official" | "open";
+  message: any;
+  error?: string;
+}) {
+  const outputDiv = data.sdk === "official" ? officialOutput : openOutput;
 
   if (data.error) {
     appendMessage(outputDiv, {
-      type: 'error',
+      type: "error",
       content: data.error,
     });
     return;
@@ -74,16 +82,16 @@ function handleMessage(data: { sdk: 'official' | 'lite'; message: any; error?: s
     appendMessage(outputDiv, data.message);
 
     // Track session IDs for multi-turn
-    if (data.message.type === 'system' && data.message.session_id) {
-      if (data.sdk === 'lite') {
-        liteSessionId = data.message.session_id;
+    if (data.message.type === "system" && data.message.session_id) {
+      if (data.sdk === "open") {
+        openSessionId = data.message.session_id;
       } else {
         officialSessionId = data.message.session_id;
       }
     }
 
     // Enable continue button after first result
-    if (data.message.type === 'result') {
+    if (data.message.type === "result") {
       continueBtn.disabled = false;
     }
   }
@@ -91,26 +99,27 @@ function handleMessage(data: { sdk: 'official' | 'lite'; message: any; error?: s
 
 // Append message to output
 function appendMessage(container: HTMLDivElement, message: any) {
-  const messageDiv = document.createElement('div');
+  const messageDiv = document.createElement("div");
   messageDiv.className = `message message-${message.type}`;
 
-  const typeDiv = document.createElement('div');
-  typeDiv.className = 'message-type';
-  typeDiv.textContent = message.type + (message.subtype ? ` (${message.subtype})` : '');
+  const typeDiv = document.createElement("div");
+  typeDiv.className = "message-type";
+  typeDiv.textContent =
+    message.type + (message.subtype ? ` (${message.subtype})` : "");
 
-  const contentDiv = document.createElement('div');
-  contentDiv.className = 'message-content';
+  const contentDiv = document.createElement("div");
+  contentDiv.className = "message-content";
 
   // Format content based on message type
-  let content = '';
-  if (message.type === 'system') {
-    content = `Model: ${message.model || 'N/A'}\nCWD: ${message.cwd || 'N/A'}`;
-  } else if (message.type === 'assistant') {
+  let content = "";
+  if (message.type === "system") {
+    content = `Model: ${message.model || "N/A"}\nCWD: ${message.cwd || "N/A"}`;
+  } else if (message.type === "assistant") {
     content = formatAssistantMessage(message.message);
-  } else if (message.type === 'result') {
+  } else if (message.type === "result") {
     content = formatResultMessage(message);
-  } else if (message.type === 'error') {
-    content = message.content || 'Unknown error';
+  } else if (message.type === "error") {
+    content = message.content || "Unknown error";
   } else {
     content = JSON.stringify(message, null, 2);
   }
@@ -126,21 +135,21 @@ function appendMessage(container: HTMLDivElement, message: any) {
 
 // Format assistant message
 function formatAssistantMessage(message: any): string {
-  if (!message) return 'N/A';
+  if (!message) return "N/A";
 
   const parts: string[] = [];
 
   if (message.content && Array.isArray(message.content)) {
     for (const block of message.content) {
-      if (block.type === 'text') {
+      if (block.type === "text") {
         parts.push(block.text);
-      } else if (block.type === 'tool_use') {
+      } else if (block.type === "tool_use") {
         parts.push(`[Tool: ${block.name}]`);
       }
     }
   }
 
-  return parts.join('\n') || JSON.stringify(message, null, 2);
+  return parts.join("\n") || JSON.stringify(message, null, 2);
 }
 
 // Format result message
@@ -168,10 +177,10 @@ function formatResultMessage(message: any): string {
   }
 
   if (message.errors && message.errors.length > 0) {
-    parts.push(`Errors:\n${message.errors.join('\n')}`);
+    parts.push(`Errors:\n${message.errors.join("\n")}`);
   }
 
-  return parts.join('\n');
+  return parts.join("\n");
 }
 
 // Send prompt to both SDKs
@@ -182,7 +191,7 @@ function sendPrompt() {
   }
 
   // Clear input
-  promptInput.value = '';
+  promptInput.value = "";
 
   // Disable send button temporarily
   sendBtn.disabled = true;
@@ -195,18 +204,18 @@ function sendPrompt() {
   ws.send(
     JSON.stringify({
       prompt,
-      sdk: 'official',
+      sdk: "official",
     })
   );
 
   ws.send(
     JSON.stringify({
       prompt,
-      sdk: 'lite',
+      sdk: "open",
     })
   );
 
-  console.log('Sent prompt to both SDKs:', prompt);
+  console.log("Sent prompt to both SDKs:", prompt);
 }
 
 // Continue conversation
@@ -217,7 +226,7 @@ function continueConversation() {
   }
 
   // Clear input
-  promptInput.value = '';
+  promptInput.value = "";
 
   // Disable buttons temporarily
   sendBtn.disabled = true;
@@ -228,13 +237,13 @@ function continueConversation() {
   }, 500);
 
   // Send continuation to both SDKs
-  if (liteSessionId) {
+  if (openSessionId) {
     ws.send(
       JSON.stringify({
         prompt,
-        sdk: 'lite',
+        sdk: "open",
         continue: true,
-        sessionId: liteSessionId,
+        sessionId: openSessionId,
       })
     );
   }
@@ -243,24 +252,24 @@ function continueConversation() {
     ws.send(
       JSON.stringify({
         prompt,
-        sdk: 'official',
+        sdk: "official",
         continue: true,
         sessionId: officialSessionId,
       })
     );
   }
 
-  console.log('Continuing conversation with prompt:', prompt);
+  console.log("Continuing conversation with prompt:", prompt);
 }
 
 // Clear output for a specific SDK
-(window as any).clearOutput = (sdk: 'official' | 'lite') => {
-  const container = sdk === 'official' ? officialOutput : liteOutput;
-  container.innerHTML = '';
+(window as any).clearOutput = (sdk: "official" | "open") => {
+  const container = sdk === "official" ? officialOutput : openOutput;
+  container.innerHTML = "";
 
   // Reset session IDs
-  if (sdk === 'lite') {
-    liteSessionId = null;
+  if (sdk === "open") {
+    openSessionId = null;
   } else {
     officialSessionId = null;
   }
@@ -269,10 +278,10 @@ function continueConversation() {
 };
 
 // Event listeners
-sendBtn.addEventListener('click', sendPrompt);
-continueBtn.addEventListener('click', continueConversation);
-promptInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
+sendBtn.addEventListener("click", sendPrompt);
+continueBtn.addEventListener("click", continueConversation);
+promptInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
     sendPrompt();
   }
 });

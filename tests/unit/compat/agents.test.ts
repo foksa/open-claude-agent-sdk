@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { capture, liteQuery, officialQuery } from './capture-utils.ts';
+import { capture, officialQuery, openQuery } from './capture-utils.ts';
 
 describe('agents init message compatibility', () => {
   test.concurrent(
@@ -20,19 +20,19 @@ describe('agents init message compatibility', () => {
         },
       };
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { agents }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { agents }),
         capture(officialQuery, 'test', { agents }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       // Both should have agents in the init request
-      expect(liteInit?.request?.agents).toEqual(agents);
+      expect(openInit?.request?.agents).toEqual(agents);
       expect(officialInit?.request?.agents).toEqual(agents);
 
       console.log('   agents in init message matches');
@@ -43,19 +43,19 @@ describe('agents init message compatibility', () => {
   test.concurrent(
     'no agents field when agents option is not provided',
     async () => {
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test'),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test'),
         capture(officialQuery, 'test'),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
       // Neither should have agents
-      expect(liteInit?.request?.agents).toBeUndefined();
+      expect(openInit?.request?.agents).toBeUndefined();
       expect(officialInit?.request?.agents).toBeUndefined();
 
       console.log('   no agents field when not provided');
@@ -79,18 +79,18 @@ describe('agents init message compatibility', () => {
         },
       };
 
-      const [lite, official] = await Promise.all([
-        capture(liteQuery, 'test', { agents }),
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { agents }),
         capture(officialQuery, 'test', { agents }),
       ]);
 
-      const liteInit = lite.stdin.find((m) => m.request?.subtype === 'initialize');
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
       const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
 
-      expect(liteInit).toBeTruthy();
+      expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
-      expect(liteInit?.request?.agents).toEqual(agents);
+      expect(openInit?.request?.agents).toEqual(agents);
       expect(officialInit?.request?.agents).toEqual(agents);
 
       console.log('   multiple agents in init message match');

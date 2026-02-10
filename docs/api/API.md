@@ -1,8 +1,8 @@
-# Lite Claude Agent SDK - API Documentation
+# Open Claude Agent SDK - API Documentation
 
 ## Overview
 
-Lite Claude Agent SDK is a lightweight alternative to `@anthropic-ai/claude-agent-sdk`. It provides the same API surface while being 65x smaller (~200KB vs 13MB) by spawning the locally-installed Claude CLI as a subprocess instead of embedding it.
+Open Claude Agent SDK is a lightweight alternative to `@anthropic-ai/claude-agent-sdk`. It provides the same API surface while being ~27x smaller (~488KB vs ~13MB) by spawning the locally-installed Claude CLI as a subprocess instead of embedding it.
 
 **Key Features:**
 - 100% type-compatible with the official SDK
@@ -14,9 +14,9 @@ Lite Claude Agent SDK is a lightweight alternative to `@anthropic-ai/claude-agen
 ## Installation
 
 ```bash
-npm install lite-claude-agent-sdk
+bun add open-claude-agent-sdk
 # or
-bun add lite-claude-agent-sdk
+npm install open-claude-agent-sdk
 ```
 
 **Prerequisite:** Claude CLI must be installed separately:
@@ -27,7 +27,7 @@ npm install -g @anthropic-ai/claude-code
 ## Quick Start
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 // Simple one-shot query
 const q = query({
@@ -74,7 +74,7 @@ function query(params: {
 ### Basic Query
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 const q = query({
   prompt: 'Write a haiku about coding',
@@ -99,7 +99,7 @@ for await (const msg of q) {
 ### Multi-Turn Conversation with `streamInput()`
 
 ```typescript
-import { query, type SDKUserMessage } from 'lite-claude-agent-sdk';
+import { query, type SDKUserMessage } from 'open-claude-agent-sdk';
 
 const q = query({
   prompt: 'Say hello in one word',
@@ -149,7 +149,7 @@ for await (const msg of q) {
 Control which tools Claude can use:
 
 ```typescript
-import { query, type PermissionResult } from 'lite-claude-agent-sdk';
+import { query, type PermissionResult } from 'open-claude-agent-sdk';
 
 const q = query({
   prompt: 'Write "hello" to /tmp/test.txt',
@@ -184,7 +184,7 @@ for await (const msg of q) {
 Intercept and modify tool execution:
 
 ```typescript
-import { query, type HookCallbackMatcher } from 'lite-claude-agent-sdk';
+import { query, type HookCallbackMatcher } from 'open-claude-agent-sdk';
 
 const hooks: Record<string, HookCallbackMatcher[]> = {
   PreToolUse: [
@@ -231,7 +231,7 @@ for await (const msg of q) {
 Cancel queries externally:
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 const abortController = new AbortController();
 
@@ -259,7 +259,7 @@ for await (const msg of q) {
 Get token-by-token streaming:
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 const q = query({
   prompt: 'Write a haiku',
@@ -288,7 +288,7 @@ for await (const msg of q) {
 Continue a previous conversation:
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 // First query
 const q1 = query({
@@ -389,18 +389,14 @@ export type { OutputFormat, JsonSchemaOutputFormat };
 
 ## Differences from Official SDK
 
-| Feature | Official SDK | Lite SDK |
+| Feature | Official SDK | Open SDK |
 |---------|--------------|----------|
-| Bundle size | ~13MB | ~200KB |
+| Bundle size | ~13MB | ~488KB |
 | CLI embedded | Yes | No (uses installed CLI) |
 | Type compatibility | Native | Re-exported (100% compatible) |
-| Control methods | Full | Most implemented |
+| Control methods | Full | All except `rewindFiles()` |
 
-**Not yet implemented:**
-- `initializationResult()`
-- `supportedCommands()`
-- `supportedModels()`
-- `mcpServerStatus()`
-- `accountInfo()`
-- `rewindFiles()`
-- MCP server management methods
+**Not supported:**
+- `rewindFiles()` — no CLI protocol support
+- Agent Teams — experimental
+- V2 API (`unstable_v2_*`) — experimental preview

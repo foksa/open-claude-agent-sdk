@@ -1,6 +1,6 @@
 /**
  * Comparison tests for canUseTool permission callback
- * Same tests run with both lite and official SDKs
+ * Same tests run with both open and official SDKs
  *
  * IMPORTANT: canUseTool is only called for tools that require permission.
  * Tools NOT requiring permission (auto-approved): Read, Glob, Grep, AskUserQuestion

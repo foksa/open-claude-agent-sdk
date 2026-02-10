@@ -1,21 +1,33 @@
-# Contributing to lite-claude-agent-sdk
+# Contributing to open-claude-agent-sdk
 
 Thank you for your interest in contributing!
 
 ## Development Setup
 
 ```bash
-# Install dependencies
 bun install
 
-# Run tests
-bun test
+bun test              # Run all tests
+bun run typecheck     # Type check
+bun run check         # Lint (Biome)
+bun run ci            # Full CI: typecheck + lint + test + build
+```
 
-# Type check
-bun run typecheck
+## Important Notes
 
-# Lint
-bun run check
+- **Integration tests cost real API tokens** and take ~7 minutes. Run targeted tests when possible:
+  ```bash
+  bun test tests/integration/output-styles.test.ts -t "specific test name"
+  ```
+- **Unit tests are free** — they use a capture CLI mock, no API calls.
+- See [FEATURES.md](./docs/planning/FEATURES.md) for what's implemented and what needs work.
+
+## Debugging Protocol Issues
+
+Use the proxy CLI to intercept messages between SDK and CLI:
+
+```bash
+# See docs/guides/REVERSE_ENGINEERING.md for details
 ```
 
 ## Pull Request Process
@@ -23,7 +35,7 @@ bun run check
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/my-feature`)
 3. Make your changes
-4. Run tests and linting (`bun run ci`)
+4. Run `bun run ci` to verify
 5. Commit with a descriptive message
 6. Push and open a pull request
 
@@ -31,7 +43,7 @@ bun run check
 
 - Follow existing patterns in the codebase
 - Run `bun run check` before committing
-- Add tests for new functionality
+- Add integration tests for new features
 
 ## Commit Messages
 

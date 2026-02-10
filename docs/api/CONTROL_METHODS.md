@@ -1,13 +1,13 @@
 # Query Control Methods
 
-The `Query` object in lite-claude-agent-sdk is an `AsyncGenerator<SDKMessage>` that also provides control methods for managing the Claude CLI subprocess during execution.
+The `Query` object in open-claude-agent-sdk is an `AsyncGenerator<SDKMessage>` that also provides control methods for managing the Claude CLI subprocess during execution.
 
 ## Overview
 
 When you call `query()`, it returns a `Query` object that you can iterate over to receive messages. The Query object also exposes control methods that send commands to the CLI via stdin.
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 const q = query({
   prompt: 'Hello, Claude!',
@@ -250,17 +250,7 @@ try {
 
 ---
 
-## Not Yet Implemented Methods
-
-The following methods exist on the Query interface but throw "not implemented" errors:
-
-### `initializationResult()`
-
-```typescript
-async initializationResult(): Promise<SDKControlInitializeResponse>
-```
-
-Returns initialization data from the CLI (commands, models, account info).
+## Query Methods
 
 ### `supportedCommands()`
 
@@ -294,16 +284,9 @@ async accountInfo(): Promise<AccountInfo>
 
 Returns account information.
 
-### `rewindFiles(userMessageId, options?)`
+---
 
-```typescript
-async rewindFiles(
-  userMessageId: string,
-  options?: { dryRun?: boolean }
-): Promise<RewindFilesResult>
-```
-
-Reverts file changes to a previous state.
+## MCP Control Methods
 
 ### `reconnectMcpServer(serverName)`
 
@@ -328,6 +311,21 @@ async setMcpServers(servers: Record<string, McpServerConfig>): Promise<McpSetSer
 ```
 
 Dynamically configures MCP servers.
+
+---
+
+## Not Supported
+
+### `rewindFiles(userMessageId, options?)`
+
+```typescript
+async rewindFiles(
+  userMessageId: string,
+  options?: { dryRun?: boolean }
+): Promise<RewindFilesResult>
+```
+
+Throws "not yet implemented" — no CLI protocol support.
 
 ---
 

@@ -8,7 +8,7 @@
 import { expect } from 'bun:test';
 import path from 'node:path';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
-import { query as liteQuery } from '../../src/api/query.ts';
+import { query as openQuery } from '../../src/api/query.ts';
 import type { McpStdioServerConfig, Options } from '../../src/types/index.ts';
 import { testWithBothSDKs } from './comparison-utils.ts';
 
@@ -16,11 +16,11 @@ const CLI_PATH = path.resolve('./node_modules/@anthropic-ai/claude-agent-sdk/cli
 
 /** Run a query, invoke a control method, then consume remaining messages */
 async function queryWithControlMethod<T>(
-  sdk: 'lite' | 'official',
-  method: (q: ReturnType<typeof liteQuery>) => Promise<T>,
+  sdk: 'open' | 'official',
+  method: (q: ReturnType<typeof openQuery>) => Promise<T>,
   extraOptions?: Partial<Options>
 ): Promise<T> {
-  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+  const queryFn = sdk === 'open' ? openQuery : officialQuery;
   const q = queryFn({
     prompt: 'Say hello',
     options: {
@@ -115,7 +115,7 @@ const mcpServerOptions = {
 testWithBothSDKs(
   'toggleMcpServer() disables and re-enables a stdio MCP server',
   async (sdk) => {
-    const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+    const queryFn = sdk === 'open' ? openQuery : officialQuery;
     const q = queryFn({
       prompt: 'Say hello',
       options: {
@@ -144,7 +144,7 @@ testWithBothSDKs(
 testWithBothSDKs(
   'reconnectMcpServer() reconnects a stdio MCP server',
   async (sdk) => {
-    const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+    const queryFn = sdk === 'open' ? openQuery : officialQuery;
     const q = queryFn({
       prompt: 'Say hello',
       options: {
@@ -170,7 +170,7 @@ testWithBothSDKs(
 testWithBothSDKs(
   'setMcpServers() updates server configuration',
   async (sdk) => {
-    const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+    const queryFn = sdk === 'open' ? openQuery : officialQuery;
     const q = queryFn({
       prompt: 'Say hello',
       options: {

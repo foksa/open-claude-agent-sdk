@@ -1,16 +1,16 @@
 /**
  * Comparison tests for multi-turn conversations
- * Same tests run with both lite and official SDKs
+ * Same tests run with both open and official SDKs
  */
 
 import { expect } from 'bun:test';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
-import { query as liteQuery } from '../../src/api/query.ts';
+import { query as openQuery } from '../../src/api/query.ts';
 import type { SDKUserMessage } from '../../src/types/index.ts';
 import { testWithBothSDKs } from './comparison-utils.ts';
 
 testWithBothSDKs('multi-turn conversation via streamInput', async (sdk) => {
-  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+  const queryFn = sdk === 'open' ? openQuery : officialQuery;
 
   const q = queryFn({
     prompt: 'Say hello in one word',

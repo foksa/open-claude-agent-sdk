@@ -1,8 +1,8 @@
-// Using official @anthropic-ai/claude-agent-sdk
+// Using open-claude-agent-sdk instead of official SDK
 
-import type { HookJSONOutput } from '@anthropic-ai/claude-agent-sdk';
-import { query } from '@anthropic-ai/claude-agent-sdk';
 import * as path from 'path';
+import { query } from '../../../src/index.ts';
+import type { HookJSONOutput } from '../../../src/types/index.ts';
 
 async function main() {
   const q = query({

@@ -5,10 +5,10 @@
 import { describe, test } from 'bun:test';
 import path from 'node:path';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
-import { query as liteQuery } from '../../src/api/query.ts';
+import { query as openQuery } from '../../src/api/query.ts';
 import type { Options, SDKMessage } from '../../src/types/index.ts';
 
-export type SDKType = 'lite' | 'official';
+export type SDKType = 'open' | 'official';
 
 // Absolute path to embedded CLI - needed when tests use custom cwd
 const CLI_PATH = path.resolve('./node_modules/@anthropic-ai/claude-agent-sdk/cli.js');
@@ -18,7 +18,7 @@ const CLI_PATH = path.resolve('./node_modules/@anthropic-ai/claude-agent-sdk/cli
 // ============================================================================
 
 /**
- * Run the same test with both lite and official SDKs concurrently
+ * Run the same test with both open and official SDKs concurrently
  */
 export const testWithBothSDKs = (
   name: string,
@@ -26,7 +26,7 @@ export const testWithBothSDKs = (
   timeout = 60000
 ) => {
   describe(name, () => {
-    test.concurrent(`[lite] ${name}`, () => testFn('lite'), { timeout });
+    test.concurrent(`[open] ${name}`, () => testFn('open'), { timeout });
     test.concurrent(`[official] ${name}`, () => testFn('official'), { timeout });
   });
 };
@@ -36,7 +36,7 @@ export const testWithBothSDKs = (
  */
 export const testWithBothSDKsTodo = (name: string, _testFn?: (sdk: SDKType) => Promise<void>) => {
   describe(name, () => {
-    test.todo(`[lite] ${name}`);
+    test.todo(`[open] ${name}`);
     test.todo(`[official] ${name}`);
   });
 };
@@ -53,17 +53,17 @@ export async function runWithBothSDKs(
   options: Options,
   callback?: (sdk: SDKType, msg: SDKMessage) => void | Promise<void>
 ) {
-  const liteMessages: SDKMessage[] = [];
+  const openMessages: SDKMessage[] = [];
   const officialMessages: SDKMessage[] = [];
 
-  // Run with lite SDK
-  const liteStart = Date.now();
-  for await (const msg of liteQuery({ prompt, options })) {
-    liteMessages.push(msg);
-    if (callback) await callback('lite', msg);
+  // Run with open SDK
+  const openStart = Date.now();
+  for await (const msg of openQuery({ prompt, options })) {
+    openMessages.push(msg);
+    if (callback) await callback('open', msg);
     if (msg.type === 'result') break;
   }
-  const liteDuration = Date.now() - liteStart;
+  const openDuration = Date.now() - openStart;
 
   // Run with official SDK
   const officialStart = Date.now();
@@ -75,7 +75,7 @@ export async function runWithBothSDKs(
   const officialDuration = Date.now() - officialStart;
 
   return {
-    lite: { messages: liteMessages, duration: liteDuration },
+    open: { messages: openMessages, duration: openDuration },
     official: { messages: officialMessages, duration: officialDuration },
   };
 }
@@ -90,7 +90,7 @@ export async function runWithSDK(
   callback?: (msg: SDKMessage) => void | Promise<void>
 ): Promise<SDKMessage[]> {
   const messages: SDKMessage[] = [];
-  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+  const queryFn = sdk === 'open' ? openQuery : officialQuery;
 
   // Use Haiku by default for tests unless model is explicitly specified
   // Use empty settingSources for isolation (matches official SDK default)
@@ -116,21 +116,21 @@ export async function runWithSDK(
  * Compare message structures (ignoring content differences)
  */
 export function compareMessageStructures(
-  liteMessages: SDKMessage[],
+  openMessages: SDKMessage[],
   officialMessages: SDKMessage[]
 ) {
   const getMessageTypes = (msgs: SDKMessage[]) => msgs.map((m) => m.type);
 
   return {
-    liteTypes: getMessageTypes(liteMessages),
+    openTypes: getMessageTypes(openMessages),
     officialTypes: getMessageTypes(officialMessages),
-    liteCount: liteMessages.length,
+    openCount: openMessages.length,
     officialCount: officialMessages.length,
     bothHaveResult:
-      liteMessages.some((m) => m.type === 'result') &&
+      openMessages.some((m) => m.type === 'result') &&
       officialMessages.some((m) => m.type === 'result'),
     bothHaveSystem:
-      liteMessages.some((m) => m.type === 'system') &&
+      openMessages.some((m) => m.type === 'system') &&
       officialMessages.some((m) => m.type === 'system'),
   };
 }

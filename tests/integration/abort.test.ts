@@ -4,7 +4,7 @@
 
 import { expect } from 'bun:test';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
-import { query as liteQuery } from '../../src/api/query.ts';
+import { query as openQuery } from '../../src/api/query.ts';
 import type { Options, SDKMessage } from '../../src/types/index.ts';
 import { type SDKType, testWithBothSDKs } from './comparison-utils.ts';
 
@@ -15,7 +15,7 @@ const runWithAbort = async (
   abortAfterMs: number
 ): Promise<{ messages: SDKMessage[]; wasAborted: boolean }> => {
   const messages: SDKMessage[] = [];
-  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+  const queryFn = sdk === 'open' ? openQuery : officialQuery;
   const abortController = new AbortController();
 
   const testOptions: Options = {
@@ -86,7 +86,7 @@ testWithBothSDKs('abortController signal is respected immediately', async (sdk) 
   const abortController = new AbortController();
   abortController.abort();
 
-  const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+  const queryFn = sdk === 'open' ? openQuery : officialQuery;
   const messages: SDKMessage[] = [];
 
   const testOptions: Options = {

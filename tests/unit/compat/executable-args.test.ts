@@ -3,7 +3,7 @@
  *
  * Verifies that executableArgs are included for both native and JS binaries.
  *
- * Official SDK (docs/research/official-sdk-unminified.mjs lines 7361-7363):
+ * Official SDK (node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs):
  *
  *   let r6 = $V(H),                                    // isNativeBinary check
  *       o6 = r6 ? H : W,                               // command: native path or runtime

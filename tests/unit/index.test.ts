@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { version } from '../../src/index';
 
-describe('Lite Claude Agent SDK', () => {
+describe('Open Claude Agent SDK', () => {
   test('exports version', () => {
     expect(version).toBe('0.1.0');
   });

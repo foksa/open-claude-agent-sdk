@@ -21,8 +21,8 @@ import { QueryImpl } from './QueryImpl.ts';
  * - String: Simple one-shot or multi-turn via streamInput()
  * - AsyncIterable: Streaming input mode (recommended for complex flows)
  *
- * Tip: Cast to LiteQuery to access extra convenience methods:
- *   const q = query({ prompt: '...' }) as LiteQuery;
+ * Tip: Cast to ExtendedQuery to access extra convenience methods:
+ *   const q = query({ prompt: '...' }) as ExtendedQuery;
  *   const styles = await q.availableOutputStyles();
  *
  * @param params Query parameters (prompt and options)

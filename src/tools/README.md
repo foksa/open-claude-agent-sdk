@@ -1,6 +1,6 @@
 # SDK Development Tools
 
-Debugging and testing utilities for the lite-claude-agent-sdk.
+Debugging and testing utilities for the open-claude-agent-sdk.
 
 ---
 
@@ -21,7 +21,7 @@ SDK → Proxy CLI (logs everything) → Real CLI → Claude API
 ### Usage
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 const result = query({
   prompt: 'Hello',
@@ -75,7 +75,7 @@ SDK → Capture CLI (stores args + stdin) → Mock response
 ### Usage
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 // Set output file
 const outputFile = `/tmp/capture-${Date.now()}.json`;
@@ -123,7 +123,7 @@ console.log(captured.stdin);  // [{type: 'control_request', ...}, {type: 'user',
 
 - Unit tests verifying CLI argument generation
 - Unit tests verifying stdin message format
-- Comparing lite SDK behavior with official SDK
+- Comparing open SDK behavior with official SDK
 - Fast tests that don't need real API calls
 
 ---

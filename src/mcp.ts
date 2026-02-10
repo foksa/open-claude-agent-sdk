@@ -70,7 +70,7 @@ type CreateSdkMcpServerOptions = {
  *
  * @example
  * ```typescript
- * import { createSdkMcpServer, tool, query } from 'lite-claude-agent-sdk';
+ * import { createSdkMcpServer, tool, query } from 'open-claude-agent-sdk';
  * import { z } from 'zod';
  *
  * const server = createSdkMcpServer({
@@ -118,7 +118,7 @@ export function createSdkMcpServer(
  *
  * @example
  * ```typescript
- * import { tool } from 'lite-claude-agent-sdk';
+ * import { tool } from 'open-claude-agent-sdk';
  * import { z } from 'zod';
  *
  * const myTool = tool(

@@ -10,7 +10,7 @@
 
 import { describe, expect } from 'bun:test';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
-import { query as liteQuery } from '../../src/api/query.ts';
+import { query as openQuery } from '../../src/api/query.ts';
 import type { HookCallbackMatcher, HookInput, Options, SDKMessage } from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
@@ -234,7 +234,7 @@ describe('Abort with subagents', () => {
   testWithBothSDKs(
     'abort terminates query with running subagent',
     async (sdk) => {
-      const queryFn = sdk === 'lite' ? liteQuery : officialQuery;
+      const queryFn = sdk === 'open' ? openQuery : officialQuery;
       const abortController = new AbortController();
       const messages: SDKMessage[] = [];
       let sawSubagentMessage = false;

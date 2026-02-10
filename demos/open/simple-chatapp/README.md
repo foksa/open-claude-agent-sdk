@@ -18,14 +18,14 @@ A demo chat application using the Claude Agent SDK with a React frontend and Exp
 
 ```bash
 # From open-claude-agent-sdk root
-cd examples/simple-chatapp
+cd demos/open/simple-chatapp
 npm install
 ```
 
 ### Running
 
 ```bash
-# From examples/simple-chatapp directory
+# From demos/open/simple-chatapp directory
 npm run dev
 ```
 

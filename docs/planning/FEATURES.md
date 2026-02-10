@@ -1,4 +1,4 @@
-# Feature Comparison: Lite SDK vs Official SDK
+# Feature Comparison: Open SDK vs Official SDK
 
 **Last Updated:** 2026-02-08
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
@@ -112,7 +112,7 @@
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |
 | Subagent support (`agents`) | ✅ | E2E tested: invocation, hooks, abort |
 | Agent teams | ❌ | Types exported only; no env var, no tests |
-| Output styles | ✅ | LiteQuery extension methods tested |
+| Output styles | ✅ | ExtendedQuery extension methods tested |
 | Plugin system | 🔌 | CLI flag passed, no behavioral test |
 
 ---
@@ -161,7 +161,7 @@ Handled by the CLI subprocess:
 
 ## Size Comparison
 
-| Metric | Lite SDK | Official SDK |
+| Metric | Open SDK | Official SDK |
 |--------|----------|--------------|
 | Bundle size | ~488KB | ~13MB |
 | Source code | ~2,500 LOC | ~50,000+ LOC |
@@ -170,4 +170,4 @@ Handled by the CLI subprocess:
 
 ---
 
-**See Also:** [ROADMAP.md](./ROADMAP.md) for remaining work
+**See Also:** [GitHub Issues](https://github.com/foksa/open-claude-agent-sdk/issues) for remaining work

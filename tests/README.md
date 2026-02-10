@@ -33,21 +33,21 @@ bunx playwright test
 
 ## Test Philosophy
 
-**Comparison testing:** Every integration test runs with BOTH lite and official SDKs.
+**Comparison testing:** Every integration test runs with BOTH open and official SDKs.
 
 | Outcome | Interpretation |
 |---------|----------------|
 | Both pass | Our SDK works correctly |
 | Both fail | Test issue (bad prompt, timeout) |
-| Lite fails, official passes | **Bug in our SDK** |
-| Official fails, lite passes | Edge case to investigate |
+| Open fails, official passes | **Bug in our SDK** |
+| Official fails, open passes | Edge case to investigate |
 
 ## Test Types
 
 ### Unit Tests (`tests/unit/`)
 - No real API calls
 - Uses mock capture-cli to compare stdin messages
-- Catches protocol drift between lite and official SDK
+- Catches protocol drift between open and official SDK
 
 ### Integration Tests (`tests/integration/`)
 - Spawns real Claude CLI subprocess

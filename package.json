@@ -1,17 +1,17 @@
 {
-  "name": "@lite-claude/agent-sdk",
-  "version": "0.0.0",
+  "name": "open-claude-agent-sdk",
+  "version": "0.9.0",
   "description": "A lightweight alternative to Claude Agent SDK - 70x smaller, uses local CLI",
   "license": "MIT",
-  "author": "lite-claude contributors",
+  "author": "open-claude contributors",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/foksa/lite-claude-agent-sdk.git"
+    "url": "git+https://github.com/foksa/open-claude-agent-sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/foksa/lite-claude-agent-sdk/issues"
+    "url": "https://github.com/foksa/open-claude-agent-sdk/issues"
   },
-  "homepage": "https://github.com/foksa/lite-claude-agent-sdk#readme",
+  "homepage": "https://github.com/foksa/open-claude-agent-sdk#readme",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -47,8 +47,6 @@
     "test:integration": "bun test tests/integration/",
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "biome format .",
@@ -57,9 +55,7 @@
     "check:fix": "biome check --write .",
     "typecheck": "tsc --noEmit",
     "ci": "bun run typecheck && bun run check && bun run test && bun run build",
-    "changeset": "changeset",
-    "version": "changeset version",
-    "release": "bun run build && changeset publish"
+    "release": "bun run build"
   },
   "keywords": [
     "ai",
@@ -83,9 +79,7 @@
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.37",
     "@biomejs/biome": "^2.3.13",
-    "@changesets/cli": "^2.29.8",
     "@types/bun": "^1.3.8",
-    "playwright": "^1.58.1",
     "typescript": "^5.9.3"
   }
 }

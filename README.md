@@ -1,10 +1,10 @@
-# Lite Claude Agent SDK
+# Open Claude Agent SDK
 
 A compatible open-source replacement for `@anthropic-ai/claude-agent-sdk` — thin wrapper that uses your local Claude CLI.
 
 ## Why?
 
-| | Lite SDK | Official SDK |
+| | Open SDK | Official SDK |
 |---|---|---|
 | **Bundle size** | ~488KB | ~13MB |
 | **How it works** | Spawns local CLI | Bundles CLI |
@@ -20,7 +20,7 @@ Same API, same types, much smaller.
 ## Install
 
 ```bash
-bun add lite-claude-agent-sdk
+bun add open-claude-agent-sdk
 
 # Requires Claude CLI
 npm install -g @anthropic-ai/claude-code
@@ -29,7 +29,7 @@ npm install -g @anthropic-ai/claude-code
 ## Usage
 
 ```typescript
-import { query } from 'lite-claude-agent-sdk';
+import { query } from 'open-claude-agent-sdk';
 
 for await (const msg of query({
   prompt: 'Write a haiku about coding',
@@ -46,7 +46,7 @@ Drop-in replacement — just change the import:
 
 ```diff
 - import { query } from '@anthropic-ai/claude-agent-sdk';
-+ import { query } from 'lite-claude-agent-sdk';
++ import { query } from 'open-claude-agent-sdk';
 ```
 
 ## Features
@@ -78,14 +78,14 @@ Drop-in replacement — just change the import:
 - **Output styles** — custom styles via `.claude/output-styles/`
 - **Sandbox** — sandbox configuration pass-through
 
-### Lite SDK Extensions
+### Open SDK Extensions
 
 Extra convenience methods beyond the official SDK:
 
 ```typescript
-import { query, type LiteQuery } from 'lite-claude-agent-sdk';
+import { query, type ExtendedQuery } from 'open-claude-agent-sdk';
 
-const q = query({ prompt: '...' }) as LiteQuery;
+const q = query({ prompt: '...' }) as ExtendedQuery;
 
 await q.availableOutputStyles(); // string[]
 await q.currentOutputStyle();    // string
@@ -105,13 +105,13 @@ Three demo apps ported from the official SDK, running on both SDKs:
 
 ```bash
 # Hello world
-bun demos/lite/hello-world/index.ts
+bun demos/open/hello-world/hello-world.ts
 
-# Interactive chat
-bun demos/lite/simple-chatapp/index.ts
+# Interactive chat (has its own dev server)
+cd demos/open/simple-chatapp && npm install && npm run dev
 
 # Resume generator
-bun demos/lite/resume-generator/index.ts
+bun demos/open/resume-generator/resume-generator.ts
 ```
 
 ## Testing
@@ -129,9 +129,10 @@ bun run typecheck
 
 ## Documentation
 
-- [Feature Comparison](./docs/planning/FEATURES.md) — full feature matrix
+- [API Reference](./docs/api/API.md) — query function, message types, examples
+- [Options Reference](./docs/api/OPTIONS.md) — all query options
+- [Feature Matrix](./docs/planning/FEATURES.md) — full feature comparison
 - [Migration Guide](./docs/guides/MIGRATION.md) — migrate from official SDK
-- [Development Roadmap](./docs/planning/ROADMAP.md) — priorities and timeline
 
 ## License
 
