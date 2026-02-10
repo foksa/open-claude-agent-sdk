@@ -37,8 +37,7 @@ tests/
 docs/
   ├── api/                  # API reference (API.md, OPTIONS.md, CONTROL_METHODS.md)
   ├── guides/               # MIGRATION, REVERSE_ENGINEERING
-  ├── planning/             # FEATURES.md (feature matrix)
-  └── research/             # official-sdk-unminified.mjs (reference)
+  └── planning/             # FEATURES.md (feature matrix)
 ```
 
 ## How to Work Here
@@ -82,7 +81,7 @@ bun run typecheck
 - `src/tools/proxy-cli.cjs` - Proxy interceptor for debugging protocol
 
 **Official SDK source:**
-- `docs/research/official-sdk-unminified.mjs` - Readable (unminified) version of the official SDK source (~19k lines). Use this instead of the minified `node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs` when researching how the official SDK works.
+- `node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs` - Official SDK source (minified). Use for researching how the official SDK works.
 
 ### What NOT to Do
 
