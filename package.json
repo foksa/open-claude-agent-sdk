@@ -1,6 +1,6 @@
 {
   "name": "open-claude-agent-sdk",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Open-source alternative to Claude Agent SDK - readable source, debuggable, uses local CLI",
   "license": "MIT",
   "author": "open-claude contributors",
