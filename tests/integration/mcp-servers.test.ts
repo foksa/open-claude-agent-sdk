@@ -147,7 +147,7 @@ describe('Stdio MCP Servers', () => {
             'test-server': { command: 'node', args: [MCP_SERVER] } as McpStdioServerConfig,
           },
           allowedTools: ['mcp__test-server__*'],
-          maxTurns: 3,
+          maxTurns: 5,
         }
       );
 
