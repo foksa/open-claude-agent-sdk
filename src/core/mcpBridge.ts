@@ -9,6 +9,37 @@
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { Options } from '../types/index.ts';
+import type { ControlProtocolHandler } from './control.ts';
+
+/**
+ * Connect SDK MCP server bridges (in-process servers with `instance` property).
+ * Creates bridges and registers them with the control handler.
+ *
+ * @returns Array of SDK MCP server names that were connected
+ */
+export function connectMcpBridges(
+  options: Options,
+  controlHandler: ControlProtocolHandler
+): string[] {
+  const sdkMcpServerNames: string[] = [];
+  if (!options.mcpServers) return sdkMcpServerNames;
+
+  const bridges = new Map<string, McpServerBridge>();
+  for (const [name, config] of Object.entries(options.mcpServers)) {
+    if ('instance' in config && config.instance) {
+      const bridge = new McpServerBridge(config.instance);
+      bridge.connect(); // async but we don't await — server connects in background
+      bridges.set(name, bridge);
+      sdkMcpServerNames.push(name);
+    }
+  }
+  if (bridges.size > 0) {
+    controlHandler.setMcpServerBridges(bridges);
+  }
+
+  return sdkMcpServerNames;
+}
 
 export class McpServerBridge {
   // biome-ignore lint/suspicious/noExplicitAny: matches Transport.onmessage signature which uses JSONRPCMessage generic
