@@ -53,12 +53,13 @@
     "check": "biome check .",
     "check:fix": "biome check --write .",
     "typecheck": "tsc --noEmit",
-    "ci": "bun run typecheck && bun run check && bun run test && bun run build",
+    "ci": "bun run typecheck && bun run check && bun run test:unit && bun run build",
     "release": "bun run build",
     "prepublishOnly": "bun run ci"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "keywords": [
     "ai",
