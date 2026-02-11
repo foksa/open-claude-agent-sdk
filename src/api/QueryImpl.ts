@@ -10,14 +10,8 @@
  */
 
 import type { ChildProcess } from 'node:child_process';
-import {
-  ControlProtocolHandler,
-  ControlRequests,
-  type OutboundControlRequest,
-} from '../core/control.ts';
-import { buildHookConfig } from '../core/hookConfig.ts';
-import { McpServerBridge } from '../core/mcpBridge.ts';
-import { MessageType, RequestSubtype, ResponseSubtype } from '../types/control.ts';
+import { ControlProtocolHandler, ControlRequests } from '../core/control.ts';
+import { connectMcpBridges } from '../core/mcpBridge.ts';
 import type {
   AccountInfo,
   McpServerConfig,
@@ -33,37 +27,27 @@ import type {
   SDKUserMessage,
   SlashCommand,
 } from '../types/index.ts';
+import { ControlRequestManager } from './ControlRequestManager.ts';
 import { MessageQueue } from './MessageQueue.ts';
-import { type ControlResponsePayload, MessageRouter } from './MessageRouter.ts';
+import { MessageRouter } from './MessageRouter.ts';
 import { DefaultProcessFactory, type ProcessFactory } from './ProcessFactory.ts';
+import { sendInitialPrompt, sendProtocolInit } from './protocolInit.ts';
 
 export class QueryImpl implements Query {
   private closed = false;
   private abortHandler: (() => void) | null = null;
 
-  // Pending control request/response map (for mcpServerStatus, etc.)
-  private pendingControlResponses = new Map<
-    string,
-    // biome-ignore lint/suspicious/noExplicitAny: response shape varies by request type
-    { resolve: (value: any) => void; reject: (reason: Error) => void }
-  >();
-
   private constructor(
     private process: ChildProcess,
     private messageQueue: MessageQueue<SDKMessage>,
-    private controlHandler: ControlProtocolHandler,
+    private controlManager: ControlRequestManager,
     private router: MessageRouter,
-    private initResponsePromise: Promise<SDKControlInitializeResponse>,
-    private initResolve: (value: SDKControlInitializeResponse) => void,
-    private initReject: (reason: Error) => void,
-    private initRequestId: string,
-    private sdkMcpServerNames: string[],
     private isSingleUserTurn: boolean,
     private abortController?: AbortController
   ) {}
 
   /**
-   * Factory method — performs all initialization that was previously in the constructor.
+   * Factory method — spawns process, wires components, starts communication.
    */
   static create(
     params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options },
@@ -71,79 +55,61 @@ export class QueryImpl implements Query {
   ): QueryImpl {
     const { prompt, options = {} } = params;
 
-    // Check for pre-aborted signal BEFORE spawning process (save resources)
+    // Check for pre-aborted signal BEFORE spawning process
     if (options.abortController?.signal.aborted) {
       return QueryImpl.createAborted();
     }
 
-    // 1. Spawn process via factory
+    // 1. Spawn process
     const childProcess = processFactory.spawn(options);
-
-    // Validate stdio streams exist (they should with stdio: 'pipe')
     if (!childProcess.stdin || !childProcess.stdout) {
       throw new Error('Process stdin/stdout not available');
     }
 
-    // 2. Initialize message queue
+    // 2. Initialize components
     const messageQueue = new MessageQueue<SDKMessage>();
-
-    // 3. Initialize control protocol handler
     const controlHandler = new ControlProtocolHandler(childProcess.stdin, options);
+    const controlManager = new ControlRequestManager(childProcess.stdin);
 
-    // 3.5. Connect SDK MCP servers (in-process servers with `instance` property)
-    const sdkMcpServerNames: string[] = [];
-    QueryImpl.connectMcpBridges(options, controlHandler, sdkMcpServerNames);
+    // 3. Connect SDK MCP servers
+    const sdkMcpServerNames = connectMcpBridges(options, controlHandler);
 
-    // 4. Set up init response promise before sending init request
-    let initResolve!: (value: SDKControlInitializeResponse) => void;
-    let initReject!: (reason: Error) => void;
-    const initResponsePromise = new Promise<SDKControlInitializeResponse>((resolve, reject) => {
-      initResolve = resolve;
-      initReject = reject;
-    });
-
-    const initRequestId = `init_${Date.now()}`;
     const isSingleUserTurn = typeof prompt === 'string';
 
-    // 5. Construct instance
+    // 4. Construct instance
     const instance = new QueryImpl(
       childProcess,
       messageQueue,
-      controlHandler,
+      controlManager,
       // router placeholder — set below after constructing with callbacks
       null as unknown as MessageRouter,
-      initResponsePromise,
-      initResolve,
-      initReject,
-      initRequestId,
-      sdkMcpServerNames,
       isSingleUserTurn,
       options.abortController
     );
 
-    // 6. Initialize message router with callbacks (needs instance for closures)
+    // 5. Initialize message router with callbacks
     instance.router = new MessageRouter(
       childProcess.stdout,
       controlHandler,
       (msg) => instance.handleMessage(msg),
       (error) => instance.handleDone(error),
-      (response) => instance.handleControlResponse(response)
+      (response) => controlManager.handleControlResponse(response)
     );
 
-    // 7. Start background reading
+    // 6. Start background reading
     instance.router.startReading();
 
-    // 8. Send control protocol initialization
-    instance.sendControlProtocolInit(options);
+    // 7. Send control protocol initialization
+    sendProtocolInit(controlManager, options, sdkMcpServerNames, controlHandler);
 
-    // 9. Handle input based on type
+    // 8. Handle input
     if (typeof prompt === 'string') {
-      instance.sendInitialPrompt(prompt);
+      sendInitialPrompt(controlManager, prompt);
     } else {
       instance.consumeInputGenerator(prompt);
     }
 
-    // 10. Setup process exit/error handlers + abort listener
+    // 9. Setup process exit/error handlers + abort listener
     instance.setupProcessHandlers();
 
     return instance;
@@ -155,62 +121,34 @@ export class QueryImpl implements Query {
   private static createAborted(): QueryImpl {
     const messageQueue = new MessageQueue<SDKMessage>();
     messageQueue.complete();
-    const abortError = new Error('Query was aborted before initialization');
-    const initResponsePromise = Promise.reject(abortError);
-    initResponsePromise.catch(() => {}); // Prevent unhandled rejection
+
+    const controlManager = new ControlRequestManager(null);
+    controlManager.rejectAll(new Error('Query was aborted before initialization'));
 
     const instance = new QueryImpl(
       null as unknown as ChildProcess,
       messageQueue,
-      null as unknown as ControlProtocolHandler,
+      controlManager,
       null as unknown as MessageRouter,
-      initResponsePromise,
-      () => {},
-      () => {},
-      '',
-      [],
       false
     );
     instance.closed = true;
     return instance;
   }
 
-  /**
-   * Connect SDK MCP server bridges (in-process servers with `instance` property).
-   */
-  private static connectMcpBridges(
-    options: Options,
-    controlHandler: ControlProtocolHandler,
-    sdkMcpServerNames: string[]
-  ): void {
-    if (!options.mcpServers) return;
+  // ============================================================================
+  // Process lifecycle
+  // ============================================================================
 
-    const bridges = new Map<string, McpServerBridge>();
-    for (const [name, config] of Object.entries(options.mcpServers)) {
-      if ('instance' in config && config.instance) {
-        const bridge = new McpServerBridge(config.instance);
-        bridge.connect(); // async but we don't await — server connects in background
-        bridges.set(name, bridge);
-        sdkMcpServerNames.push(name);
-      }
-    }
-    if (bridges.size > 0) {
-      controlHandler.setMcpServerBridges(bridges);
-    }
-  }
-
-  /**
-   * Set up process exit/error handlers and abort controller listener.
-   */
   private setupProcessHandlers(): void {
     this.process.on('exit', (code) => {
       if (code !== 0 && code !== null && !this.messageQueue.isDone()) {
         const error = new Error(`Claude CLI exited with code ${code}`);
         this.messageQueue.complete(error);
-        this.rejectPendingPromises(error);
+        this.controlManager.rejectAll(error);
       } else if (!this.messageQueue.isDone()) {
         this.messageQueue.complete();
-        this.rejectPendingPromises(new Error('CLI exited before responding'));
+        this.controlManager.rejectAll(new Error('CLI exited before responding'));
       }
     });
 
@@ -218,7 +156,7 @@ export class QueryImpl implements Query {
       if (!this.messageQueue.isDone()) {
         this.messageQueue.complete(err);
       }
-      this.rejectPendingPromises(err);
+      this.controlManager.rejectAll(err);
     });
 
     if (this.abortController) {
@@ -229,9 +167,6 @@ export class QueryImpl implements Query {
     }
   }
 
-  /**
-   * Handle incoming message from router
-   */
   private handleMessage(msg: SDKMessage): void {
     this.messageQueue.push(msg);
 
@@ -241,44 +176,9 @@ export class QueryImpl implements Query {
     }
   }
 
-  /**
-   * Handle stream completion from router
-   */
   private handleDone(error?: Error): void {
     if (!this.messageQueue.isDone()) {
       this.messageQueue.complete(error);
-    }
-  }
-
-  /**
-   * Handle control_response messages from CLI
-   * Routes to init promise or pending request/response handlers
-   */
-  private handleControlResponse(response: ControlResponsePayload): void {
-    if (!response) return;
-
-    const requestId = response.request_id;
-
-    // Check if this is the init response
-    if (requestId === this.initRequestId) {
-      if (response.subtype === ResponseSubtype.SUCCESS) {
-        this.initResolve(response.response as SDKControlInitializeResponse);
-      } else {
-        this.initReject(new Error(`Initialization failed: ${response.error || 'unknown error'}`));
-      }
-      return;
-    }
-
-    // Check if there's a pending request/response handler
-    const pending = requestId ? this.pendingControlResponses.get(requestId) : undefined;
-    if (pending) {
-      const { resolve, reject } = pending;
-      this.pendingControlResponses.delete(requestId);
-      if (response.subtype === ResponseSubtype.SUCCESS) {
-        resolve(response.response);
-      } else {
-        reject(new Error(`Control request failed: ${response.error || 'unknown error'}`));
-      }
     }
   }
 
@@ -309,35 +209,34 @@ export class QueryImpl implements Query {
   }
 
   // ============================================================================
-  // Control methods (12 methods from Query interface)
+  // Control methods (Query interface)
   // ============================================================================
 
   async interrupt(): Promise<void> {
-    this.sendControlRequest(ControlRequests.interrupt());
+    this.controlManager.sendControlRequest(ControlRequests.interrupt());
   }
 
   async setPermissionMode(mode: PermissionMode): Promise<void> {
-    this.sendControlRequest(ControlRequests.setPermissionMode(mode));
+    this.controlManager.sendControlRequest(ControlRequests.setPermissionMode(mode));
   }
 
   async setModel(model?: string): Promise<void> {
-    this.sendControlRequest(ControlRequests.setModel(model));
+    this.controlManager.sendControlRequest(ControlRequests.setModel(model));
   }
 
   async setMaxThinkingTokens(maxThinkingTokens: number | null): Promise<void> {
-    this.sendControlRequest(ControlRequests.setMaxThinkingTokens(maxThinkingTokens));
+    this.controlManager.sendControlRequest(ControlRequests.setMaxThinkingTokens(maxThinkingTokens));
   }
 
   async streamInput(stream: AsyncIterable<SDKUserMessage>): Promise<void> {
     for await (const msg of stream) {
-      this.writeToStdin(msg);
+      this.controlManager.writeToStdin(msg);
     }
   }
 
   close(): void {
     if (!this.closed) {
       this.closed = true;
-      // Clean up abort controller listener
       if (this.abortController && this.abortHandler) {
         this.abortController.signal.removeEventListener('abort', this.abortHandler);
         this.abortHandler = null;
@@ -347,44 +246,43 @@ export class QueryImpl implements Query {
       if (!this.messageQueue.isDone()) {
         this.messageQueue.complete();
       }
-      // Reject any pending control response promises
-      this.rejectPendingPromises(new Error('Query closed'));
+      this.controlManager.rejectAll(new Error('Query closed'));
     }
   }
 
   async initializationResult(): Promise<SDKControlInitializeResponse> {
-    return this.initResponsePromise;
+    return this.controlManager.waitForInit();
   }
 
   async supportedCommands(): Promise<SlashCommand[]> {
-    const init = await this.initResponsePromise;
+    const init = await this.controlManager.waitForInit();
     return init.commands;
   }
 
   async supportedModels(): Promise<ModelInfo[]> {
-    const init = await this.initResponsePromise;
+    const init = await this.controlManager.waitForInit();
     return init.models;
   }
 
   async availableOutputStyles(): Promise<string[]> {
-    const init = await this.initResponsePromise;
+    const init = await this.controlManager.waitForInit();
     return init.available_output_styles;
   }
 
   async currentOutputStyle(): Promise<string> {
-    const init = await this.initResponsePromise;
+    const init = await this.controlManager.waitForInit();
     return init.output_style;
   }
 
   async mcpServerStatus(): Promise<McpServerStatus[]> {
-    const response = await this.sendControlRequestWithResponse<{ mcpServers: McpServerStatus[] }>(
-      ControlRequests.mcpStatus()
-    );
+    const response = await this.controlManager.sendControlRequestWithResponse<{
+      mcpServers: McpServerStatus[];
+    }>(ControlRequests.mcpStatus());
     return response.mcpServers;
   }
 
   async accountInfo(): Promise<AccountInfo> {
-    const init = await this.initResponsePromise;
+    const init = await this.controlManager.waitForInit();
     return init.account;
   }
 
@@ -396,141 +294,31 @@ export class QueryImpl implements Query {
   }
 
   async reconnectMcpServer(serverName: string): Promise<void> {
-    await this.sendControlRequestWithResponse(ControlRequests.mcpReconnect(serverName));
+    await this.controlManager.sendControlRequestWithResponse(
+      ControlRequests.mcpReconnect(serverName)
+    );
   }
 
   async toggleMcpServer(serverName: string, enabled: boolean): Promise<void> {
-    await this.sendControlRequestWithResponse(ControlRequests.mcpToggle(serverName, enabled));
+    await this.controlManager.sendControlRequestWithResponse(
+      ControlRequests.mcpToggle(serverName, enabled)
+    );
   }
 
   async setMcpServers(servers: Record<string, McpServerConfig>): Promise<McpSetServersResult> {
-    return this.sendControlRequestWithResponse(ControlRequests.mcpSetServers(servers));
+    return this.controlManager.sendControlRequestWithResponse(
+      ControlRequests.mcpSetServers(servers)
+    );
   }
 
   // ============================================================================
   // Private helpers
   // ============================================================================
 
-  /**
-   * Reject initResponsePromise and all pending control response promises
-   */
-  private rejectPendingPromises(error: Error): void {
-    this.initReject?.(error);
-    for (const [, { reject }] of this.pendingControlResponses) {
-      reject(error);
-    }
-    this.pendingControlResponses.clear();
-  }
-
-  /** Write an NDJSON message to the CLI stdin */
-  private writeToStdin(msg: unknown): void {
-    this.process.stdin?.write(`${JSON.stringify(msg)}\n`);
-  }
-
-  /** Build a control_request envelope for the wire */
-  private buildControlRequest(request: OutboundControlRequest, requestId?: string) {
-    return {
-      type: MessageType.CONTROL_REQUEST,
-      request_id: requestId ?? this.generateRequestId(),
-      request,
-    };
-  }
-
-  private sendControlRequest(request: OutboundControlRequest): void {
-    this.writeToStdin(this.buildControlRequest(request));
-  }
-
-  /**
-   * Send a control request and return a Promise that resolves when the CLI responds
-   */
-  // biome-ignore lint/suspicious/noExplicitAny: response shape varies by request type
-  private sendControlRequestWithResponse<T = any>(request: OutboundControlRequest): Promise<T> {
-    if (this.closed) {
-      return Promise.reject(new Error('Cannot send control request: query is closed'));
-    }
-    const envelope = this.buildControlRequest(request);
-    const promise = new Promise<T>((resolve, reject) => {
-      this.pendingControlResponses.set(envelope.request_id, { resolve, reject });
-    });
-    this.writeToStdin(envelope);
-    return promise;
-  }
-
-  private generateRequestId(): string {
-    return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  }
-
-  private async sendControlProtocolInit(options: Options): Promise<void> {
-    const requestId = `init_${Date.now()}`;
-    this.initRequestId = requestId;
-
-    // Resolve systemPrompt to match official SDK behavior:
-    // - undefined → systemPrompt: "" (use minimal prompt, saves tokens)
-    // - string → systemPrompt: "..." (custom full prompt)
-    // - { type: 'preset', preset: 'claude_code' } → neither field (use claude_code preset)
-    // - { type: 'preset', preset: 'claude_code', append: '...' } → appendSystemPrompt: "..."
-    let systemPrompt: string | undefined;
-    let appendSystemPrompt: string | undefined;
-
-    if (options.systemPrompt === undefined) {
-      systemPrompt = '';
-    } else if (typeof options.systemPrompt === 'string') {
-      systemPrompt = options.systemPrompt;
-    } else if (options.systemPrompt.type === 'preset' && options.systemPrompt.append) {
-      appendSystemPrompt = options.systemPrompt.append;
-    }
-
-    const request: {
-      subtype: typeof RequestSubtype.INITIALIZE;
-      systemPrompt?: string;
-      appendSystemPrompt?: string;
-      sdkMcpServers?: string[];
-      agents?: Record<string, unknown>;
-      hooks?: ReturnType<typeof buildHookConfig>;
-    } = {
-      subtype: RequestSubtype.INITIALIZE,
-      ...(systemPrompt !== undefined && { systemPrompt }),
-      ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
-      ...(this.sdkMcpServerNames.length > 0 && { sdkMcpServers: this.sdkMcpServerNames }),
-      ...(options.agents && { agents: options.agents }),
-    };
-
-    // Register hooks if configured
-    if (options.hooks) {
-      request.hooks = buildHookConfig(options.hooks, this.controlHandler);
-    }
-
-    const init = {
-      type: MessageType.CONTROL_REQUEST,
-      request_id: requestId,
-      request,
-    };
-
-    if (process.env.DEBUG_HOOKS) {
-      console.error('[DEBUG] Sending control protocol init:', JSON.stringify(init, null, 2));
-    }
-
-    this.writeToStdin(init);
-  }
-
-  private sendInitialPrompt(prompt: string): void {
-    const initialMessage: SDKUserMessage = {
-      type: 'user',
-      message: {
-        role: 'user',
-        content: [{ type: 'text', text: prompt }],
-      },
-      session_id: '',
-      parent_tool_use_id: null,
-    };
-
-    this.writeToStdin(initialMessage);
-  }
-
   private async consumeInputGenerator(generator: AsyncIterable<SDKUserMessage>): Promise<void> {
     try {
       for await (const userMsg of generator) {
-        this.writeToStdin(userMsg);
+        this.controlManager.writeToStdin(userMsg);
       }
     } catch (error: unknown) {
       const wrappedError = error instanceof Error ? error : new Error(String(error));
