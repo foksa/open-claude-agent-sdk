@@ -1,7 +1,7 @@
 {
   "name": "open-claude-agent-sdk",
   "version": "0.9.0",
-  "description": "A lightweight alternative to Claude Agent SDK - 70x smaller, uses local CLI",
+  "description": "Open-source alternative to Claude Agent SDK - readable source, debuggable, uses local CLI",
   "license": "MIT",
   "author": "open-claude contributors",
   "repository": {
@@ -14,7 +14,6 @@
   "homepage": "https://github.com/foksa/open-claude-agent-sdk#readme",
   "type": "module",
   "main": "./dist/index.js",
-  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
@@ -35,13 +34,13 @@
   },
   "files": [
     "dist",
+    "src",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build ./src/index.ts ./src/query.ts ./src/mcp-entry.ts --outdir ./dist --target node --format esm && bun run build:types",
-    "build:types": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json",
     "test": "bun test",
     "test:unit": "bun test tests/unit/",
     "test:integration": "bun test tests/integration/",
@@ -67,9 +66,6 @@
   ],
   "engines": {
     "bun": ">=1.3.0"
-  },
-  "peerDependencies": {
-    "@anthropic-ai/sdk": "^0.30.0"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.72.1",

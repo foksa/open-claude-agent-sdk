@@ -6,8 +6,10 @@ A compatible open-source replacement for `@anthropic-ai/claude-agent-sdk` — th
 
 | | Open SDK | Official SDK |
 |---|---|---|
-| **Bundle size** | ~488KB | ~13MB |
+| **Source** | Open, readable TypeScript | Closed, minified |
 | **How it works** | Spawns local CLI | Bundles CLI |
+| **Debuggable** | Breakpoints, source maps | Minified blob |
+| **AI-friendly** | Agents can read source | Agents can't parse minified code |
 | **Type compatible** | Yes (re-exports) | - |
 | **Streaming** | Yes | Yes |
 | **Multi-turn** | Yes | Yes |
@@ -15,7 +17,7 @@ A compatible open-source replacement for `@anthropic-ai/claude-agent-sdk` — th
 | **Subagents** | Yes | Yes |
 | **Hooks** | Yes | Yes |
 
-Same API, same types, much smaller.
+Same API, same types — open and debuggable.
 
 ## Install
 
