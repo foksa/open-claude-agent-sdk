@@ -220,7 +220,7 @@ export class QueryImpl implements Query {
   }
 
   async stopTask(taskId: string): Promise<void> {
-    this.controlManager.sendControlRequest(ControlRequests.stopTask(taskId));
+    await this.controlManager.sendControlRequestWithResponse(ControlRequests.stopTask(taskId));
   }
 
   async setPermissionMode(mode: PermissionMode): Promise<void> {
