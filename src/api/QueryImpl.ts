@@ -164,7 +164,7 @@ export class QueryImpl implements Query {
 
     if (this.abortController) {
       this.abortHandler = () => {
-        this.interrupt();
+        this.interrupt().catch(() => {});
       };
       this.abortController.signal.addEventListener('abort', this.abortHandler);
     }
@@ -216,7 +216,7 @@ export class QueryImpl implements Query {
   // ============================================================================
 
   async interrupt(): Promise<void> {
-    this.controlManager.sendControlRequest(ControlRequests.interrupt());
+    await this.controlManager.sendControlRequestWithResponse(ControlRequests.interrupt());
   }
 
   async stopTask(taskId: string): Promise<void> {
@@ -224,15 +224,19 @@ export class QueryImpl implements Query {
   }
 
   async setPermissionMode(mode: PermissionMode): Promise<void> {
-    this.controlManager.sendControlRequest(ControlRequests.setPermissionMode(mode));
+    await this.controlManager.sendControlRequestWithResponse(
+      ControlRequests.setPermissionMode(mode)
+    );
   }
 
   async setModel(model?: string): Promise<void> {
-    this.controlManager.sendControlRequest(ControlRequests.setModel(model));
+    await this.controlManager.sendControlRequestWithResponse(ControlRequests.setModel(model));
   }
 
   async setMaxThinkingTokens(maxThinkingTokens: number | null): Promise<void> {
-    this.controlManager.sendControlRequest(ControlRequests.setMaxThinkingTokens(maxThinkingTokens));
+    await this.controlManager.sendControlRequestWithResponse(
+      ControlRequests.setMaxThinkingTokens(maxThinkingTokens)
+    );
   }
 
   async streamInput(stream: AsyncIterable<SDKUserMessage>): Promise<void> {
