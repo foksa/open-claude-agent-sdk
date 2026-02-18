@@ -59,6 +59,7 @@
     "check:fix": "biome check --write .",
     "typecheck": "tsc --noEmit",
     "ci": "bun run typecheck && bun run check && bun run test:unit && bun run build",
+    "prerelease": "bun run ci",
     "release": "bun run build",
     "prepare": "git config core.hooksPath .githooks",
     "prepublishOnly": "bun run ci"
