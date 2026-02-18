@@ -3,7 +3,7 @@ import { version } from '../../src/index';
 
 describe('Open Claude Agent SDK', () => {
   test('exports version', () => {
-    expect(version).toBe('0.9.1');
+    expect(version).toBe('0.10.0');
   });
 
   test('placeholder test for initial setup', () => {
