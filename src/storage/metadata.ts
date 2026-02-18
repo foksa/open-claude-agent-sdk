@@ -36,9 +36,13 @@ export async function getSessionMetadata(
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
   let messageCount = 0;
+  const seenRequestIds = new Set<string>();
 
   const stream = createReadStream(filePath, { encoding: 'utf8' });
-  const rl = createInterface({ input: stream, crlfDelay: Number.POSITIVE_INFINITY });
+  const rl = createInterface({
+    input: stream,
+    crlfDelay: Number.POSITIVE_INFINITY,
+  });
 
   for await (const line of rl) {
     if (!line.trim()) continue;
@@ -77,14 +81,18 @@ export async function getSessionMetadata(
         model = entry.message.model;
       }
 
-      // accumulate token usage from assistant messages
+      // accumulate token usage from assistant messages, deduplicate by requestId
       if (entry.type === 'assistant' && entry.message?.usage) {
-        const u = entry.message.usage;
-        totalInputTokens +=
-          (u.input_tokens || 0) +
-          (u.cache_read_input_tokens || 0) +
-          (u.cache_creation_input_tokens || 0);
-        totalOutputTokens += u.output_tokens || 0;
+        const rid = entry.requestId;
+        if (!rid || !seenRequestIds.has(rid)) {
+          if (rid) seenRequestIds.add(rid);
+          const u = entry.message.usage;
+          totalInputTokens +=
+            (u.input_tokens || 0) +
+            (u.cache_read_input_tokens || 0) +
+            (u.cache_creation_input_tokens || 0);
+          totalOutputTokens += u.output_tokens || 0;
+        }
       }
 
       // agent info from system entries

@@ -55,10 +55,15 @@ function makeUserEntry(text: string, extra: Record<string, unknown> = {}) {
   });
 }
 
-function makeAssistantEntry(text: string, model = 'claude-sonnet-4-5-20250929') {
+function makeAssistantEntry(
+  text: string,
+  model = 'claude-sonnet-4-5-20250929',
+  requestId?: string
+) {
   return JSON.stringify({
     type: 'assistant',
     sessionId: SESSION_ID_1,
+    requestId: requestId ?? `req_${crypto.randomUUID()}`,
     message: {
       role: 'assistant',
       model,
@@ -273,6 +278,24 @@ describe('storage API', () => {
 
       const meta = await getSessionMetadata(SESSION_ID_1, projectPath);
       expect(meta.totalCost).toBeUndefined();
+    });
+
+    test('deduplicates token usage by requestId', async () => {
+      const sharedRequestId = 'req_duplicate';
+      // Two assistant entries with the same requestId (streaming chunks)
+      const content = [
+        makeUserEntry('test'),
+        makeAssistantEntry('chunk 1', 'claude-sonnet-4-5-20250929', sharedRequestId),
+        makeAssistantEntry('chunk 2', 'claude-sonnet-4-5-20250929', sharedRequestId),
+        // Different requestId — should be counted
+        makeAssistantEntry('separate turn'),
+      ].join('\n');
+
+      await writeFile(join(storagePath, `${SESSION_ID_1}.jsonl`), content);
+
+      const meta = await getSessionMetadata(SESSION_ID_1, projectPath);
+      // 2 unique requestIds × (100 input + 200 cache_read + 50 output) = 700
+      expect(meta.totalCost).toBe(700);
     });
   });
 
