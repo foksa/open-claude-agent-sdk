@@ -25,6 +25,7 @@ import {
   type SetMaxThinkingTokensRequest,
   type SetModelRequest,
   type SetPermissionModeRequest,
+  type StopTaskRequest,
 } from '../types/control.ts';
 import type { McpServerConfig, Options, PermissionMode, PermissionResult } from '../types/index.ts';
 import type { McpServerBridge } from './mcpBridge.ts';
@@ -44,7 +45,8 @@ export type OutboundControlRequest =
   | McpStatusRequest
   | McpReconnectRequest
   | McpToggleRequest
-  | McpSetServersRequest;
+  | McpSetServersRequest
+  | StopTaskRequest;
 
 /**
  * Type-safe control request builder functions
@@ -93,6 +95,11 @@ export const ControlRequests = {
   mcpSetServers: (servers: Record<string, McpServerConfig>): McpSetServersRequest => ({
     subtype: RequestSubtype.MCP_SET_SERVERS,
     servers,
+  }),
+
+  stopTask: (taskId: string): StopTaskRequest => ({
+    subtype: RequestSubtype.STOP_TASK,
+    task_id: taskId,
   }),
 };
 
@@ -157,6 +164,7 @@ export class ControlProtocolHandler {
         case RequestSubtype.SET_MAX_THINKING_TOKENS:
         case RequestSubtype.MCP_STATUS:
         case RequestSubtype.REWIND_FILES:
+        case RequestSubtype.STOP_TASK:
         case RequestSubtype.MCP_SET_SERVERS:
         case RequestSubtype.MCP_RECONNECT:
         case RequestSubtype.MCP_TOGGLE:

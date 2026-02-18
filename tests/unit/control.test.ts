@@ -4,7 +4,7 @@
 
 import { describe, expect, mock, test } from 'bun:test';
 import { Writable } from 'node:stream';
-import { ControlProtocolHandler } from '../../src/core/control.ts';
+import { ControlProtocolHandler, ControlRequests } from '../../src/core/control.ts';
 import type { ControlRequest } from '../../src/types/control.ts';
 
 // Helper to create a mock writable stream that captures writes
@@ -28,7 +28,9 @@ describe('ControlProtocolHandler', () => {
       const req: ControlRequest = {
         type: 'control_request',
         request_id: 'req-123',
-        request: { subtype: 'unknown_type' as unknown as ControlRequest['request']['subtype'] },
+        request: {
+          subtype: 'unknown_type' as unknown as ControlRequest['request']['subtype'],
+        },
       };
 
       await handler.handleControlRequest(req);
@@ -177,7 +179,10 @@ describe('ControlProtocolHandler', () => {
       await handler.handleControlRequest(req);
 
       expect(hookFn).toHaveBeenCalledTimes(1);
-      expect(hookFn.mock.calls[0][0]).toEqual({ hook_event_name: 'PreToolUse', data: 'test' });
+      expect(hookFn.mock.calls[0][0]).toEqual({
+        hook_event_name: 'PreToolUse',
+        data: 'test',
+      });
       expect(hookFn.mock.calls[0][1]).toBe('tu-456');
 
       const response = JSON.parse(writes[0]);
@@ -277,6 +282,27 @@ describe('ControlProtocolHandler', () => {
       expect(response.response.subtype).toBe('success');
     });
 
+    test('acknowledges stop_task request', async () => {
+      const { stream, writes } = createMockStdin();
+      const handler = new ControlProtocolHandler(stream, {});
+
+      const req: ControlRequest = {
+        type: 'control_request',
+        request_id: 'req-stop-task',
+        request: {
+          subtype: 'stop_task',
+          task_id: 'task-abc-123',
+        },
+      };
+
+      await handler.handleControlRequest(req);
+
+      expect(writes.length).toBe(1);
+      const response = JSON.parse(writes[0]);
+      expect(response.response.subtype).toBe('success');
+      expect(response.response.request_id).toBe('req-stop-task');
+    });
+
     test('acknowledges mcp_status request', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {});
@@ -348,6 +374,29 @@ describe('ControlProtocolHandler', () => {
       expect(callback2).toHaveBeenCalledTimes(1);
       const response = JSON.parse(writes[0]);
       expect(response.response.response.from).toBe('second');
+    });
+  });
+});
+
+describe('ControlRequests builders', () => {
+  test('stopTask builds correct wire format', () => {
+    const req = ControlRequests.stopTask('task-abc-123');
+    expect(req).toEqual({
+      subtype: 'stop_task',
+      task_id: 'task-abc-123',
+    });
+  });
+
+  test('interrupt builds correct wire format', () => {
+    const req = ControlRequests.interrupt();
+    expect(req).toEqual({ subtype: 'interrupt' });
+  });
+
+  test('setPermissionMode builds correct wire format', () => {
+    const req = ControlRequests.setPermissionMode('delegate');
+    expect(req).toEqual({
+      subtype: 'set_permission_mode',
+      mode: 'delegate',
     });
   });
 });
