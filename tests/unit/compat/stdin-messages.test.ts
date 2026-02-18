@@ -762,4 +762,33 @@ describe('stdin message compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'stopTask sends stop_task control request matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.stopTask('task-123');
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.stopTask('task-123');
+        }),
+      ]);
+
+      const openStop = open.stdin.find((m) => m.request?.subtype === 'stop_task');
+      const officialStop = official.stdin.find((m) => m.request?.subtype === 'stop_task');
+
+      expect(openStop).toBeTruthy();
+      expect(officialStop).toBeTruthy();
+
+      if (openStop && officialStop) {
+        const openNorm = normalizeMessage(openStop);
+        const officialNorm = normalizeMessage(officialStop);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   stopTask stdin messages match');
+    },
+    { timeout: 60000 }
+  );
 });
