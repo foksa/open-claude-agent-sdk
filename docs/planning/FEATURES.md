@@ -107,6 +107,7 @@
 | Skills & commands | ✅ | Loaded from fixtures and invoked |
 | Budget/cost tracking | ✅ | total_cost_usd, usage, modelUsage verified |
 | Session management | ✅ | Resume, fork, continue, sessionId all E2E tested |
+| Session storage API | ✅ | listSessions, getSessionMetadata, renameSession, deleteSession, getProjectStoragePath — via `./storage` subpath |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

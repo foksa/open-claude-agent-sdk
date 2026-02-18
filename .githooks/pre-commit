@@ -1,0 +1,9 @@
+#!/bin/sh
+
+echo "Running Biome lint check..."
+bun run check
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "Lint check failed. Fix issues with: bun run check:fix"
+  exit 1
+fi

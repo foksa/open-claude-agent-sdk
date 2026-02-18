@@ -193,6 +193,31 @@ export type ExtendedQuery = import('@anthropic-ai/claude-agent-sdk').Query & {
   currentOutputStyle(): Promise<string>;
 };
 
+/**
+ * Basic session info returned by listSessions().
+ */
+export interface SessionInfo {
+  sessionId: string;
+  displayName: string;
+  createdAt: Date;
+  lastModifiedAt: Date;
+  messageCount: number;
+}
+
+/**
+ * Rich session metadata returned by getSessionMetadata().
+ */
+export interface SessionMetadata extends SessionInfo {
+  firstPrompt?: string;
+  slug?: string;
+  customTitle?: string;
+  model?: string;
+  gitBranch?: string;
+  totalCost?: number;
+  isAgent?: boolean;
+  agentName?: string;
+}
+
 // ============================================================================
 // ADVANCED TYPES (for completeness)
 // ============================================================================

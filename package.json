@@ -30,6 +30,11 @@
       "bun": "./src/mcp-entry.ts",
       "import": "./dist/mcp-entry.js",
       "types": "./dist/mcp-entry.d.ts"
+    },
+    "./storage": {
+      "bun": "./src/storage-entry.ts",
+      "import": "./dist/storage-entry.js",
+      "types": "./dist/storage-entry.d.ts"
     }
   },
   "files": [
@@ -55,6 +60,7 @@
     "typecheck": "tsc --noEmit",
     "ci": "bun run typecheck && bun run check && bun run test:unit && bun run build",
     "release": "bun run build",
+    "prepare": "git config core.hooksPath .githooks",
     "prepublishOnly": "bun run ci"
   },
   "publishConfig": {
