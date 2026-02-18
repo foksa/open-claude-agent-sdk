@@ -3,7 +3,7 @@
  * A lightweight alternative to Claude Agent SDK - uses local CLI
  */
 
-export const version = '0.10.1';
+export const version = '0.11.0';
 
 export { query } from './api/query.ts';
 // MCP utilities — our own open source implementations
