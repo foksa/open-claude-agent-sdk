@@ -33,6 +33,7 @@ export const RequestSubtype = {
   MCP_STATUS: 'mcp_status',
   MCP_MESSAGE: 'mcp_message',
   REWIND_FILES: 'rewind_files',
+  STOP_TASK: 'stop_task',
   MCP_SET_SERVERS: 'mcp_set_servers',
   MCP_RECONNECT: 'mcp_reconnect',
   MCP_TOGGLE: 'mcp_toggle',
@@ -89,6 +90,7 @@ export type ControlRequestInner =
   | McpStatusRequest
   | McpMessageRequest
   | RewindFilesRequest
+  | StopTaskRequest
   | McpSetServersRequest
   | McpReconnectRequest
   | McpToggleRequest;
@@ -154,6 +156,11 @@ export type RewindFilesRequest = {
   subtype: typeof RequestSubtype.REWIND_FILES;
   user_message_id: string;
   dry_run?: boolean;
+};
+
+export type StopTaskRequest = {
+  subtype: typeof RequestSubtype.STOP_TASK;
+  task_id: string;
 };
 
 export type McpSetServersRequest = {

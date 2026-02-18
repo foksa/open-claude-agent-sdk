@@ -45,6 +45,7 @@ export type {
   SDKStatusMessage,
   SDKSystemMessage,
   SDKTaskNotificationMessage,
+  SDKTaskStartedMessage,
   SDKToolProgressMessage,
   SDKToolUseSummaryMessage,
   SDKUserMessage,
@@ -59,6 +60,7 @@ export type {
   CanUseTool,
   PermissionBehavior,
   PermissionResult,
+  PermissionRuleValue,
   PermissionUpdate,
   PermissionUpdateDestination,
 } from '@anthropic-ai/claude-agent-sdk';
@@ -68,6 +70,8 @@ export type {
 // ============================================================================
 
 export type {
+  AsyncHookJSONOutput,
+  BaseHookInput,
   HookCallback,
   HookCallbackMatcher,
   HookEvent,
@@ -84,7 +88,9 @@ export type {
   SetupHookInput,
   StopHookInput,
   SubagentStartHookInput,
+  SubagentStartHookSpecificOutput,
   SubagentStopHookInput,
+  SyncHookJSONOutput,
   TaskCompletedHookInput,
   TeammateIdleHookInput,
   UserPromptSubmitHookInput,
@@ -120,6 +126,7 @@ export type {
   AccountInfo,
   ModelInfo,
   ModelUsage,
+  NonNullableUsage,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================
@@ -162,6 +169,7 @@ export type {
   ApiKeySource,
   ExitReason,
   RewindFilesResult,
+  SDKPermissionDenial,
   SdkBeta,
   SlashCommand,
 } from '@anthropic-ai/claude-agent-sdk';

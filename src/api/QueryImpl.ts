@@ -50,7 +50,10 @@ export class QueryImpl implements Query {
    * Factory method — spawns process, wires components, starts communication.
    */
   static create(
-    params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options },
+    params: {
+      prompt: string | AsyncIterable<SDKUserMessage>;
+      options?: Options;
+    },
     processFactory: ProcessFactory = new DefaultProcessFactory()
   ): QueryImpl {
     const { prompt, options = {} } = params;
@@ -214,6 +217,10 @@ export class QueryImpl implements Query {
 
   async interrupt(): Promise<void> {
     this.controlManager.sendControlRequest(ControlRequests.interrupt());
+  }
+
+  async stopTask(taskId: string): Promise<void> {
+    this.controlManager.sendControlRequest(ControlRequests.stopTask(taskId));
   }
 
   async setPermissionMode(mode: PermissionMode): Promise<void> {
