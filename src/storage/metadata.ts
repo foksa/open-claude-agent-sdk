@@ -15,7 +15,7 @@ import { getProjectStoragePath, isValidSessionId, sessionFilePath } from './path
  */
 export async function getSessionMetadata(
   sessionId: string,
-  projectPath: string,
+  projectPath: string
 ): Promise<SessionMetadata> {
   if (!isValidSessionId(sessionId)) {
     throw new Error(`Invalid session ID: ${sessionId}`);
@@ -80,7 +80,10 @@ export async function getSessionMetadata(
       // accumulate token usage from assistant messages
       if (entry.type === 'assistant' && entry.message?.usage) {
         const u = entry.message.usage;
-        totalInputTokens += (u.input_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
+        totalInputTokens +=
+          (u.input_tokens || 0) +
+          (u.cache_read_input_tokens || 0) +
+          (u.cache_creation_input_tokens || 0);
         totalOutputTokens += u.output_tokens || 0;
       }
 
@@ -108,9 +111,8 @@ export async function getSessionMetadata(
     customTitle,
     model,
     gitBranch,
-    totalCost: totalInputTokens + totalOutputTokens > 0
-      ? totalInputTokens + totalOutputTokens
-      : undefined,
+    totalCost:
+      totalInputTokens + totalOutputTokens > 0 ? totalInputTokens + totalOutputTokens : undefined,
     isAgent,
     agentName,
   };

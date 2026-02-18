@@ -10,7 +10,7 @@ import { getProjectStoragePath, isValidSessionId } from './paths.ts';
  */
 function resolveDisplayName(
   fields: { agentName?: string; customTitle?: string; firstPrompt?: string; slug?: string },
-  sessionId: string,
+  sessionId: string
 ): string {
   return (
     fields.agentName ||
@@ -27,9 +27,10 @@ function resolveDisplayName(
  */
 async function extractDisplayInfo(
   filePath: string,
-  sessionId: string,
+  sessionId: string
 ): Promise<{ displayName: string; messageCount: number }> {
-  const fields: { agentName?: string; customTitle?: string; firstPrompt?: string; slug?: string } = {};
+  const fields: { agentName?: string; customTitle?: string; firstPrompt?: string; slug?: string } =
+    {};
   let messageCount = 0;
 
   const stream = createReadStream(filePath, { encoding: 'utf8' });
@@ -109,7 +110,7 @@ export async function listSessions(projectPath: string): Promise<SessionInfo[]> 
         lastModifiedAt: fileStat.mtime,
         messageCount: displayInfo.messageCount,
       } satisfies SessionInfo;
-    }),
+    })
   );
 
   sessions.sort((a, b) => b.lastModifiedAt.getTime() - a.lastModifiedAt.getTime());

@@ -5,18 +5,18 @@
  * Creates temp directories with fixture JSONL files to test all 5 functions.
  */
 
-import { describe, expect, test, beforeEach, afterEach } from 'bun:test';
-import { mkdtemp, rm, readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  getProjectStoragePath,
-  listSessions,
-  getSessionMetadata,
-  renameSession,
-  deleteSession,
-} from '../../src/storage-entry.ts';
 import { encodePath } from '../../src/storage/paths.ts';
+import {
+  deleteSession,
+  getProjectStoragePath,
+  getSessionMetadata,
+  listSessions,
+  renameSession,
+} from '../../src/storage-entry.ts';
 
 // ============================================================================
 // Path Encoding
@@ -43,7 +43,6 @@ describe('getProjectStoragePath / encodePath', () => {
 
 const SESSION_ID_1 = '00000000-0000-4000-8000-000000000001';
 const SESSION_ID_2 = '00000000-0000-4000-8000-000000000002';
-const SESSION_ID_3 = '00000000-0000-4000-8000-000000000003';
 
 function makeUserEntry(text: string, extra: Record<string, unknown> = {}) {
   return JSON.stringify({
@@ -64,7 +63,11 @@ function makeAssistantEntry(text: string, model = 'claude-sonnet-4-5-20250929') 
       role: 'assistant',
       model,
       content: [{ type: 'text', text }],
-      usage: { input_tokens: 100, output_tokens: 50, cache_read_input_tokens: 200 },
+      usage: {
+        input_tokens: 100,
+        output_tokens: 50,
+        cache_read_input_tokens: 200,
+      },
     },
     uuid: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
@@ -142,10 +145,7 @@ describe('storage API', () => {
     test('ignores non-UUID filenames', async () => {
       await writeFile(join(storagePath, 'sessions-index.json'), '{}');
       await writeFile(join(storagePath, 'not-a-uuid.jsonl'), '{}');
-      await writeFile(
-        join(storagePath, `${SESSION_ID_1}.jsonl`),
-        makeUserEntry('test'),
-      );
+      await writeFile(join(storagePath, `${SESSION_ID_1}.jsonl`), makeUserEntry('test'));
 
       const sessions = await listSessions(projectPath);
       expect(sessions).toHaveLength(1);
@@ -168,7 +168,10 @@ describe('storage API', () => {
         type: 'user',
         sessionId: SESSION_ID_1,
         slug: 'sunny-coding-turtle',
-        message: { role: 'user', content: [{ type: 'tool_result', content: 'result' }] },
+        message: {
+          role: 'user',
+          content: [{ type: 'tool_result', content: 'result' }],
+        },
         uuid: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
       });
@@ -195,16 +198,10 @@ describe('storage API', () => {
     });
 
     test('sorts by lastModifiedAt descending', async () => {
-      await writeFile(
-        join(storagePath, `${SESSION_ID_1}.jsonl`),
-        makeUserEntry('first'),
-      );
+      await writeFile(join(storagePath, `${SESSION_ID_1}.jsonl`), makeUserEntry('first'));
       // Small delay to ensure different mtime
       await new Promise((r) => setTimeout(r, 50));
-      await writeFile(
-        join(storagePath, `${SESSION_ID_2}.jsonl`),
-        makeUserEntry('second'),
-      );
+      await writeFile(join(storagePath, `${SESSION_ID_2}.jsonl`), makeUserEntry('second'));
 
       const sessions = await listSessions(projectPath);
       expect(sessions).toHaveLength(2);
@@ -220,7 +217,10 @@ describe('storage API', () => {
   describe('getSessionMetadata', () => {
     test('extracts full metadata from session', async () => {
       const content = [
-        makeUserEntry('Build me a web app', { gitBranch: 'feat/web', slug: 'happy-building-otter' }),
+        makeUserEntry('Build me a web app', {
+          gitBranch: 'feat/web',
+          slug: 'happy-building-otter',
+        }),
         makeAssistantEntry('I will build a web app for you', 'claude-opus-4-6'),
         makeAssistantEntry('Here is the code'),
         makeCustomTitleEntry('Web App Project', SESSION_ID_1),
@@ -251,7 +251,11 @@ describe('storage API', () => {
 
     test('handles agent sessions', async () => {
       const content = [
-        JSON.stringify({ type: 'system', agentName: 'code-reviewer', sessionId: SESSION_ID_1 }),
+        JSON.stringify({
+          type: 'system',
+          agentName: 'code-reviewer',
+          sessionId: SESSION_ID_1,
+        }),
         makeUserEntry('Review this code'),
       ].join('\n');
 
@@ -278,10 +282,7 @@ describe('storage API', () => {
 
   describe('renameSession', () => {
     test('appends custom-title entry to JSONL', async () => {
-      await writeFile(
-        join(storagePath, `${SESSION_ID_1}.jsonl`),
-        makeUserEntry('original'),
-      );
+      await writeFile(join(storagePath, `${SESSION_ID_1}.jsonl`), makeUserEntry('original'));
 
       await renameSession(SESSION_ID_1, 'New Name', projectPath);
 
@@ -294,10 +295,7 @@ describe('storage API', () => {
     });
 
     test('renamed session shows new name in listSessions', async () => {
-      await writeFile(
-        join(storagePath, `${SESSION_ID_1}.jsonl`),
-        makeUserEntry('original prompt'),
-      );
+      await writeFile(join(storagePath, `${SESSION_ID_1}.jsonl`), makeUserEntry('original prompt'));
 
       await renameSession(SESSION_ID_1, 'Renamed Session', projectPath);
 
@@ -320,10 +318,7 @@ describe('storage API', () => {
 
   describe('deleteSession', () => {
     test('removes JSONL file', async () => {
-      await writeFile(
-        join(storagePath, `${SESSION_ID_1}.jsonl`),
-        makeUserEntry('to delete'),
-      );
+      await writeFile(join(storagePath, `${SESSION_ID_1}.jsonl`), makeUserEntry('to delete'));
 
       await deleteSession(SESSION_ID_1, projectPath);
 
@@ -332,10 +327,7 @@ describe('storage API', () => {
     });
 
     test('removes companion directory', async () => {
-      await writeFile(
-        join(storagePath, `${SESSION_ID_1}.jsonl`),
-        makeUserEntry('to delete'),
-      );
+      await writeFile(join(storagePath, `${SESSION_ID_1}.jsonl`), makeUserEntry('to delete'));
       const companionDir = join(storagePath, SESSION_ID_1);
       await mkdir(join(companionDir, 'subagents'), { recursive: true });
       await writeFile(join(companionDir, 'subagents', 'sub.jsonl'), '{}');
@@ -368,7 +360,7 @@ describe('real sessions (smoke test)', () => {
     // This project should have sessions since we're developing it with Claude Code
     if (sessions.length > 0) {
       expect(sessions[0].sessionId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       );
       expect(sessions[0].displayName).toBeTruthy();
       expect(sessions[0].messageCount).toBeGreaterThan(0);

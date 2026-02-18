@@ -8,10 +8,7 @@ import { getProjectStoragePath, isValidSessionId, sessionFilePath } from './path
  * @param sessionId - UUID of the session to delete
  * @param projectPath - Absolute path to the project
  */
-export async function deleteSession(
-  sessionId: string,
-  projectPath: string,
-): Promise<void> {
+export async function deleteSession(sessionId: string, projectPath: string): Promise<void> {
   if (!isValidSessionId(sessionId)) {
     throw new Error(`Invalid session ID: ${sessionId}`);
   }

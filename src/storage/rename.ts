@@ -1,5 +1,4 @@
-import { appendFile } from 'node:fs/promises';
-import { access } from 'node:fs/promises';
+import { access, appendFile } from 'node:fs/promises';
 import { getProjectStoragePath, isValidSessionId, sessionFilePath } from './paths.ts';
 
 /**
@@ -13,7 +12,7 @@ import { getProjectStoragePath, isValidSessionId, sessionFilePath } from './path
 export async function renameSession(
   sessionId: string,
   name: string,
-  projectPath: string,
+  projectPath: string
 ): Promise<void> {
   if (!isValidSessionId(sessionId)) {
     throw new Error(`Invalid session ID: ${sessionId}`);

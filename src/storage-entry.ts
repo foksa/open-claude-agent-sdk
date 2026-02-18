@@ -14,9 +14,9 @@
  * ```
  */
 
-export { getProjectStoragePath } from './storage/paths.ts';
+export { deleteSession } from './storage/delete.ts';
 export { listSessions } from './storage/list.ts';
 export { getSessionMetadata } from './storage/metadata.ts';
+export { getProjectStoragePath } from './storage/paths.ts';
 export { renameSession } from './storage/rename.ts';
-export { deleteSession } from './storage/delete.ts';
 export type { SessionInfo, SessionMetadata } from './types/index.ts';
