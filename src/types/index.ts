@@ -24,7 +24,7 @@ export type {
   PermissionMode,
   Query,
   SDKMessage,
-} from '@anthropic-ai/claude-agent-sdk';
+} from "@anthropic-ai/claude-agent-sdk";
 
 // ============================================================================
 // MESSAGE TYPES (16 items) - For consuming output
@@ -49,7 +49,7 @@ export type {
   SDKToolUseSummaryMessage,
   SDKUserMessage,
   SDKUserMessageReplay,
-} from '@anthropic-ai/claude-agent-sdk';
+} from "@anthropic-ai/claude-agent-sdk";
 
 // ============================================================================
 // PERMISSION & CALLBACK TYPES
@@ -61,7 +61,7 @@ export type {
   PermissionResult,
   PermissionUpdate,
   PermissionUpdateDestination,
-} from '@anthropic-ai/claude-agent-sdk';
+} from "@anthropic-ai/claude-agent-sdk";
 
 // ============================================================================
 // HOOK TYPES
@@ -88,7 +88,7 @@ export type {
   TaskCompletedHookInput,
   TeammateIdleHookInput,
   UserPromptSubmitHookInput,
-} from '@anthropic-ai/claude-agent-sdk';
+} from "@anthropic-ai/claude-agent-sdk";
 
 // ============================================================================
 // MCP TYPES
@@ -105,12 +105,12 @@ export type {
   McpSSEServerConfig,
   McpStdioServerConfig,
   SdkMcpToolDefinition,
-} from '@anthropic-ai/claude-agent-sdk';
+} from "@anthropic-ai/claude-agent-sdk";
 
 /**
  * MCP utilities — re-exported from our own implementation (src/mcp.ts)
  */
-export { createSdkMcpServer, tool } from '../mcp.ts';
+export { createSdkMcpServer, tool } from "../mcp.ts";
 
 // ============================================================================
 // MODEL & USAGE TYPES
@@ -120,7 +120,7 @@ export type {
   AccountInfo,
   ModelInfo,
   ModelUsage,
-} from '@anthropic-ai/claude-agent-sdk';
+} from "@anthropic-ai/claude-agent-sdk";
 
 // ============================================================================
 // AGENT & PLUGIN TYPES
@@ -130,7 +130,7 @@ export type {
   AgentDefinition,
   AgentMcpServerSpec,
   SdkPluginConfig,
-} from '@anthropic-ai/claude-agent-sdk';
+} from "@anthropic-ai/claude-agent-sdk";
 
 // ============================================================================
 // SANDBOX & SETTINGS TYPES
@@ -142,7 +142,7 @@ export type {
   SandboxNetworkConfig,
   SandboxSettings,
   SettingSource,
-} from '@anthropic-ai/claude-agent-sdk';
+} from "@anthropic-ai/claude-agent-sdk";
 
 // ============================================================================
 // OUTPUT FORMAT TYPES
@@ -152,7 +152,7 @@ export type {
   JsonSchemaOutputFormat,
   OutputFormat,
   OutputFormatType,
-} from '@anthropic-ai/claude-agent-sdk';
+} from "@anthropic-ai/claude-agent-sdk";
 
 // ============================================================================
 // MISC TYPES
@@ -164,7 +164,7 @@ export type {
   RewindFilesResult,
   SdkBeta,
   SlashCommand,
-} from '@anthropic-ai/claude-agent-sdk';
+} from "@anthropic-ai/claude-agent-sdk";
 
 /**
  * Control protocol initialization response
@@ -172,11 +172,11 @@ export type {
  * Uses inline import() types to reference already-exported types
  */
 export type SDKControlInitializeResponse = {
-  commands: import('@anthropic-ai/claude-agent-sdk').SlashCommand[];
+  commands: import("@anthropic-ai/claude-agent-sdk").SlashCommand[];
   output_style: string;
   available_output_styles: string[];
-  models: import('@anthropic-ai/claude-agent-sdk').ModelInfo[];
-  account: import('@anthropic-ai/claude-agent-sdk').AccountInfo;
+  models: import("@anthropic-ai/claude-agent-sdk").ModelInfo[];
+  account: import("@anthropic-ai/claude-agent-sdk").AccountInfo;
 };
 
 // ============================================================================
@@ -188,10 +188,35 @@ export type SDKControlInitializeResponse = {
  * Use this type instead of Query to access extra methods like
  * availableOutputStyles() and currentOutputStyle().
  */
-export type ExtendedQuery = import('@anthropic-ai/claude-agent-sdk').Query & {
+export type ExtendedQuery = import("@anthropic-ai/claude-agent-sdk").Query & {
   availableOutputStyles(): Promise<string[]>;
   currentOutputStyle(): Promise<string>;
 };
+
+/**
+ * Basic session info returned by listSessions().
+ */
+export interface SessionInfo {
+  sessionId: string;
+  displayName: string;
+  createdAt: Date;
+  lastModifiedAt: Date;
+  messageCount: number;
+}
+
+/**
+ * Rich session metadata returned by getSessionMetadata().
+ */
+export interface SessionMetadata extends SessionInfo {
+  firstPrompt?: string;
+  slug?: string;
+  customTitle?: string;
+  model?: string;
+  gitBranch?: string;
+  totalCost?: number;
+  isAgent?: boolean;
+  agentName?: string;
+}
 
 // ============================================================================
 // ADVANCED TYPES (for completeness)
@@ -201,4 +226,4 @@ export type {
   SpawnedProcess,
   SpawnOptions,
   Transport,
-} from '@anthropic-ai/claude-agent-sdk';
+} from "@anthropic-ai/claude-agent-sdk";

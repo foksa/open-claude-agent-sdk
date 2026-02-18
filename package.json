@@ -30,6 +30,11 @@
       "bun": "./src/mcp-entry.ts",
       "import": "./dist/mcp-entry.js",
       "types": "./dist/mcp-entry.d.ts"
+    },
+    "./storage": {
+      "bun": "./src/storage-entry.ts",
+      "import": "./dist/storage-entry.js",
+      "types": "./dist/storage-entry.d.ts"
     }
   },
   "files": [
