@@ -51,12 +51,16 @@ export function sendProtocolInit(
     sdkMcpServers?: string[];
     agents?: Record<string, unknown>;
     hooks?: ReturnType<typeof buildHookConfig>;
+    promptSuggestions?: boolean;
   } = {
     subtype: RequestSubtype.INITIALIZE,
     ...(systemPrompt !== undefined && { systemPrompt }),
     ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
     ...(sdkMcpServerNames.length > 0 && { sdkMcpServers: sdkMcpServerNames }),
     ...(options.agents && { agents: options.agents }),
+    ...(options.promptSuggestions !== undefined && {
+      promptSuggestions: options.promptSuggestions,
+    }),
   };
 
   if (options.hooks) {

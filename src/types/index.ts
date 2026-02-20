@@ -52,6 +52,26 @@ export type {
   SDKUserMessageReplay,
 } from '@anthropic-ai/claude-agent-sdk';
 
+/**
+ * Rate limit event — emitted when the API rate-limits a request.
+ * (Referenced in SDKMessage union but not individually exported by official SDK)
+ */
+export type SDKRateLimitEvent = {
+  type: 'rate_limit_event';
+  session_id: string;
+};
+
+/**
+ * Prompt suggestion — emitted after a turn when promptSuggestions is enabled.
+ * Arrives after the `result` message; consumers must keep iterating to receive it.
+ * (Referenced in SDKMessage union but not individually exported by official SDK)
+ */
+export type SDKPromptSuggestionMessage = {
+  type: 'prompt_suggestion';
+  suggestion: string;
+  session_id: string;
+};
+
 // ============================================================================
 // PERMISSION & CALLBACK TYPES
 // ============================================================================
@@ -72,20 +92,28 @@ export type {
 export type {
   AsyncHookJSONOutput,
   BaseHookInput,
+  ConfigChangeHookInput,
   HookCallback,
   HookCallbackMatcher,
   HookEvent,
   HookInput,
   HookJSONOutput,
   NotificationHookInput,
+  NotificationHookSpecificOutput,
   PermissionRequestHookInput,
+  PermissionRequestHookSpecificOutput,
   PostToolUseFailureHookInput,
+  PostToolUseFailureHookSpecificOutput,
   PostToolUseHookInput,
+  PostToolUseHookSpecificOutput,
   PreCompactHookInput,
   PreToolUseHookInput,
+  PreToolUseHookSpecificOutput,
   SessionEndHookInput,
   SessionStartHookInput,
+  SessionStartHookSpecificOutput,
   SetupHookInput,
+  SetupHookSpecificOutput,
   StopHookInput,
   SubagentStartHookInput,
   SubagentStartHookSpecificOutput,
@@ -94,6 +122,7 @@ export type {
   TaskCompletedHookInput,
   TeammateIdleHookInput,
   UserPromptSubmitHookInput,
+  UserPromptSubmitHookSpecificOutput,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================
@@ -101,12 +130,14 @@ export type {
 // ============================================================================
 
 export type {
+  McpClaudeAIProxyServerConfig,
   McpHttpServerConfig,
   McpSdkServerConfig,
   McpSdkServerConfigWithInstance,
   McpServerConfig,
   McpServerConfigForProcessTransport,
   McpServerStatus,
+  McpServerStatusConfig,
   McpSetServersResult,
   McpSSEServerConfig,
   McpStdioServerConfig,
@@ -172,7 +203,13 @@ export type {
   SDKPermissionDenial,
   SdkBeta,
   SlashCommand,
+  ThinkingAdaptive,
+  ThinkingConfig,
+  ThinkingDisabled,
+  ThinkingEnabled,
 } from '@anthropic-ai/claude-agent-sdk';
+
+export { EXIT_REASONS, HOOK_EVENTS } from '@anthropic-ai/claude-agent-sdk';
 
 /**
  * Control protocol initialization response

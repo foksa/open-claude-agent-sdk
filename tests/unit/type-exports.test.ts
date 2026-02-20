@@ -7,6 +7,84 @@
 
 import { describe, expect, test } from 'bun:test';
 
+describe('v0.2.49 type re-exports', () => {
+  test('ConfigChangeHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').ConfigChangeHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'ConfigChange',
+      source: 'user_settings',
+    };
+    expect(input.hook_event_name).toBe('ConfigChange');
+    expect(input.source).toBe('user_settings');
+  });
+
+  test('ThinkingConfig types are importable', () => {
+    const adaptive: import('../../src/types/index.ts').ThinkingAdaptive = { type: 'adaptive' };
+    const enabled: import('../../src/types/index.ts').ThinkingEnabled = {
+      type: 'enabled',
+      budgetTokens: 5000,
+    };
+    const disabled: import('../../src/types/index.ts').ThinkingDisabled = { type: 'disabled' };
+
+    const config: import('../../src/types/index.ts').ThinkingConfig = adaptive;
+    expect(config.type).toBe('adaptive');
+    expect(enabled.budgetTokens).toBe(5000);
+    expect(disabled.type).toBe('disabled');
+  });
+
+  test('SDKRateLimitEvent is importable', () => {
+    const event: import('../../src/types/index.ts').SDKRateLimitEvent = {
+      type: 'rate_limit_event',
+      session_id: 'session-123',
+    };
+    expect(event.type).toBe('rate_limit_event');
+  });
+
+  test('SDKPromptSuggestionMessage is importable', () => {
+    const msg: import('../../src/types/index.ts').SDKPromptSuggestionMessage = {
+      type: 'prompt_suggestion',
+      suggestion: 'What about X?',
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('prompt_suggestion');
+    expect(msg.suggestion).toBe('What about X?');
+  });
+
+  test('Hook specific output types are importable', () => {
+    const postToolUse: import('../../src/types/index.ts').PostToolUseHookSpecificOutput = {
+      hookEventName: 'PostToolUse',
+    };
+    expect(postToolUse.hookEventName).toBe('PostToolUse');
+
+    const notification: import('../../src/types/index.ts').NotificationHookSpecificOutput = {
+      hookEventName: 'Notification',
+    };
+    expect(notification.hookEventName).toBe('Notification');
+  });
+
+  test('McpClaudeAIProxyServerConfig is importable', () => {
+    const config: import('../../src/types/index.ts').McpClaudeAIProxyServerConfig = {
+      type: 'claude_ai_proxy',
+    };
+    expect(config.type).toBe('claude_ai_proxy');
+  });
+
+  test('HOOK_EVENTS const includes ConfigChange', () => {
+    const { HOOK_EVENTS } = require('../../src/types/index.ts');
+    expect(HOOK_EVENTS).toContain('ConfigChange');
+    expect(HOOK_EVENTS).toContain('PreToolUse');
+    expect(HOOK_EVENTS).toContain('PostToolUse');
+  });
+
+  test('EXIT_REASONS const is importable', () => {
+    const { EXIT_REASONS } = require('../../src/types/index.ts');
+    expect(EXIT_REASONS).toContain('clear');
+    expect(EXIT_REASONS).toContain('logout');
+  });
+});
+
 describe('v0.2.45 type re-exports', () => {
   test('SDKTaskStartedMessage is importable and part of SDKMessage', () => {
     const msg: import('../../src/types/index.ts').SDKTaskStartedMessage = {
