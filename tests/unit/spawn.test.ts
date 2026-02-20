@@ -216,6 +216,15 @@ describe('buildCliArgs', () => {
     expect(args).not.toContain('--thinking');
   });
 
+  test('thinking enabled without budgetTokens falls back to --thinking adaptive', () => {
+    const args = buildCliArgs({ thinking: { type: 'enabled' } });
+
+    expect(args).toContain('--thinking');
+    expect(args).toContain('adaptive');
+    expect(args).not.toContain('--max-thinking-tokens');
+    expect(args).not.toContain('undefined');
+  });
+
   test('thinking option takes precedence over maxThinkingTokens', () => {
     const args = buildCliArgs({
       thinking: { type: 'enabled', budgetTokens: 8000 },

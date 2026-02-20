@@ -132,9 +132,10 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   }
 
   // thinking — converts to CLI flags (official SDK behavior):
-  //   adaptive  → --thinking adaptive
-  //   disabled  → --thinking disabled
-  //   enabled   → --max-thinking-tokens <budgetTokens>
+  //   adaptive                        → --thinking adaptive
+  //   disabled                        → --thinking disabled
+  //   enabled + budgetTokens          → --max-thinking-tokens <budgetTokens>
+  //   enabled (no budgetTokens)       → --thinking adaptive (fallback)
   // maxThinkingTokens (without thinking) → --max-thinking-tokens <value>
   if (options.thinking) {
     switch (options.thinking.type) {
@@ -145,7 +146,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
         args.push('--thinking', 'disabled');
         break;
       case 'enabled':
-        args.push('--max-thinking-tokens', String(options.thinking.budgetTokens));
+        if (options.thinking.budgetTokens !== undefined) {
+          args.push('--max-thinking-tokens', String(options.thinking.budgetTokens));
+        } else {
+          args.push('--thinking', 'adaptive');
+        }
         break;
     }
   } else if (options.maxThinkingTokens !== undefined) {

@@ -308,6 +308,29 @@ describe('CLI arguments compatibility', () => {
   );
 
   test.concurrent(
+    'thinking enabled without budgetTokens args match official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { thinking: { type: 'enabled' } }),
+        capture(officialQuery, 'test', { thinking: { type: 'enabled' } }),
+      ]);
+
+      // Official SDK falls back to --thinking adaptive when no budgetTokens
+      expect(open.args).toContain('--thinking');
+      expect(open.args).toContain('adaptive');
+      expect(official.args).toContain('--thinking');
+      expect(official.args).toContain('adaptive');
+
+      // Neither should have --max-thinking-tokens
+      expect(open.args).not.toContain('--max-thinking-tokens');
+      expect(official.args).not.toContain('--max-thinking-tokens');
+
+      console.log('   thinking enabled (no budget) args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'promptSuggestions option is in init message (not CLI args)',
     async () => {
       const [open, official] = await Promise.all([
