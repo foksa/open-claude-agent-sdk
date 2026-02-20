@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-02-08
+**Last Updated:** 2026-02-20
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -75,6 +75,9 @@
 | `fallbackModel` | 🔌 | CLI flag passed |
 | `permissionPromptToolName` | 🔌 | CLI flag passed |
 | `extraArgs` | 🔌 | CLI flag passed |
+| `thinking` | ✅ | adaptive/enabled/disabled all E2E tested |
+| `effort` | ✅ | E2E tested with low effort level |
+| `promptSuggestions` | 🔌 | Init message verified to match official SDK |
 | `debug` | 🔌 | CLI flag passed |
 | `debugFile` | 🔌 | CLI flag passed |
 | `resumeSessionAt` | ⚠️ | Unit tested, needs integration test |
@@ -101,6 +104,7 @@
 | `Setup` | 📝 | Does not fire via programmatic hooks |
 | `TeammateIdle` | 📝 | TODO — types exported, no test |
 | `TaskCompleted` | 📝 | TODO — types exported, no test |
+| `ConfigChange` | 📝 | Types exported (v0.2.49), fires via hook_callback protocol |
 | **Advanced Features** |
 | Structured outputs | ✅ | JSON schema validation tested E2E |
 | Extended thinking | ✅ | Thinking tokens tested E2E |

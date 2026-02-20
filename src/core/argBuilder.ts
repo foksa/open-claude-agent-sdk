@@ -54,7 +54,6 @@ const FLAG_MAP: FlagMapping[] = [
 
   // Number → string
   { key: 'maxTurns', flag: '--max-turns', type: 'number' },
-  { key: 'maxThinkingTokens', flag: '--max-thinking-tokens', type: 'number' },
   { key: 'maxBudgetUsd', flag: '--max-budget-usd', type: 'number' },
 
   // Boolean flags (present when truthy)
@@ -126,6 +125,37 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
 
   // All simple flag mappings
   applyFlagMap(args, options);
+
+  // effort — pass through as --effort <value>
+  if (options.effort) {
+    args.push('--effort', options.effort);
+  }
+
+  // thinking — converts to CLI flags (official SDK behavior):
+  //   adaptive                        → --thinking adaptive
+  //   disabled                        → --thinking disabled
+  //   enabled + budgetTokens          → --max-thinking-tokens <budgetTokens>
+  //   enabled (no budgetTokens)       → --thinking adaptive (fallback)
+  // maxThinkingTokens (without thinking) → --max-thinking-tokens <value>
+  if (options.thinking) {
+    switch (options.thinking.type) {
+      case 'adaptive':
+        args.push('--thinking', 'adaptive');
+        break;
+      case 'disabled':
+        args.push('--thinking', 'disabled');
+        break;
+      case 'enabled':
+        if (options.thinking.budgetTokens !== undefined) {
+          args.push('--max-thinking-tokens', String(options.thinking.budgetTokens));
+        } else {
+          args.push('--thinking', 'adaptive');
+        }
+        break;
+    }
+  } else if (options.maxThinkingTokens !== undefined) {
+    args.push('--max-thinking-tokens', String(options.maxThinkingTokens));
+  }
 
   // canUseTool / permissionPromptToolName — mutually exclusive
   if (options.canUseTool && options.permissionPromptToolName) {

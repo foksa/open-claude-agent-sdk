@@ -176,6 +176,73 @@ describe('buildCliArgs', () => {
     expect(args).not.toContain('/some/path');
   });
 
+  test('includes --effort when specified', () => {
+    const args = buildCliArgs({ effort: 'low' });
+
+    expect(args).toContain('--effort');
+    expect(args).toContain('low');
+  });
+
+  test('includes --effort with all valid values', () => {
+    for (const level of ['low', 'medium', 'high', 'max'] as const) {
+      const args = buildCliArgs({ effort: level });
+      const idx = args.indexOf('--effort');
+      expect(idx).toBeGreaterThan(-1);
+      expect(args[idx + 1]).toBe(level);
+    }
+  });
+
+  test('thinking adaptive produces --thinking adaptive', () => {
+    const args = buildCliArgs({ thinking: { type: 'adaptive' } });
+
+    expect(args).toContain('--thinking');
+    expect(args).toContain('adaptive');
+    expect(args).not.toContain('--max-thinking-tokens');
+  });
+
+  test('thinking disabled produces --thinking disabled', () => {
+    const args = buildCliArgs({ thinking: { type: 'disabled' } });
+
+    expect(args).toContain('--thinking');
+    expect(args).toContain('disabled');
+    expect(args).not.toContain('--max-thinking-tokens');
+  });
+
+  test('thinking enabled produces --max-thinking-tokens', () => {
+    const args = buildCliArgs({ thinking: { type: 'enabled', budgetTokens: 5000 } });
+
+    expect(args).toContain('--max-thinking-tokens');
+    expect(args).toContain('5000');
+    expect(args).not.toContain('--thinking');
+  });
+
+  test('thinking enabled without budgetTokens falls back to --thinking adaptive', () => {
+    const args = buildCliArgs({ thinking: { type: 'enabled' } });
+
+    expect(args).toContain('--thinking');
+    expect(args).toContain('adaptive');
+    expect(args).not.toContain('--max-thinking-tokens');
+    expect(args).not.toContain('undefined');
+  });
+
+  test('thinking option takes precedence over maxThinkingTokens', () => {
+    const args = buildCliArgs({
+      thinking: { type: 'enabled', budgetTokens: 8000 },
+      maxThinkingTokens: 3000,
+    });
+
+    expect(args).toContain('--max-thinking-tokens');
+    expect(args).toContain('8000');
+    expect(args).not.toContain('3000');
+  });
+
+  test('maxThinkingTokens works without thinking option', () => {
+    const args = buildCliArgs({ maxThinkingTokens: 10000 });
+
+    expect(args).toContain('--max-thinking-tokens');
+    expect(args).toContain('10000');
+  });
+
   test('_testCliArgs only works in test environment', () => {
     const originalEnv = process.env.NODE_ENV;
 

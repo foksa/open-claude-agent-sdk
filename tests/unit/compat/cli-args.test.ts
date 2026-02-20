@@ -232,6 +232,129 @@ describe('CLI arguments compatibility', () => {
     { timeout: 60000 }
   );
   test.concurrent(
+    'effort option args match official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { effort: 'low' }),
+        capture(officialQuery, 'test', { effort: 'low' }),
+      ]);
+
+      expect(open.args).toContain('--effort');
+      expect(open.args).toContain('low');
+      expect(official.args).toContain('--effort');
+      expect(official.args).toContain('low');
+
+      console.log('   effort args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'thinking adaptive option args match official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { thinking: { type: 'adaptive' } }),
+        capture(officialQuery, 'test', { thinking: { type: 'adaptive' } }),
+      ]);
+
+      expect(open.args).toContain('--thinking');
+      expect(open.args).toContain('adaptive');
+      expect(official.args).toContain('--thinking');
+      expect(official.args).toContain('adaptive');
+
+      console.log('   thinking adaptive args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'thinking enabled option args match official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { thinking: { type: 'enabled', budgetTokens: 5000 } }),
+        capture(officialQuery, 'test', { thinking: { type: 'enabled', budgetTokens: 5000 } }),
+      ]);
+
+      expect(open.args).toContain('--max-thinking-tokens');
+      expect(open.args).toContain('5000');
+      expect(official.args).toContain('--max-thinking-tokens');
+      expect(official.args).toContain('5000');
+
+      // Should NOT have --thinking flag
+      expect(open.args).not.toContain('--thinking');
+      expect(official.args).not.toContain('--thinking');
+
+      console.log('   thinking enabled args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'thinking disabled option args match official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { thinking: { type: 'disabled' } }),
+        capture(officialQuery, 'test', { thinking: { type: 'disabled' } }),
+      ]);
+
+      expect(open.args).toContain('--thinking');
+      expect(open.args).toContain('disabled');
+      expect(official.args).toContain('--thinking');
+      expect(official.args).toContain('disabled');
+
+      console.log('   thinking disabled args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'thinking enabled without budgetTokens args match official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { thinking: { type: 'enabled' } }),
+        capture(officialQuery, 'test', { thinking: { type: 'enabled' } }),
+      ]);
+
+      // Official SDK falls back to --thinking adaptive when no budgetTokens
+      expect(open.args).toContain('--thinking');
+      expect(open.args).toContain('adaptive');
+      expect(official.args).toContain('--thinking');
+      expect(official.args).toContain('adaptive');
+
+      // Neither should have --max-thinking-tokens
+      expect(open.args).not.toContain('--max-thinking-tokens');
+      expect(official.args).not.toContain('--max-thinking-tokens');
+
+      console.log('   thinking enabled (no budget) args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'promptSuggestions option is in init message (not CLI args)',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { promptSuggestions: true }),
+        capture(officialQuery, 'test', { promptSuggestions: true }),
+      ]);
+
+      // Should NOT be a CLI flag
+      expect(open.args).not.toContain('--prompt-suggestions');
+      expect(official.args).not.toContain('--prompt-suggestions');
+
+      // Should be in the init message
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit?.request?.promptSuggestions).toBe(true);
+      expect(officialInit?.request?.promptSuggestions).toBe(true);
+
+      console.log('   promptSuggestions init message match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'plugins --plugin-dir args match official SDK',
     async () => {
       const plugins = [
