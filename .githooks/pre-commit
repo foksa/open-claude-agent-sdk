@@ -7,3 +7,11 @@ if [ $? -ne 0 ]; then
   echo "Lint check failed. Fix issues with: bun run check:fix"
   exit 1
 fi
+
+echo "Running version consistency check..."
+bun test tests/unit/index.test.ts
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "Version mismatch. Update version in src/index.ts and src/query.ts to match package.json"
+  exit 1
+fi
