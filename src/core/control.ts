@@ -168,6 +168,7 @@ export class ControlProtocolHandler {
         case RequestSubtype.MCP_SET_SERVERS:
         case RequestSubtype.MCP_RECONNECT:
         case RequestSubtype.MCP_TOGGLE:
+        case RequestSubtype.APPLY_FLAG_SETTINGS:
           // These are sent FROM SDK TO CLI, not the other way around
           // If we receive them, just acknowledge
           this.sendSuccess(req.request_id, {});

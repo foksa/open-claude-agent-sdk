@@ -123,6 +123,8 @@ export type {
   TeammateIdleHookInput,
   UserPromptSubmitHookInput,
   UserPromptSubmitHookSpecificOutput,
+  WorktreeCreateHookInput,
+  WorktreeRemoveHookInput,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================

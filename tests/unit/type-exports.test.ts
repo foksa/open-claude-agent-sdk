@@ -85,6 +85,45 @@ describe('v0.2.49 type re-exports', () => {
   });
 });
 
+describe('v0.2.50 type re-exports', () => {
+  test('WorktreeCreateHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').WorktreeCreateHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'WorktreeCreate',
+      name: 'feature-branch',
+    };
+    expect(input.hook_event_name).toBe('WorktreeCreate');
+    expect(input.name).toBe('feature-branch');
+  });
+
+  test('WorktreeRemoveHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').WorktreeRemoveHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'WorktreeRemove',
+      worktree_path: '/tmp/worktrees/feature-branch',
+    };
+    expect(input.hook_event_name).toBe('WorktreeRemove');
+    expect(input.worktree_path).toBe('/tmp/worktrees/feature-branch');
+  });
+
+  test('HOOK_EVENTS const includes WorktreeCreate and WorktreeRemove', () => {
+    const { HOOK_EVENTS } = require('../../src/types/index.ts');
+    expect(HOOK_EVENTS).toContain('WorktreeCreate');
+    expect(HOOK_EVENTS).toContain('WorktreeRemove');
+  });
+
+  test('HookEvent union includes worktree events', () => {
+    const create: import('../../src/types/index.ts').HookEvent = 'WorktreeCreate';
+    const remove: import('../../src/types/index.ts').HookEvent = 'WorktreeRemove';
+    expect(create).toBe('WorktreeCreate');
+    expect(remove).toBe('WorktreeRemove');
+  });
+});
+
 describe('v0.2.45 type re-exports', () => {
   test('SDKTaskStartedMessage is importable and part of SDKMessage', () => {
     const msg: import('../../src/types/index.ts').SDKTaskStartedMessage = {

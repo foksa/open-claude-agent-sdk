@@ -297,9 +297,9 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
-    'all 15 hook events register correctly matching official SDK',
+    'all 18 hook events register correctly matching official SDK',
     async () => {
-      // Every hook event from HOOK_EVENTS array in SDK 0.2.34
+      // Every hook event from HOOK_EVENTS array in SDK 0.2.50
       const allHookEvents = [
         'PreToolUse',
         'PostToolUse',
@@ -316,6 +316,9 @@ describe('stdin message compatibility', () => {
         'Setup',
         'TeammateIdle',
         'TaskCompleted',
+        'ConfigChange',
+        'WorktreeCreate',
+        'WorktreeRemove',
       ];
 
       const hooks: Record<string, HookCallbackMatcher[]> = {};
@@ -351,7 +354,7 @@ describe('stdin message compatibility', () => {
         }
       }
 
-      console.log('   All 15 hook events register correctly');
+      console.log('   All 18 hook events register correctly');
     },
     { timeout: 60000 }
   );
