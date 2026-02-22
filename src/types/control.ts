@@ -37,6 +37,7 @@ export const RequestSubtype = {
   MCP_SET_SERVERS: 'mcp_set_servers',
   MCP_RECONNECT: 'mcp_reconnect',
   MCP_TOGGLE: 'mcp_toggle',
+  APPLY_FLAG_SETTINGS: 'apply_flag_settings',
 } as const;
 
 /** Control response subtypes */
@@ -93,7 +94,8 @@ export type ControlRequestInner =
   | StopTaskRequest
   | McpSetServersRequest
   | McpReconnectRequest
-  | McpToggleRequest;
+  | McpToggleRequest
+  | ApplyFlagSettingsRequest;
 
 export type CanUseToolRequest = {
   subtype: typeof RequestSubtype.CAN_USE_TOOL;
@@ -177,6 +179,11 @@ export type McpToggleRequest = {
   subtype: typeof RequestSubtype.MCP_TOGGLE;
   serverName: string;
   enabled: boolean;
+};
+
+export type ApplyFlagSettingsRequest = {
+  subtype: typeof RequestSubtype.APPLY_FLAG_SETTINGS;
+  settings: Record<string, unknown>;
 };
 
 /**

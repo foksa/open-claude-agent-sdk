@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-02-20
+**Last Updated:** 2026-02-22
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -105,6 +105,8 @@
 | `TeammateIdle` | 📝 | TODO — types exported, no test |
 | `TaskCompleted` | 📝 | TODO — types exported, no test |
 | `ConfigChange` | 📝 | Types exported (v0.2.49), fires via hook_callback protocol |
+| `WorktreeCreate` | 📝 | Types exported (v0.2.50), fires via hook_callback protocol |
+| `WorktreeRemove` | 📝 | Types exported (v0.2.50), fires via hook_callback protocol |
 | **Advanced Features** |
 | Structured outputs | ✅ | JSON schema validation tested E2E |
 | Extended thinking | ✅ | Thinking tokens tested E2E |
