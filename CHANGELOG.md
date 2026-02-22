@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.12.0 (2026-02-22)
+
+### Features
+
+- Update `@anthropic-ai/claude-agent-sdk` to v0.2.50 parity
+- Add `WorktreeCreate` / `WorktreeRemove` hook type re-exports
+- Add `apply_flag_settings` control protocol type
+- Hook event compat test now covers all 18 events (was 15)
+
+### Fixes
+
+- Fix EPERM in sandboxed CI: redirect `CLAUDE_CONFIG_DIR` to writable tmpdir in test setup
+
 ## 0.9.0 (2026-02-10)
 
 Initial open-source release.
