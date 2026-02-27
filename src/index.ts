@@ -3,10 +3,13 @@
  * A lightweight alternative to Claude Agent SDK - uses local CLI
  */
 
-export const version = '0.12.0';
+export const version = '0.13.0';
 
 export { query } from './api/query.ts';
 // MCP utilities — our own open source implementations
 export { createSdkMcpServer, tool } from './mcp.ts';
+// Session management — matches official SDK API
+export { getSessionMessages } from './sessions/getSessionMessages.ts';
+export { listSessions } from './sessions/listSessions.ts';
 // Re-export all types
 export type * from './types/index.ts';

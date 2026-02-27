@@ -27,7 +27,7 @@ export type {
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================
-// MESSAGE TYPES (16 items) - For consuming output
+// MESSAGE TYPES (17 items) - For consuming output
 // ============================================================================
 
 export type {
@@ -45,6 +45,7 @@ export type {
   SDKStatusMessage,
   SDKSystemMessage,
   SDKTaskNotificationMessage,
+  SDKTaskProgressMessage,
   SDKTaskStartedMessage,
   SDKToolProgressMessage,
   SDKToolUseSummaryMessage,
@@ -192,6 +193,17 @@ export type {
   JsonSchemaOutputFormat,
   OutputFormat,
   OutputFormatType,
+} from '@anthropic-ai/claude-agent-sdk';
+
+// ============================================================================
+// SESSION TYPES
+// ============================================================================
+
+export type {
+  GetSessionMessagesOptions,
+  ListSessionsOptions,
+  SDKSessionInfo,
+  SessionMessage,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================

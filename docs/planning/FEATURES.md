@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-02-22
+**Last Updated:** 2026-02-27
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -114,6 +114,9 @@
 | Budget/cost tracking | ✅ | total_cost_usd, usage, modelUsage verified |
 | Session management | ✅ | Resume, fork, continue, sessionId all E2E tested |
 | Session storage API | ✅ | listSessions, getSessionMetadata, renameSession, deleteSession, getProjectStoragePath — via `./storage` subpath |
+| `listSessions()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
+| `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
+| `SDKTaskProgressMessage` type | ⚠️ | Re-exported from official SDK; part of SDKMessage union |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |
