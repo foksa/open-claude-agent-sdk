@@ -21,12 +21,32 @@ export function validateUuid(id: string): string | null {
   return UUID_RE.test(id) ? id : null;
 }
 
+const MAX_FOLDER_NAME_LENGTH = 200;
+
+/**
+ * Simple string hash matching the official SDK's JS fallback (dq).
+ * Used when Bun.hash is unavailable.
+ */
+function jsHash(s: string): string {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h << 5) - h + s.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h).toString(36);
+}
+
 /**
  * Encode a project path the same way Claude CLI does:
  * replace every non-alphanumeric character with `-`.
+ * For long paths (>200 chars encoded), append a deterministic hash suffix.
  */
 function encodePath(projectPath: string): string {
-  return projectPath.replace(/[^a-zA-Z0-9]/g, '-');
+  const encoded = projectPath.replace(/[^a-zA-Z0-9]/g, '-');
+  if (encoded.length <= MAX_FOLDER_NAME_LENGTH) return encoded;
+  const hash =
+    typeof Bun !== 'undefined' ? Bun.hash(projectPath).toString(36) : jsHash(projectPath);
+  return `${encoded.slice(0, MAX_FOLDER_NAME_LENGTH)}-${hash}`;
 }
 
 /**
@@ -76,8 +96,6 @@ async function getGitWorktrees(dir: string): Promise<string[]> {
   }
 }
 
-const MAX_FOLDER_NAME_LENGTH = 200;
-
 /**
  * Resolve the storage directory for a project path.
  * Handles long paths that get hashed by the CLI.
@@ -125,17 +143,12 @@ export async function getProjectStorageDirs(
   const base = getProjectsBaseDir();
   const isWin = process.platform === 'win32';
 
-  // Build worktree prefix list sorted by length (longest first).
-  // For long paths (>200 chars encoded), the CLI hashes them and stores as
-  // `{prefix200}-{hash}`, so we must truncate the prefix before matching.
+  // Build worktree encoded-name list sorted by length (longest first).
+  // encodePath() already handles long paths by appending a deterministic hash.
   const worktreePrefixes = worktrees
     .map((wt) => {
       const encoded = encodePath(wt);
-      const truncated =
-        encoded.length > MAX_FOLDER_NAME_LENGTH
-          ? encoded.slice(0, MAX_FOLDER_NAME_LENGTH)
-          : encoded;
-      return { path: wt, prefix: isWin ? truncated.toLowerCase() : truncated };
+      return { path: wt, prefix: isWin ? encoded.toLowerCase() : encoded };
     })
     .sort((a, b) => b.prefix.length - a.prefix.length);
 
@@ -244,7 +257,7 @@ async function tryReadFile(filePath: string): Promise<string | null> {
  */
 export async function readHeadTail(
   filePath: string,
-  bytes = 8192
+  bytes = 65536
 ): Promise<{ head: string; tail: string; mtime: number; size: number } | null> {
   try {
     const file = Bun.file(filePath);
