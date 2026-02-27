@@ -194,7 +194,7 @@ export class QueryImpl implements Query {
   }
 
   async return(_value?: unknown): Promise<IteratorResult<SDKMessage>> {
-    this.close();
+    await this.gracefulClose();
     return { value: undefined as unknown as SDKMessage, done: true };
   }
 
@@ -208,7 +208,7 @@ export class QueryImpl implements Query {
   }
 
   async [Symbol.asyncDispose](): Promise<void> {
-    this.close();
+    await this.gracefulClose();
   }
 
   // ============================================================================
@@ -246,19 +246,71 @@ export class QueryImpl implements Query {
   }
 
   close(): void {
-    if (!this.closed) {
-      this.closed = true;
-      if (this.abortController && this.abortHandler) {
-        this.abortController.signal.removeEventListener('abort', this.abortHandler);
-        this.abortHandler = null;
-      }
-      this.router?.close();
-      this.process?.kill();
-      if (!this.messageQueue.isDone()) {
-        this.messageQueue.complete();
-      }
-      this.controlManager.rejectAll(new Error('Query closed'));
+    if (this.closed) return;
+    this.closed = true;
+    if (this.abortController && this.abortHandler) {
+      this.abortController.signal.removeEventListener('abort', this.abortHandler);
+      this.abortHandler = null;
     }
+    this.router?.close();
+    // Signal CLI to exit by closing stdin, then force kill after a delay
+    // to allow session file writes to complete
+    try {
+      this.process?.stdin?.end();
+    } catch {}
+    const proc = this.process;
+    if (proc && proc.exitCode === null) {
+      const timer = setTimeout(() => {
+        try {
+          if (proc.exitCode === null) proc.kill();
+        } catch {}
+      }, 1000);
+      if (typeof timer === 'object' && 'unref' in timer) {
+        (timer as NodeJS.Timeout).unref();
+      }
+    }
+    if (!this.messageQueue.isDone()) {
+      this.messageQueue.complete();
+    }
+    this.controlManager.rejectAll(new Error('Query closed'));
+  }
+
+  /**
+   * Close the query gracefully, waiting for the CLI process to exit.
+   * Used by return() and asyncDispose() to allow the CLI to flush session files.
+   */
+  private async gracefulClose(): Promise<void> {
+    if (this.closed) return;
+    this.closed = true;
+    if (this.abortController && this.abortHandler) {
+      this.abortController.signal.removeEventListener('abort', this.abortHandler);
+      this.abortHandler = null;
+    }
+    this.router?.close();
+    // Signal CLI to exit by closing stdin
+    try {
+      this.process?.stdin?.end();
+    } catch {}
+    // Wait for process to exit gracefully, with a timeout
+    const proc = this.process;
+    if (proc && proc.exitCode === null) {
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(() => {
+          try {
+            if (proc.exitCode === null) proc.kill();
+          } catch {}
+          resolve();
+        }, 2000);
+        proc.on('exit', () => {
+          clearTimeout(timer);
+          resolve();
+        });
+      });
+    }
+    if (!this.messageQueue.isDone()) {
+      this.messageQueue.complete();
+    }
+    this.controlManager.rejectAll(new Error('Query closed'));
   }
 
   async initializationResult(): Promise<SDKControlInitializeResponse> {

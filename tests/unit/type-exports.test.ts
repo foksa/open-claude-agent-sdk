@@ -124,6 +124,87 @@ describe('v0.2.50 type re-exports', () => {
   });
 });
 
+describe('v0.2.62 type re-exports', () => {
+  test('SDKTaskProgressMessage is importable and part of SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKTaskProgressMessage = {
+      type: 'system',
+      subtype: 'task_progress',
+      task_id: 'task-123',
+      description: 'Working on analysis',
+      usage: {
+        total_tokens: 5000,
+        tool_uses: 3,
+        duration_ms: 12000,
+      },
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKTaskProgressMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('task_progress');
+    expect(msg.usage.total_tokens).toBe(5000);
+
+    // Verify it's assignable to SDKMessage
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('SDKSessionInfo is importable', () => {
+    const info: import('../../src/types/index.ts').SDKSessionInfo = {
+      sessionId: '12345678-1234-1234-1234-123456789012',
+      summary: 'My test session',
+      lastModified: Date.now(),
+      fileSize: 4096,
+      customTitle: 'Custom Title',
+      firstPrompt: 'Hello world',
+      gitBranch: 'main',
+      cwd: '/home/user/project',
+    };
+    expect(info.sessionId).toBe('12345678-1234-1234-1234-123456789012');
+    expect(info.summary).toBe('My test session');
+  });
+
+  test('SessionMessage is importable', () => {
+    const msg: import('../../src/types/index.ts').SessionMessage = {
+      type: 'user',
+      uuid: 'uuid-123',
+      session_id: 'session-123',
+      message: { role: 'user', content: 'Hello' },
+      parent_tool_use_id: null,
+    };
+    expect(msg.type).toBe('user');
+    expect(msg.parent_tool_use_id).toBeNull();
+  });
+
+  test('GetSessionMessagesOptions is importable', () => {
+    const opts: import('../../src/types/index.ts').GetSessionMessagesOptions = {
+      dir: '/home/user/project',
+      limit: 10,
+      offset: 5,
+    };
+    expect(opts.limit).toBe(10);
+    expect(opts.offset).toBe(5);
+  });
+
+  test('ListSessionsOptions is importable', () => {
+    const opts: import('../../src/types/index.ts').ListSessionsOptions = {
+      dir: '/home/user/project',
+      limit: 20,
+    };
+    expect(opts.dir).toBe('/home/user/project');
+    expect(opts.limit).toBe(20);
+  });
+
+  test('listSessions function is importable from main entry', () => {
+    const { listSessions } = require('../../src/index.ts');
+    expect(typeof listSessions).toBe('function');
+  });
+
+  test('getSessionMessages function is importable from main entry', () => {
+    const { getSessionMessages } = require('../../src/index.ts');
+    expect(typeof getSessionMessages).toBe('function');
+  });
+});
+
 describe('v0.2.45 type re-exports', () => {
   test('SDKTaskStartedMessage is importable and part of SDKMessage', () => {
     const msg: import('../../src/types/index.ts').SDKTaskStartedMessage = {
