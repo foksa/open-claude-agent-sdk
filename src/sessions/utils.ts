@@ -264,13 +264,11 @@ export async function readHeadTail(
     const size = file.size;
     const mtime = (await stat(filePath)).mtimeMs;
 
-    if (size <= bytes * 2) {
-      const content = await file.text();
-      return { head: content, tail: content, mtime, size };
-    }
+    const headEnd = Math.min(bytes, size);
+    const tailStart = Math.max(0, size - bytes);
 
-    const headSlice = file.slice(0, bytes);
-    const tailSlice = file.slice(size - bytes, size);
+    const headSlice = file.slice(0, headEnd);
+    const tailSlice = file.slice(tailStart, size);
     const [head, tail] = await Promise.all([headSlice.text(), tailSlice.text()]);
 
     return { head, tail, mtime, size };
