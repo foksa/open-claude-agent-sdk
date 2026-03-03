@@ -239,6 +239,7 @@ export type SDKControlInitializeResponse = {
   available_output_styles: string[];
   models: import('@anthropic-ai/claude-agent-sdk').ModelInfo[];
   account: import('@anthropic-ai/claude-agent-sdk').AccountInfo;
+  fast_mode_state?: import('@anthropic-ai/claude-agent-sdk').FastModeState;
 };
 
 // ============================================================================

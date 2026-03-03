@@ -228,11 +228,13 @@ describe('v0.2.63 type re-exports', () => {
     const msg: import('../../src/types/index.ts').SDKElicitationCompleteMessage = {
       type: 'system',
       subtype: 'elicitation_complete',
+      mcp_server_name: 'test-server',
       elicitation_id: 'elicit-123',
       uuid: 'uuid-123' as import('../../src/types/index.ts').SDKElicitationCompleteMessage['uuid'],
       session_id: 'session-123',
     };
     expect(msg.subtype).toBe('elicitation_complete');
+    expect(msg.mcp_server_name).toBe('test-server');
     // Verify it's assignable to SDKMessage
     const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
     expect(sdkMsg.type).toBe('system');
@@ -240,15 +242,18 @@ describe('v0.2.63 type re-exports', () => {
 
   test('SDKLocalCommandOutputMessage is importable', () => {
     const msg: import('../../src/types/index.ts').SDKLocalCommandOutputMessage = {
-      type: 'local_command_output',
-      output: 'command output here',
+      type: 'system',
+      subtype: 'local_command_output',
+      content: 'command output here',
       uuid: 'uuid-123' as import('../../src/types/index.ts').SDKLocalCommandOutputMessage['uuid'],
       session_id: 'session-123',
     };
-    expect(msg.type).toBe('local_command_output');
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('local_command_output');
+    expect(msg.content).toBe('command output here');
     // Verify it's assignable to SDKMessage
     const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
-    expect(sdkMsg.type).toBe('local_command_output');
+    expect(sdkMsg.type).toBe('system');
   });
 
   test('ElicitationHookInput is importable', () => {
@@ -324,7 +329,7 @@ describe('v0.2.63 type re-exports', () => {
     expect(HOOK_EVENTS).toContain('ElicitationResult');
   });
 
-  test('SDKControlInitializeResponse includes agents field', () => {
+  test('SDKControlInitializeResponse includes agents and fast_mode_state fields', () => {
     const response: import('../../src/types/index.ts').SDKControlInitializeResponse = {
       commands: [],
       agents: [{ name: 'Explore', description: 'Fast agent' }],
@@ -332,9 +337,22 @@ describe('v0.2.63 type re-exports', () => {
       available_output_styles: ['concise', 'verbose'],
       models: [],
       account: {},
+      fast_mode_state: 'off',
     };
     expect(response.agents).toHaveLength(1);
     expect(response.agents[0].name).toBe('Explore');
+    expect(response.fast_mode_state).toBe('off');
+
+    // Verify fast_mode_state is optional
+    const responseWithout: import('../../src/types/index.ts').SDKControlInitializeResponse = {
+      commands: [],
+      agents: [],
+      output_style: 'concise',
+      available_output_styles: [],
+      models: [],
+      account: {},
+    };
+    expect(responseWithout.fast_mode_state).toBeUndefined();
   });
 });
 
