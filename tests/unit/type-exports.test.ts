@@ -205,6 +205,139 @@ describe('v0.2.62 type re-exports', () => {
   });
 });
 
+describe('v0.2.63 type re-exports', () => {
+  test('AgentInfo is importable', () => {
+    const info: import('../../src/types/index.ts').AgentInfo = {
+      name: 'Explore',
+      description: 'Fast agent for exploring codebases',
+    };
+    expect(info.name).toBe('Explore');
+    expect(info.description).toBeDefined();
+  });
+
+  test('AgentInfo with optional model field', () => {
+    const info: import('../../src/types/index.ts').AgentInfo = {
+      name: 'custom-agent',
+      description: 'Custom agent',
+      model: 'claude-sonnet-4-20250514',
+    };
+    expect(info.model).toBe('claude-sonnet-4-20250514');
+  });
+
+  test('SDKElicitationCompleteMessage is importable', () => {
+    const msg: import('../../src/types/index.ts').SDKElicitationCompleteMessage = {
+      type: 'system',
+      subtype: 'elicitation_complete',
+      elicitation_id: 'elicit-123',
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKElicitationCompleteMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.subtype).toBe('elicitation_complete');
+    // Verify it's assignable to SDKMessage
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('SDKLocalCommandOutputMessage is importable', () => {
+    const msg: import('../../src/types/index.ts').SDKLocalCommandOutputMessage = {
+      type: 'local_command_output',
+      output: 'command output here',
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKLocalCommandOutputMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('local_command_output');
+    // Verify it's assignable to SDKMessage
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('local_command_output');
+  });
+
+  test('ElicitationHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').ElicitationHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'Elicitation',
+      mcp_server_name: 'test-server',
+      message: 'Please authenticate',
+    };
+    expect(input.hook_event_name).toBe('Elicitation');
+  });
+
+  test('FastModeState is importable', () => {
+    const state: import('../../src/types/index.ts').FastModeState = 'on';
+    expect(state).toBe('on');
+    const off: import('../../src/types/index.ts').FastModeState = 'off';
+    expect(off).toBe('off');
+    const cooldown: import('../../src/types/index.ts').FastModeState = 'cooldown';
+    expect(cooldown).toBe('cooldown');
+  });
+
+  test('OnElicitation callback type is importable', () => {
+    const cb: import('../../src/types/index.ts').OnElicitation = async (_request, _options) => {
+      return { action: 'accept' as const };
+    };
+    expect(typeof cb).toBe('function');
+  });
+
+  test('SDKRateLimitEvent is now re-exported from official SDK', () => {
+    const event: import('../../src/types/index.ts').SDKRateLimitEvent = {
+      type: 'rate_limit_event',
+      session_id: 'session-123',
+    };
+    expect(event.type).toBe('rate_limit_event');
+  });
+
+  test('SDKPromptSuggestionMessage is now re-exported from official SDK', () => {
+    const msg: import('../../src/types/index.ts').SDKPromptSuggestionMessage = {
+      type: 'prompt_suggestion',
+      suggestion: 'What about X?',
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('prompt_suggestion');
+    expect(msg.suggestion).toBe('What about X?');
+  });
+
+  test('BaseOutputFormat is importable', () => {
+    const fmt: import('../../src/types/index.ts').BaseOutputFormat = {
+      type: 'json_schema',
+    };
+    expect(fmt.type).toBe('json_schema');
+  });
+
+  test('SandboxFilesystemConfig is importable', () => {
+    const config: import('../../src/types/index.ts').SandboxFilesystemConfig = {
+      type: 'read-write',
+    };
+    expect(config.type).toBe('read-write');
+  });
+
+  test('SDKSessionOptions is importable', () => {
+    const opts: import('../../src/types/index.ts').SDKSessionOptions = {
+      permissionMode: 'default',
+    };
+    expect(opts.permissionMode).toBe('default');
+  });
+
+  test('HOOK_EVENTS const includes Elicitation and ElicitationResult', () => {
+    const { HOOK_EVENTS } = require('../../src/types/index.ts');
+    expect(HOOK_EVENTS).toContain('Elicitation');
+    expect(HOOK_EVENTS).toContain('ElicitationResult');
+  });
+
+  test('SDKControlInitializeResponse includes agents field', () => {
+    const response: import('../../src/types/index.ts').SDKControlInitializeResponse = {
+      commands: [],
+      agents: [{ name: 'Explore', description: 'Fast agent' }],
+      output_style: 'concise',
+      available_output_styles: ['concise', 'verbose'],
+      models: [],
+      account: {},
+    };
+    expect(response.agents).toHaveLength(1);
+    expect(response.agents[0].name).toBe('Explore');
+  });
+});
+
 describe('v0.2.45 type re-exports', () => {
   test('SDKTaskStartedMessage is importable and part of SDKMessage', () => {
     const msg: import('../../src/types/index.ts').SDKTaskStartedMessage = {

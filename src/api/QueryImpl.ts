@@ -14,6 +14,7 @@ import { ControlProtocolHandler, ControlRequests } from '../core/control.ts';
 import { connectMcpBridges } from '../core/mcpBridge.ts';
 import type {
   AccountInfo,
+  AgentInfo,
   McpServerConfig,
   McpServerStatus,
   McpSetServersResult,
@@ -320,6 +321,11 @@ export class QueryImpl implements Query {
   async supportedCommands(): Promise<SlashCommand[]> {
     const init = await this.controlManager.waitForInit();
     return init.commands;
+  }
+
+  async supportedAgents(): Promise<AgentInfo[]> {
+    const init = await this.controlManager.waitForInit();
+    return init.agents;
   }
 
   async supportedModels(): Promise<ModelInfo[]> {
