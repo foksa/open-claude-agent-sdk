@@ -37,6 +37,8 @@ describe('v0.2.49 type re-exports', () => {
   test('SDKRateLimitEvent is importable', () => {
     const event: import('../../src/types/index.ts').SDKRateLimitEvent = {
       type: 'rate_limit_event',
+      rate_limit_info: { status: 'allowed' },
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKRateLimitEvent['uuid'],
       session_id: 'session-123',
     };
     expect(event.type).toBe('rate_limit_event');
@@ -46,6 +48,7 @@ describe('v0.2.49 type re-exports', () => {
     const msg: import('../../src/types/index.ts').SDKPromptSuggestionMessage = {
       type: 'prompt_suggestion',
       suggestion: 'What about X?',
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKPromptSuggestionMessage['uuid'],
       session_id: 'session-123',
     };
     expect(msg.type).toBe('prompt_suggestion');
@@ -287,6 +290,8 @@ describe('v0.2.63 type re-exports', () => {
   test('SDKRateLimitEvent is now re-exported from official SDK', () => {
     const event: import('../../src/types/index.ts').SDKRateLimitEvent = {
       type: 'rate_limit_event',
+      rate_limit_info: { status: 'allowed_warning' },
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKRateLimitEvent['uuid'],
       session_id: 'session-123',
     };
     expect(event.type).toBe('rate_limit_event');
@@ -296,6 +301,7 @@ describe('v0.2.63 type re-exports', () => {
     const msg: import('../../src/types/index.ts').SDKPromptSuggestionMessage = {
       type: 'prompt_suggestion',
       suggestion: 'What about X?',
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKPromptSuggestionMessage['uuid'],
       session_id: 'session-123',
     };
     expect(msg.type).toBe('prompt_suggestion');
