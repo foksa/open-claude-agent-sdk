@@ -32,16 +32,23 @@ export type {
 
 export type {
   SDKAssistantMessage,
+  SDKAssistantMessageError,
   SDKAuthStatusMessage,
   SDKCompactBoundaryMessage,
+  SDKElicitationCompleteMessage,
   SDKFilesPersistedEvent,
   SDKHookProgressMessage,
   SDKHookResponseMessage,
   SDKHookStartedMessage,
+  SDKLocalCommandOutputMessage,
   SDKPartialAssistantMessage,
+  SDKPromptSuggestionMessage,
+  SDKRateLimitEvent,
+  SDKRateLimitInfo,
   SDKResultError,
   SDKResultMessage,
   SDKResultSuccess,
+  SDKStatus,
   SDKStatusMessage,
   SDKSystemMessage,
   SDKTaskNotificationMessage,
@@ -52,26 +59,6 @@ export type {
   SDKUserMessage,
   SDKUserMessageReplay,
 } from '@anthropic-ai/claude-agent-sdk';
-
-/**
- * Rate limit event — emitted when the API rate-limits a request.
- * (Referenced in SDKMessage union but not individually exported by official SDK)
- */
-export type SDKRateLimitEvent = {
-  type: 'rate_limit_event';
-  session_id: string;
-};
-
-/**
- * Prompt suggestion — emitted after a turn when promptSuggestions is enabled.
- * Arrives after the `result` message; consumers must keep iterating to receive it.
- * (Referenced in SDKMessage union but not individually exported by official SDK)
- */
-export type SDKPromptSuggestionMessage = {
-  type: 'prompt_suggestion';
-  suggestion: string;
-  session_id: string;
-};
 
 // ============================================================================
 // PERMISSION & CALLBACK TYPES
@@ -94,6 +81,10 @@ export type {
   AsyncHookJSONOutput,
   BaseHookInput,
   ConfigChangeHookInput,
+  ElicitationHookInput,
+  ElicitationHookSpecificOutput,
+  ElicitationResultHookInput,
+  ElicitationResultHookSpecificOutput,
   HookCallback,
   HookCallbackMatcher,
   HookEvent,
@@ -169,6 +160,7 @@ export type {
 
 export type {
   AgentDefinition,
+  AgentInfo,
   AgentMcpServerSpec,
   SdkPluginConfig,
 } from '@anthropic-ai/claude-agent-sdk';
@@ -179,6 +171,7 @@ export type {
 
 export type {
   ConfigScope,
+  SandboxFilesystemConfig,
   SandboxIgnoreViolations,
   SandboxNetworkConfig,
   SandboxSettings,
@@ -190,6 +183,7 @@ export type {
 // ============================================================================
 
 export type {
+  BaseOutputFormat,
   JsonSchemaOutputFormat,
   OutputFormat,
   OutputFormatType,
@@ -203,6 +197,7 @@ export type {
   GetSessionMessagesOptions,
   ListSessionsOptions,
   SDKSessionInfo,
+  SDKSessionOptions,
   SessionMessage,
 } from '@anthropic-ai/claude-agent-sdk';
 
@@ -212,7 +207,14 @@ export type {
 
 export type {
   ApiKeySource,
+  ElicitationRequest,
+  ElicitationResult,
   ExitReason,
+  FastModeState,
+  OnElicitation,
+  PromptRequest,
+  PromptRequestOption,
+  PromptResponse,
   RewindFilesResult,
   SDKPermissionDenial,
   SdkBeta,
@@ -232,10 +234,12 @@ export { EXIT_REASONS, HOOK_EVENTS } from '@anthropic-ai/claude-agent-sdk';
  */
 export type SDKControlInitializeResponse = {
   commands: import('@anthropic-ai/claude-agent-sdk').SlashCommand[];
+  agents: import('@anthropic-ai/claude-agent-sdk').AgentInfo[];
   output_style: string;
   available_output_styles: string[];
   models: import('@anthropic-ai/claude-agent-sdk').ModelInfo[];
   account: import('@anthropic-ai/claude-agent-sdk').AccountInfo;
+  fast_mode_state?: import('@anthropic-ai/claude-agent-sdk').FastModeState;
 };
 
 // ============================================================================

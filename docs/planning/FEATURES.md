@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-03
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -39,6 +39,7 @@
 | `reconnectMcpServer()` | ✅ | Tested with minimal stdio MCP server |
 | `toggleMcpServer()` | ✅ | Disable and re-enable tested with stdio MCP server |
 | `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs |
+| `supportedAgents()` | ✅ | Returns array of AgentInfo from init response |
 | `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
 | **Query Options** |
 | `prompt` | ✅ | String and AsyncIterable |
@@ -68,6 +69,7 @@
 | `sandbox` | ✅ | Config passed via --settings, tested |
 | Image uploads (streaming input) | ✅ | Base64 image in content blocks, tested E2E |
 | `abortController` | ✅ | Signal cancellation tested |
+| `onElicitation` | ❌ | Callback for MCP elicitation requests (v0.2.63) |
 | `plugins` | 🔌 | CLI flag passed, plugin loading not behaviorally tested |
 | `additionalDirectories` | 🔌 | CLI flag passed |
 | `agent` | 🔌 | CLI flag passed |
@@ -104,6 +106,8 @@
 | `Setup` | 📝 | Does not fire via programmatic hooks |
 | `TeammateIdle` | 📝 | TODO — types exported, no test |
 | `TaskCompleted` | 📝 | TODO — types exported, no test |
+| `Elicitation` | 📝 | Types exported (v0.2.63), fires via hook_callback protocol |
+| `ElicitationResult` | 📝 | Types exported (v0.2.63), fires via hook_callback protocol |
 | `ConfigChange` | 📝 | Types exported (v0.2.49), fires via hook_callback protocol |
 | `WorktreeCreate` | 📝 | Types exported (v0.2.50), fires via hook_callback protocol |
 | `WorktreeRemove` | 📝 | Types exported (v0.2.50), fires via hook_callback protocol |
@@ -117,6 +121,8 @@
 | `listSessions()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
 | `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
 | `SDKTaskProgressMessage` type | ⚠️ | Re-exported from official SDK; part of SDKMessage union |
+| `SDKElicitationCompleteMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
+| `SDKLocalCommandOutputMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |
@@ -132,6 +138,7 @@
 | Feature | Priority | Notes |
 |---------|----------|-------|
 | `rewindFiles()` | LOW | Stub throws; CLI has no protocol for this |
+| `onElicitation` callback | MEDIUM | MCP elicitation requests (form fields, URL auth) |
 | V2 API (`unstable_v2_*`) | LOW | Experimental preview in official SDK |
 | Context compaction trigger | LOW | CLI compacts automatically |
 | Agent teams | LOW | Experimental (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) |
@@ -175,7 +182,7 @@ Handled by the CLI subprocess:
 |--------|----------|--------------|
 | Bundle size | ~488KB | ~13MB |
 | Source code | ~2,500 LOC | ~50,000+ LOC |
-| Test files | 36 (23 integration + 1 unimplemented + 12 unit) | — |
+| Test files | 46 (24 integration + 22 unit) | — |
 | Dependencies | CLI (external) | Self-contained |
 
 ---
