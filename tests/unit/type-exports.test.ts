@@ -362,6 +362,58 @@ describe('v0.2.63 type re-exports', () => {
   });
 });
 
+describe('v0.2.70 type re-exports', () => {
+  test('ToolConfig is importable', () => {
+    const config: import('../../src/types/index.ts').ToolConfig = {
+      askUserQuestion: { previewFormat: 'html' },
+    };
+    expect(config.askUserQuestion?.previewFormat).toBe('html');
+  });
+
+  test('ToolConfig previewFormat accepts markdown', () => {
+    const config: import('../../src/types/index.ts').ToolConfig = {
+      askUserQuestion: { previewFormat: 'markdown' },
+    };
+    expect(config.askUserQuestion?.previewFormat).toBe('markdown');
+  });
+
+  test('InstructionsLoadedHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').InstructionsLoadedHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'InstructionsLoaded',
+      file_path: '/project/CLAUDE.md',
+      memory_type: 'Project',
+    };
+    expect(input.hook_event_name).toBe('InstructionsLoaded');
+    expect(input.memory_type).toBe('Project');
+  });
+
+  test('BaseHookInput includes agent_id and agent_type fields', () => {
+    const input: import('../../src/types/index.ts').BaseHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      agent_id: 'agent-456',
+      agent_type: 'code-reviewer',
+    };
+    expect(input.agent_id).toBe('agent-456');
+    expect(input.agent_type).toBe('code-reviewer');
+  });
+
+  test('ModelInfo includes supportsFastMode', () => {
+    const model: import('../../src/types/index.ts').ModelInfo = {
+      modelId: 'claude-opus-4-6',
+      modelName: 'Claude Opus 4.6',
+      provider: 'anthropic',
+      canBeUsed: true,
+      supportsFastMode: true,
+    };
+    expect(model.supportsFastMode).toBe(true);
+  });
+});
+
 describe('v0.2.45 type re-exports', () => {
   test('SDKTaskStartedMessage is importable and part of SDKMessage', () => {
     const msg: import('../../src/types/index.ts').SDKTaskStartedMessage = {

@@ -49,6 +49,7 @@ export type StdinMessage = {
 export type CaptureResult = {
   args: string[];
   stdin: StdinMessage[];
+  env?: Record<string, string>;
 };
 
 /**
