@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-03-03
+**Last Updated:** 2026-03-06
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -84,6 +84,7 @@
 | `debugFile` | 🔌 | CLI flag passed |
 | `resumeSessionAt` | ⚠️ | Unit tested, needs integration test |
 | `enableFileCheckpointing` | ⚠️ | Unit tested (env var), needs integration test |
+| `toolConfig` | 🔌 | Env var `CLAUDE_CODE_QUESTION_PREVIEW_FORMAT` verified to match official SDK |
 | `executable` | ⚠️ | Unit tested, needs integration test |
 | `executableArgs` | ⚠️ | Unit tested, needs integration test |
 | `env` | ⚠️ | Unit tested, needs integration test |
@@ -111,6 +112,7 @@
 | `ConfigChange` | 📝 | Types exported (v0.2.49), fires via hook_callback protocol |
 | `WorktreeCreate` | 📝 | Types exported (v0.2.50), fires via hook_callback protocol |
 | `WorktreeRemove` | 📝 | Types exported (v0.2.50), fires via hook_callback protocol |
+| `InstructionsLoaded` | 📝 | Types exported (v0.2.70), fires via hook_callback protocol |
 | **Advanced Features** |
 | Structured outputs | ✅ | JSON schema validation tested E2E |
 | Extended thinking | ✅ | Thinking tokens tested E2E |

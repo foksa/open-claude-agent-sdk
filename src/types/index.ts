@@ -90,6 +90,7 @@ export type {
   HookEvent,
   HookInput,
   HookJSONOutput,
+  InstructionsLoadedHookInput,
   NotificationHookInput,
   NotificationHookSpecificOutput,
   PermissionRequestHookInput,
@@ -223,6 +224,7 @@ export type {
   ThinkingConfig,
   ThinkingDisabled,
   ThinkingEnabled,
+  ToolConfig,
 } from '@anthropic-ai/claude-agent-sdk';
 
 export { EXIT_REASONS, HOOK_EVENTS } from '@anthropic-ai/claude-agent-sdk';

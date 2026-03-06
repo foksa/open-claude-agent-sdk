@@ -46,6 +46,9 @@ export class DefaultProcessFactory implements ProcessFactory {
     if (options.enableFileCheckpointing) {
       env.CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING = 'true';
     }
+    if (options.toolConfig?.askUserQuestion?.previewFormat) {
+      env.CLAUDE_CODE_QUESTION_PREVIEW_FORMAT = options.toolConfig.askUserQuestion.previewFormat;
+    }
 
     // Custom spawn function takes priority
     if (options.spawnClaudeCodeProcess) {

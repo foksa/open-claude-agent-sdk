@@ -355,6 +355,31 @@ describe('CLI arguments compatibility', () => {
   );
 
   test.concurrent(
+    'toolConfig previewFormat env var matches official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', {
+          toolConfig: { askUserQuestion: { previewFormat: 'html' } },
+        }),
+        capture(officialQuery, 'test', {
+          toolConfig: { askUserQuestion: { previewFormat: 'html' } },
+        }),
+      ]);
+
+      // Should be passed as env var, not CLI arg
+      expect(open.args).not.toContain('--tool-config');
+      expect(official.args).not.toContain('--tool-config');
+
+      // Both should set the env var
+      expect(open.env?.CLAUDE_CODE_QUESTION_PREVIEW_FORMAT).toBe('html');
+      expect(official.env?.CLAUDE_CODE_QUESTION_PREVIEW_FORMAT).toBe('html');
+
+      console.log('   toolConfig previewFormat env var match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'plugins --plugin-dir args match official SDK',
     async () => {
       const plugins = [

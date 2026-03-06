@@ -166,9 +166,19 @@ console.log(
  * Save captured data to output file
  */
 function saveCapture() {
+  // Capture selected env vars that the SDK sets
+  const envVars = {};
+  const envPrefixes = ['CLAUDE_CODE_', 'CLAUDECODE'];
+  for (const [key, value] of Object.entries(process.env)) {
+    if (envPrefixes.some((prefix) => key.startsWith(prefix))) {
+      envVars[key] = value;
+    }
+  }
+
   const capture = {
     args: cliArgs,
     stdin: stdinMessages,
+    env: envVars,
   };
   const tempFile = `${outputFile}.tmp`;
   fs.writeFileSync(tempFile, JSON.stringify(capture, null, 2));
