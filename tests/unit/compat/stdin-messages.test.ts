@@ -769,6 +769,28 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'agentProgressSummaries in init message matches official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { agentProgressSummaries: true }),
+        capture(officialQuery, 'test', { agentProgressSummaries: true }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      expect(openInit?.request?.agentProgressSummaries).toBe(true);
+      expect(officialInit?.request?.agentProgressSummaries).toBe(true);
+
+      console.log('   agentProgressSummaries init message test passed');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'stopTask sends stop_task control request matching official SDK',
     async () => {
       const [open, official] = await Promise.all([

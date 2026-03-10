@@ -414,6 +414,35 @@ describe('v0.2.70 type re-exports', () => {
   });
 });
 
+describe('v0.2.72 type re-exports', () => {
+  test('SDKTaskProgressMessage has optional summary field', () => {
+    const msg: import('../../src/types/index.ts').SDKTaskProgressMessage = {
+      type: 'system',
+      subtype: 'task_progress',
+      task_id: 'task-123',
+      description: 'Working on code review',
+      usage: { total_tokens: 1000, tool_uses: 5, duration_ms: 3000 },
+      summary: 'Reviewed 3 files and found 2 issues',
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKTaskProgressMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.summary).toBe('Reviewed 3 files and found 2 issues');
+  });
+
+  test('SDKTaskProgressMessage works without summary field', () => {
+    const msg: import('../../src/types/index.ts').SDKTaskProgressMessage = {
+      type: 'system',
+      subtype: 'task_progress',
+      task_id: 'task-456',
+      description: 'Running tests',
+      usage: { total_tokens: 500, tool_uses: 2, duration_ms: 1500 },
+      uuid: 'uuid-456' as import('../../src/types/index.ts').SDKTaskProgressMessage['uuid'],
+      session_id: 'session-456',
+    };
+    expect(msg.summary).toBeUndefined();
+  });
+});
+
 describe('v0.2.45 type re-exports', () => {
   test('SDKTaskStartedMessage is importable and part of SDKMessage', () => {
     const msg: import('../../src/types/index.ts').SDKTaskStartedMessage = {

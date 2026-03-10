@@ -52,6 +52,7 @@ export function sendProtocolInit(
     agents?: Record<string, unknown>;
     hooks?: ReturnType<typeof buildHookConfig>;
     promptSuggestions?: boolean;
+    agentProgressSummaries?: boolean;
   } = {
     subtype: RequestSubtype.INITIALIZE,
     ...(systemPrompt !== undefined && { systemPrompt }),
@@ -60,6 +61,9 @@ export function sendProtocolInit(
     ...(options.agents && { agents: options.agents }),
     ...(options.promptSuggestions !== undefined && {
       promptSuggestions: options.promptSuggestions,
+    }),
+    ...(options.agentProgressSummaries !== undefined && {
+      agentProgressSummaries: options.agentProgressSummaries,
     }),
   };
 

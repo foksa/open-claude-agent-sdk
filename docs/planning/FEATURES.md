@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-03-10
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -80,6 +80,7 @@
 | `thinking` | ✅ | adaptive/enabled/disabled all E2E tested |
 | `effort` | ✅ | E2E tested with low effort level |
 | `promptSuggestions` | 🔌 | Init message verified to match official SDK |
+| `agentProgressSummaries` | 🔌 | Init message verified to match official SDK (v0.2.72) |
 | `debug` | 🔌 | CLI flag passed |
 | `debugFile` | 🔌 | CLI flag passed |
 | `resumeSessionAt` | ⚠️ | Unit tested, needs integration test |
@@ -122,7 +123,7 @@
 | Session storage API | ✅ | listSessions, getSessionMetadata, renameSession, deleteSession, getProjectStoragePath — via `./storage` subpath |
 | `listSessions()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
 | `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
-| `SDKTaskProgressMessage` type | ⚠️ | Re-exported from official SDK; part of SDKMessage union |
+| `SDKTaskProgressMessage` type | ⚠️ | Re-exported from official SDK; includes `summary` field (v0.2.72) |
 | `SDKElicitationCompleteMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
 | `SDKLocalCommandOutputMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
