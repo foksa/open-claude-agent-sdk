@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-03-10
+**Last Updated:** 2026-03-15
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -69,6 +69,7 @@
 | `sandbox` | ✅ | Config passed via --settings, tested |
 | Image uploads (streaming input) | ✅ | Base64 image in content blocks, tested E2E |
 | `abortController` | ✅ | Signal cancellation tested |
+| `settings` | 🔌 | CLI flag passed (string path or JSON object), sandbox merges in |
 | `onElicitation` | ❌ | Callback for MCP elicitation requests (v0.2.63) |
 | `plugins` | 🔌 | CLI flag passed, plugin loading not behaviorally tested |
 | `additionalDirectories` | 🔌 | CLI flag passed |
@@ -104,6 +105,7 @@
 | `SubagentStart` | ✅ | Tested in subagents.test.ts |
 | `SubagentStop` | ✅ | Tested in subagents.test.ts |
 | `PreCompact` | 📝 | TODO — placeholder test |
+| `PostCompact` | 📝 | Types exported (v0.2.76), fires via hook_callback protocol |
 | `PermissionRequest` | 📝 | Does not fire when canUseTool handles permissions |
 | `Setup` | 📝 | Does not fire via programmatic hooks |
 | `TeammateIdle` | 📝 | TODO — types exported, no test |
@@ -123,6 +125,10 @@
 | Session storage API | ✅ | listSessions, getSessionMetadata, renameSession, deleteSession, getProjectStoragePath — via `./storage` subpath |
 | `listSessions()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
 | `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
+| `forkSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.76); E2E tested in session-utils.test.ts |
+| `renameSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.74); E2E tested in session-utils.test.ts |
+| `tagSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.76); E2E tested in session-utils.test.ts |
+| `getSessionInfo()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.74); E2E tested in session-utils.test.ts |
 | `SDKTaskProgressMessage` type | ⚠️ | Re-exported from official SDK; includes `summary` field (v0.2.72) |
 | `SDKElicitationCompleteMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
 | `SDKLocalCommandOutputMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |

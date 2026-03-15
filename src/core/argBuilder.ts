@@ -205,19 +205,27 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
   }
 
-  // extraArgs + sandbox — sandbox merges into extraArgs.settings as JSON
-  const mergedExtraArgs = { ...(options.extraArgs ?? {}) };
-  if (options.sandbox) {
-    let settingsObj: Record<string, unknown> = { sandbox: options.sandbox };
-    if (mergedExtraArgs.settings) {
-      try {
-        settingsObj = { ...JSON.parse(mergedExtraArgs.settings), sandbox: options.sandbox };
-      } catch {
-        // If settings is not valid JSON, overwrite
+  // settings + sandbox — both go via --settings flag
+  // settings can be a string (path) or an object; sandbox merges into the object form
+  if (options.settings !== undefined || options.sandbox) {
+    if (typeof options.settings === 'string' && !options.sandbox) {
+      // Path to settings file — pass through directly
+      args.push('--settings', options.settings);
+    } else {
+      // Object form — merge settings + sandbox into one JSON blob
+      let settingsObj: Record<string, unknown> =
+        typeof options.settings === 'object' && options.settings !== undefined
+          ? { ...options.settings }
+          : {};
+      if (options.sandbox) {
+        settingsObj = { ...settingsObj, sandbox: options.sandbox };
       }
+      args.push('--settings', JSON.stringify(settingsObj));
     }
-    mergedExtraArgs.settings = JSON.stringify(settingsObj);
   }
+
+  // extraArgs — user-supplied passthrough flags
+  const mergedExtraArgs = { ...(options.extraArgs ?? {}) };
   for (const [key, value] of Object.entries(mergedExtraArgs)) {
     if (value === null) {
       args.push(`--${key}`);

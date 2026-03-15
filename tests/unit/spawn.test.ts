@@ -243,6 +243,45 @@ describe('buildCliArgs', () => {
     expect(args).toContain('10000');
   });
 
+  test('includes --settings with object when specified', () => {
+    const args = buildCliArgs({ settings: { model: 'claude-sonnet-4-6' } } as Options);
+
+    expect(args).toContain('--settings');
+    const idx = args.indexOf('--settings');
+    const parsed = JSON.parse(args[idx + 1]);
+    expect(parsed.model).toBe('claude-sonnet-4-6');
+  });
+
+  test('includes --settings with string path when specified', () => {
+    const args = buildCliArgs({ settings: '/path/to/settings.json' } as Options);
+
+    expect(args).toContain('--settings');
+    const idx = args.indexOf('--settings');
+    expect(args[idx + 1]).toBe('/path/to/settings.json');
+  });
+
+  test('merges sandbox into settings object', () => {
+    const args = buildCliArgs({
+      settings: { model: 'claude-sonnet-4-6' },
+      sandbox: { enabled: true },
+    } as Options);
+
+    expect(args).toContain('--settings');
+    const idx = args.indexOf('--settings');
+    const parsed = JSON.parse(args[idx + 1]);
+    expect(parsed.model).toBe('claude-sonnet-4-6');
+    expect(parsed.sandbox).toEqual({ enabled: true });
+  });
+
+  test('sandbox without settings produces --settings with sandbox only', () => {
+    const args = buildCliArgs({ sandbox: { enabled: true } } as Options);
+
+    expect(args).toContain('--settings');
+    const idx = args.indexOf('--settings');
+    const parsed = JSON.parse(args[idx + 1]);
+    expect(parsed.sandbox).toEqual({ enabled: true });
+  });
+
   test('_testCliArgs only works in test environment', () => {
     const originalEnv = process.env.NODE_ENV;
 

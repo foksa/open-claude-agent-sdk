@@ -380,6 +380,89 @@ describe('CLI arguments compatibility', () => {
   );
 
   test.concurrent(
+    'settings object args match official SDK',
+    async () => {
+      const settings = { model: 'claude-sonnet-4-6' };
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { settings } as Parameters<typeof openQuery>[0]['options']),
+        capture(officialQuery, 'test', { settings } as Parameters<
+          typeof officialQuery
+        >[0]['options']),
+      ]);
+
+      expect(open.args).toContain('--settings');
+      expect(official.args).toContain('--settings');
+
+      const openIdx = open.args.indexOf('--settings');
+      const officialIdx = official.args.indexOf('--settings');
+
+      const openSettings = JSON.parse(open.args[openIdx + 1]);
+      const officialSettings = JSON.parse(official.args[officialIdx + 1]);
+
+      expect(openSettings).toEqual(officialSettings);
+
+      console.log('   settings object args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'settings string path args match official SDK',
+    async () => {
+      const settings = '/path/to/settings.json';
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { settings } as Parameters<typeof openQuery>[0]['options']),
+        capture(officialQuery, 'test', { settings } as Parameters<
+          typeof officialQuery
+        >[0]['options']),
+      ]);
+
+      expect(open.args).toContain('--settings');
+      expect(official.args).toContain('--settings');
+
+      const openIdx = open.args.indexOf('--settings');
+      const officialIdx = official.args.indexOf('--settings');
+
+      expect(open.args[openIdx + 1]).toBe(settings);
+      expect(official.args[officialIdx + 1]).toBe(settings);
+
+      console.log('   settings string path args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'settings + sandbox merged args match official SDK',
+    async () => {
+      const settings = { model: 'claude-sonnet-4-6' };
+      const sandbox = { enabled: true };
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { settings, sandbox } as Parameters<
+          typeof openQuery
+        >[0]['options']),
+        capture(officialQuery, 'test', { settings, sandbox } as Parameters<
+          typeof officialQuery
+        >[0]['options']),
+      ]);
+
+      expect(open.args).toContain('--settings');
+      expect(official.args).toContain('--settings');
+
+      const openIdx = open.args.indexOf('--settings');
+      const officialIdx = official.args.indexOf('--settings');
+
+      const openSettings = JSON.parse(open.args[openIdx + 1]);
+      const officialSettings = JSON.parse(official.args[officialIdx + 1]);
+
+      expect(openSettings).toEqual(officialSettings);
+      expect(openSettings.sandbox).toEqual(sandbox);
+
+      console.log('   settings + sandbox merged args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'plugins --plugin-dir args match official SDK',
     async () => {
       const plugins = [

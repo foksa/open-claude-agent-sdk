@@ -414,6 +414,92 @@ describe('v0.2.70 type re-exports', () => {
   });
 });
 
+describe('v0.2.76 type re-exports', () => {
+  test('PostCompactHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').PostCompactHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'PostCompact',
+      trigger: 'auto',
+      compact_summary: 'Summary of compacted conversation',
+    };
+    expect(input.hook_event_name).toBe('PostCompact');
+    expect(input.trigger).toBe('auto');
+    expect(input.compact_summary).toBe('Summary of compacted conversation');
+  });
+
+  test('HOOK_EVENTS const includes PostCompact', () => {
+    const { HOOK_EVENTS } = require('../../src/types/index.ts');
+    expect(HOOK_EVENTS).toContain('PostCompact');
+  });
+
+  test('ForkSessionOptions is importable', () => {
+    const opts: import('../../src/types/index.ts').ForkSessionOptions = {
+      dir: '/home/user/project',
+      upToMessageId: 'msg-123',
+      title: 'My fork',
+    };
+    expect(opts.upToMessageId).toBe('msg-123');
+    expect(opts.title).toBe('My fork');
+  });
+
+  test('ForkSessionResult is importable', () => {
+    const result: import('../../src/types/index.ts').ForkSessionResult = {
+      sessionId: '12345678-1234-1234-1234-123456789012',
+    };
+    expect(result.sessionId).toBe('12345678-1234-1234-1234-123456789012');
+  });
+
+  test('GetSessionInfoOptions is importable', () => {
+    const opts: import('../../src/types/index.ts').GetSessionInfoOptions = {
+      dir: '/home/user/project',
+    };
+    expect(opts.dir).toBe('/home/user/project');
+  });
+
+  test('SessionMutationOptions is importable', () => {
+    const opts: import('../../src/types/index.ts').SessionMutationOptions = {
+      dir: '/home/user/project',
+    };
+    expect(opts.dir).toBe('/home/user/project');
+  });
+
+  test('Settings is importable', () => {
+    const settings: import('../../src/types/index.ts').Settings = {
+      model: 'claude-sonnet-4-6',
+    };
+    expect(settings.model).toBe('claude-sonnet-4-6');
+  });
+
+  test('SDKSession interface is importable', () => {
+    // Just verify the type is importable (it's an interface, can't instantiate)
+    type Session = import('../../src/types/index.ts').SDKSession;
+    const check: Session extends { readonly sessionId: string } ? true : false = true;
+    expect(check).toBe(true);
+  });
+
+  test('forkSession function is importable from main entry', () => {
+    const { forkSession } = require('../../src/index.ts');
+    expect(typeof forkSession).toBe('function');
+  });
+
+  test('renameSession function is importable from main entry', () => {
+    const { renameSession } = require('../../src/index.ts');
+    expect(typeof renameSession).toBe('function');
+  });
+
+  test('tagSession function is importable from main entry', () => {
+    const { tagSession } = require('../../src/index.ts');
+    expect(typeof tagSession).toBe('function');
+  });
+
+  test('getSessionInfo function is importable from main entry', () => {
+    const { getSessionInfo } = require('../../src/index.ts');
+    expect(typeof getSessionInfo).toBe('function');
+  });
+});
+
 describe('v0.2.72 type re-exports', () => {
   test('SDKTaskProgressMessage has optional summary field', () => {
     const msg: import('../../src/types/index.ts').SDKTaskProgressMessage = {

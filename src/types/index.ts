@@ -95,6 +95,7 @@ export type {
   NotificationHookSpecificOutput,
   PermissionRequestHookInput,
   PermissionRequestHookSpecificOutput,
+  PostCompactHookInput,
   PostToolUseFailureHookInput,
   PostToolUseFailureHookSpecificOutput,
   PostToolUseHookInput,
@@ -177,6 +178,7 @@ export type {
   SandboxNetworkConfig,
   SandboxSettings,
   SettingSource,
+  Settings,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================
@@ -195,11 +197,16 @@ export type {
 // ============================================================================
 
 export type {
+  ForkSessionOptions,
+  ForkSessionResult,
+  GetSessionInfoOptions,
   GetSessionMessagesOptions,
   ListSessionsOptions,
+  SDKSession,
   SDKSessionInfo,
   SDKSessionOptions,
   SessionMessage,
+  SessionMutationOptions,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================
