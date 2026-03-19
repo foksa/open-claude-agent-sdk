@@ -11,6 +11,7 @@
 
 import type { Writable } from 'node:stream';
 import {
+  type ApplyFlagSettingsRequest,
   type ControlRequest,
   type ControlResponse,
   type InternalHookCallback,
@@ -46,7 +47,8 @@ export type OutboundControlRequest =
   | McpReconnectRequest
   | McpToggleRequest
   | McpSetServersRequest
-  | StopTaskRequest;
+  | StopTaskRequest
+  | ApplyFlagSettingsRequest;
 
 /**
  * Type-safe control request builder functions
@@ -100,6 +102,11 @@ export const ControlRequests = {
   stopTask: (taskId: string): StopTaskRequest => ({
     subtype: RequestSubtype.STOP_TASK,
     task_id: taskId,
+  }),
+
+  applyFlagSettings: (settings: Record<string, unknown>): ApplyFlagSettingsRequest => ({
+    subtype: RequestSubtype.APPLY_FLAG_SETTINGS,
+    settings,
   }),
 };
 

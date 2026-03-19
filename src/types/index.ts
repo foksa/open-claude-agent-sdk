@@ -31,6 +31,7 @@ export type {
 // ============================================================================
 
 export type {
+  SDKAPIRetryMessage,
   SDKAssistantMessage,
   SDKAssistantMessageError,
   SDKAuthStatusMessage,

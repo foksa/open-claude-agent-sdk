@@ -529,6 +529,57 @@ describe('v0.2.72 type re-exports', () => {
   });
 });
 
+describe('v0.2.79 type re-exports', () => {
+  test('SDKAPIRetryMessage is importable and part of SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKAPIRetryMessage = {
+      type: 'system',
+      subtype: 'api_retry',
+      attempt: 1,
+      max_retries: 3,
+      retry_delay_ms: 5000,
+      error_status: 429,
+      error: 'rate_limit',
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKAPIRetryMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('api_retry');
+    expect(msg.attempt).toBe(1);
+    expect(msg.max_retries).toBe(3);
+    expect(msg.retry_delay_ms).toBe(5000);
+    expect(msg.error_status).toBe(429);
+
+    // Verify it's assignable to SDKMessage
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('SDKAPIRetryMessage error_status can be null', () => {
+    const msg: import('../../src/types/index.ts').SDKAPIRetryMessage = {
+      type: 'system',
+      subtype: 'api_retry',
+      attempt: 2,
+      max_retries: 3,
+      retry_delay_ms: 10000,
+      error_status: null,
+      error: 'unknown',
+      uuid: 'uuid-456' as import('../../src/types/index.ts').SDKAPIRetryMessage['uuid'],
+      session_id: 'session-456',
+    };
+    expect(msg.error_status).toBeNull();
+  });
+
+  test('ExitReason includes resume', () => {
+    const reason: import('../../src/types/index.ts').ExitReason = 'resume';
+    expect(reason).toBe('resume');
+  });
+
+  test('EXIT_REASONS const includes resume', () => {
+    const { EXIT_REASONS } = require('../../src/types/index.ts');
+    expect(EXIT_REASONS).toContain('resume');
+  });
+});
+
 describe('v0.2.45 type re-exports', () => {
   test('SDKTaskStartedMessage is importable and part of SDKMessage', () => {
     const msg: import('../../src/types/index.ts').SDKTaskStartedMessage = {

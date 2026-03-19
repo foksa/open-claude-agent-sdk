@@ -26,6 +26,7 @@ import type {
   SDKControlInitializeResponse,
   SDKMessage,
   SDKUserMessage,
+  Settings,
   SlashCommand,
 } from '../types/index.ts';
 import { ControlRequestManager } from './ControlRequestManager.ts';
@@ -237,6 +238,12 @@ export class QueryImpl implements Query {
   async setMaxThinkingTokens(maxThinkingTokens: number | null): Promise<void> {
     await this.controlManager.sendControlRequestWithResponse(
       ControlRequests.setMaxThinkingTokens(maxThinkingTokens)
+    );
+  }
+
+  async applyFlagSettings(settings: Settings): Promise<void> {
+    await this.controlManager.sendControlRequestWithResponse(
+      ControlRequests.applyFlagSettings(settings as unknown as Record<string, unknown>)
     );
   }
 

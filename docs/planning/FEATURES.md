@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-03-15
+**Last Updated:** 2026-03-19
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -41,6 +41,7 @@
 | `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs |
 | `supportedAgents()` | ✅ | Returns array of AgentInfo from init response |
 | `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
+| `applyFlagSettings()` | 🔌 | Sends control request matching official SDK; no behavioral test |
 | **Query Options** |
 | `prompt` | ✅ | String and AsyncIterable |
 | `permissionMode` | ✅ | Multiple modes tested behaviorally |
@@ -132,6 +133,8 @@
 | `SDKTaskProgressMessage` type | ⚠️ | Re-exported from official SDK; includes `summary` field (v0.2.72) |
 | `SDKElicitationCompleteMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
 | `SDKLocalCommandOutputMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
+| `SDKAPIRetryMessage` type | ⚠️ | Re-exported from official SDK (v0.2.77); part of SDKMessage union |
+| `ExitReason` includes `'resume'` | ⚠️ | Re-exported from official SDK (v0.2.79) |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

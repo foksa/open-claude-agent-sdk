@@ -793,6 +793,36 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'applyFlagSettings sends apply_flag_settings control request matching official SDK',
+    async () => {
+      const settings = { permissions: { allow: ['Read'] } };
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.applyFlagSettings(settings as import('../../../src/types/index.ts').Settings);
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.applyFlagSettings(settings as import('../../../src/types/index.ts').Settings);
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'apply_flag_settings');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'apply_flag_settings');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   applyFlagSettings stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'stopTask sends stop_task control request matching official SDK',
     async () => {
       const [open, official] = await Promise.all([
