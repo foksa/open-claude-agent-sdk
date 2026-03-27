@@ -823,6 +823,64 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'reloadPlugins sends reload_plugins control request matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.reloadPlugins();
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.reloadPlugins();
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'reload_plugins');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'reload_plugins');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   reloadPlugins stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'seedReadState sends seed_read_state control request matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.seedReadState('/tmp/test.txt', 1234567890);
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.seedReadState('/tmp/test.txt', 1234567890);
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'seed_read_state');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'seed_read_state');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   seedReadState stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'stopTask sends stop_task control request matching official SDK',
     async () => {
       const [open, official] = await Promise.all([

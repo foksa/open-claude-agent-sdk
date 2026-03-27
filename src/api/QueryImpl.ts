@@ -24,6 +24,7 @@ import type {
   Query,
   RewindFilesResult,
   SDKControlInitializeResponse,
+  SDKControlReloadPluginsResponse,
   SDKMessage,
   SDKUserMessage,
   Settings,
@@ -360,6 +361,18 @@ export class QueryImpl implements Query {
   async accountInfo(): Promise<AccountInfo> {
     const init = await this.controlManager.waitForInit();
     return init.account;
+  }
+
+  async reloadPlugins(): Promise<SDKControlReloadPluginsResponse> {
+    return this.controlManager.sendControlRequestWithResponse<SDKControlReloadPluginsResponse>(
+      ControlRequests.reloadPlugins()
+    );
+  }
+
+  async seedReadState(path: string, mtime: number): Promise<void> {
+    await this.controlManager.sendControlRequestWithResponse(
+      ControlRequests.seedReadState(path, mtime)
+    );
   }
 
   async rewindFiles(

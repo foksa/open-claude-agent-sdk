@@ -580,6 +580,123 @@ describe('v0.2.79 type re-exports', () => {
   });
 });
 
+describe('v0.2.85 type re-exports', () => {
+  test('EffortLevel is importable', () => {
+    const level: import('../../src/types/index.ts').EffortLevel = 'high';
+    expect(level).toBe('high');
+    const all: import('../../src/types/index.ts').EffortLevel[] = ['low', 'medium', 'high', 'max'];
+    expect(all).toHaveLength(4);
+  });
+
+  test('SDKControlReloadPluginsResponse is importable', () => {
+    const response: import('../../src/types/index.ts').SDKControlReloadPluginsResponse = {
+      commands: [],
+      agents: [],
+      plugins: [{ name: 'test-plugin', path: '/tmp/plugin' }],
+      mcpServers: [],
+      error_count: 0,
+    };
+    expect(response.plugins).toHaveLength(1);
+    expect(response.error_count).toBe(0);
+  });
+
+  test('SDKSessionStateChangedMessage is importable', () => {
+    const msg: import('../../src/types/index.ts').SDKSessionStateChangedMessage = {
+      type: 'system',
+      subtype: 'session_state_changed',
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKSessionStateChangedMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.subtype).toBe('session_state_changed');
+  });
+
+  test('PermissionDecisionClassification is importable', () => {
+    const classification: import('../../src/types/index.ts').PermissionDecisionClassification =
+      'ask';
+    expect(classification).toBe('ask');
+  });
+
+  test('SDKControlRequest is importable', () => {
+    const req: import('../../src/types/index.ts').SDKControlRequest = {
+      type: 'control_request',
+      request_id: 'req-123',
+      request: { subtype: 'interrupt' },
+    };
+    expect(req.type).toBe('control_request');
+  });
+
+  test('SDKControlResponse is importable', () => {
+    const resp: import('../../src/types/index.ts').SDKControlResponse = {
+      type: 'control_response',
+      response: { subtype: 'success', request_id: 'req-123' },
+    };
+    expect(resp.type).toBe('control_response');
+  });
+
+  test('CwdChangedHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').CwdChangedHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'CwdChanged',
+      old_cwd: '/old/path',
+      new_cwd: '/new/path',
+    };
+    expect(input.hook_event_name).toBe('CwdChanged');
+  });
+
+  test('FileChangedHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').FileChangedHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'FileChanged',
+      file_path: '/home/user/test.ts',
+    };
+    expect(input.hook_event_name).toBe('FileChanged');
+  });
+
+  test('StopFailureHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').StopFailureHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'StopFailure',
+    };
+    expect(input.hook_event_name).toBe('StopFailure');
+  });
+
+  test('TaskCreatedHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').TaskCreatedHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'TaskCreated',
+      task_id: 'task-456',
+    };
+    expect(input.hook_event_name).toBe('TaskCreated');
+  });
+
+  test('WorktreeCreateHookSpecificOutput is importable', () => {
+    const output: import('../../src/types/index.ts').WorktreeCreateHookSpecificOutput = {
+      hookEventName: 'WorktreeCreate',
+    };
+    expect(output.hookEventName).toBe('WorktreeCreate');
+  });
+
+  test('SDKControlInitializeResponse is now re-exported from official SDK', () => {
+    const response: import('../../src/types/index.ts').SDKControlInitializeResponse = {
+      commands: [],
+      agents: [],
+      output_style: 'concise',
+      available_output_styles: ['concise'],
+      models: [],
+      account: {},
+    };
+    expect(response.output_style).toBe('concise');
+  });
+});
+
 describe('v0.2.45 type re-exports', () => {
   test('SDKTaskStartedMessage is importable and part of SDKMessage', () => {
     const msg: import('../../src/types/index.ts').SDKTaskStartedMessage = {

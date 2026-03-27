@@ -72,6 +72,26 @@ testWithBothSDKs(
   120000
 );
 
+testWithBothSDKs(
+  'reloadPlugins() returns response with expected shape',
+  async (sdk) => {
+    const response = await queryWithControlMethod(sdk, (q) => q.reloadPlugins());
+
+    expect(response).toBeDefined();
+    expect(typeof response).toBe('object');
+    expect(Array.isArray(response.commands)).toBe(true);
+    expect(Array.isArray(response.agents)).toBe(true);
+    expect(Array.isArray(response.plugins)).toBe(true);
+    expect(Array.isArray(response.mcpServers)).toBe(true);
+    expect(typeof response.error_count).toBe('number');
+
+    console.log(
+      `   [${sdk}] reloadPlugins() returned: ${response.commands.length} commands, ${response.agents.length} agents, ${response.plugins.length} plugins, ${response.error_count} errors`
+    );
+  },
+  120000
+);
+
 // =============================================================================
 // MCP Server Control Methods (happy-path with real SDK MCP server)
 // =============================================================================

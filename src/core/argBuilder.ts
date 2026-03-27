@@ -126,6 +126,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   // All simple flag mappings
   applyFlagMap(args, options);
 
+  // taskBudget — extract total from object: { total: number } → --task-budget <total>
+  if (options.taskBudget) {
+    args.push('--task-budget', String(options.taskBudget.total));
+  }
+
   // effort — pass through as --effort <value>
   if (options.effort) {
     args.push('--effort', options.effort);

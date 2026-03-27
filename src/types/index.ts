@@ -36,6 +36,9 @@ export type {
   SDKAssistantMessageError,
   SDKAuthStatusMessage,
   SDKCompactBoundaryMessage,
+  SDKControlInitializeResponse,
+  SDKControlRequest,
+  SDKControlResponse,
   SDKElicitationCompleteMessage,
   SDKFilesPersistedEvent,
   SDKHookProgressMessage,
@@ -49,6 +52,7 @@ export type {
   SDKResultError,
   SDKResultMessage,
   SDKResultSuccess,
+  SDKSessionStateChangedMessage,
   SDKStatus,
   SDKStatusMessage,
   SDKSystemMessage,
@@ -68,6 +72,7 @@ export type {
 export type {
   CanUseTool,
   PermissionBehavior,
+  PermissionDecisionClassification,
   PermissionResult,
   PermissionRuleValue,
   PermissionUpdate,
@@ -82,10 +87,14 @@ export type {
   AsyncHookJSONOutput,
   BaseHookInput,
   ConfigChangeHookInput,
+  CwdChangedHookInput,
+  CwdChangedHookSpecificOutput,
   ElicitationHookInput,
   ElicitationHookSpecificOutput,
   ElicitationResultHookInput,
   ElicitationResultHookSpecificOutput,
+  FileChangedHookInput,
+  FileChangedHookSpecificOutput,
   HookCallback,
   HookCallbackMatcher,
   HookEvent,
@@ -109,16 +118,19 @@ export type {
   SessionStartHookSpecificOutput,
   SetupHookInput,
   SetupHookSpecificOutput,
+  StopFailureHookInput,
   StopHookInput,
   SubagentStartHookInput,
   SubagentStartHookSpecificOutput,
   SubagentStopHookInput,
   SyncHookJSONOutput,
   TaskCompletedHookInput,
+  TaskCreatedHookInput,
   TeammateIdleHookInput,
   UserPromptSubmitHookInput,
   UserPromptSubmitHookSpecificOutput,
   WorktreeCreateHookInput,
+  WorktreeCreateHookSpecificOutput,
   WorktreeRemoveHookInput,
 } from '@anthropic-ai/claude-agent-sdk';
 
@@ -216,6 +228,7 @@ export type {
 
 export type {
   ApiKeySource,
+  EffortLevel,
   ElicitationRequest,
   ElicitationResult,
   ExitReason,
@@ -225,6 +238,7 @@ export type {
   PromptRequestOption,
   PromptResponse,
   RewindFilesResult,
+  SDKControlReloadPluginsResponse,
   SDKPermissionDenial,
   SdkBeta,
   SlashCommand,
@@ -236,21 +250,6 @@ export type {
 } from '@anthropic-ai/claude-agent-sdk';
 
 export { EXIT_REASONS, HOOK_EVENTS } from '@anthropic-ai/claude-agent-sdk';
-
-/**
- * Control protocol initialization response
- * (Not exported from official SDK, so we define it here)
- * Uses inline import() types to reference already-exported types
- */
-export type SDKControlInitializeResponse = {
-  commands: import('@anthropic-ai/claude-agent-sdk').SlashCommand[];
-  agents: import('@anthropic-ai/claude-agent-sdk').AgentInfo[];
-  output_style: string;
-  available_output_styles: string[];
-  models: import('@anthropic-ai/claude-agent-sdk').ModelInfo[];
-  account: import('@anthropic-ai/claude-agent-sdk').AccountInfo;
-  fast_mode_state?: import('@anthropic-ai/claude-agent-sdk').FastModeState;
-};
 
 // ============================================================================
 // OPEN SDK EXTENSIONS (beyond official SDK)

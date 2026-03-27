@@ -38,6 +38,8 @@ export const RequestSubtype = {
   MCP_RECONNECT: 'mcp_reconnect',
   MCP_TOGGLE: 'mcp_toggle',
   APPLY_FLAG_SETTINGS: 'apply_flag_settings',
+  RELOAD_PLUGINS: 'reload_plugins',
+  SEED_READ_STATE: 'seed_read_state',
 } as const;
 
 /** Control response subtypes */
@@ -95,7 +97,9 @@ export type ControlRequestInner =
   | McpSetServersRequest
   | McpReconnectRequest
   | McpToggleRequest
-  | ApplyFlagSettingsRequest;
+  | ApplyFlagSettingsRequest
+  | ReloadPluginsRequest
+  | SeedReadStateRequest;
 
 export type CanUseToolRequest = {
   subtype: typeof RequestSubtype.CAN_USE_TOOL;
@@ -184,6 +188,16 @@ export type McpToggleRequest = {
 export type ApplyFlagSettingsRequest = {
   subtype: typeof RequestSubtype.APPLY_FLAG_SETTINGS;
   settings: Record<string, unknown>;
+};
+
+export type ReloadPluginsRequest = {
+  subtype: typeof RequestSubtype.RELOAD_PLUGINS;
+};
+
+export type SeedReadStateRequest = {
+  subtype: typeof RequestSubtype.SEED_READ_STATE;
+  path: string;
+  mtime: number;
 };
 
 /**

@@ -282,6 +282,19 @@ describe('buildCliArgs', () => {
     expect(parsed.sandbox).toEqual({ enabled: true });
   });
 
+  test('includes --task-budget when taskBudget specified', () => {
+    const args = buildCliArgs({ taskBudget: { total: 10000 } });
+
+    expect(args).toContain('--task-budget');
+    expect(args).toContain('10000');
+  });
+
+  test('does not include --task-budget when not specified', () => {
+    const args = buildCliArgs({});
+
+    expect(args).not.toContain('--task-budget');
+  });
+
   test('_testCliArgs only works in test environment', () => {
     const originalEnv = process.env.NODE_ENV;
 

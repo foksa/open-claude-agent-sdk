@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-03-27
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -41,6 +41,8 @@
 | `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs |
 | `supportedAgents()` | ✅ | Returns array of AgentInfo from init response |
 | `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
+| `reloadPlugins()` | 🔌 | Sends control request matching official SDK (v0.2.85) |
+| `seedReadState()` | 🔌 | Sends control request matching official SDK (v0.2.83) |
 | `applyFlagSettings()` | 🔌 | Sends control request matching official SDK; no behavioral test |
 | **Query Options** |
 | `prompt` | ✅ | String and AsyncIterable |
@@ -81,6 +83,7 @@
 | `extraArgs` | 🔌 | CLI flag passed |
 | `thinking` | ✅ | adaptive/enabled/disabled all E2E tested |
 | `effort` | ✅ | E2E tested with low effort level |
+| `taskBudget` | 🔌 | CLI flag `--task-budget` verified to match official SDK (v0.2.84) |
 | `promptSuggestions` | 🔌 | Init message verified to match official SDK |
 | `agentProgressSummaries` | 🔌 | Init message verified to match official SDK (v0.2.72) |
 | `debug` | 🔌 | CLI flag passed |
@@ -135,6 +138,10 @@
 | `SDKLocalCommandOutputMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
 | `SDKAPIRetryMessage` type | ⚠️ | Re-exported from official SDK (v0.2.77); part of SDKMessage union |
 | `ExitReason` includes `'resume'` | ⚠️ | Re-exported from official SDK (v0.2.79) |
+| `EffortLevel` type | ⚠️ | Re-exported from official SDK (v0.2.84) |
+| `SDKControlReloadPluginsResponse` type | ⚠️ | Re-exported from official SDK (v0.2.85) |
+| `SDKSessionStateChangedMessage` type | ⚠️ | Re-exported from official SDK (v0.2.83) |
+| `SDKControlInitializeResponse` type | ⚠️ | Now re-exported from official SDK (previously local) |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

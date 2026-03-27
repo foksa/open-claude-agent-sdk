@@ -21,8 +21,10 @@ import {
   type McpStatusRequest,
   type McpToggleRequest,
   MessageType,
+  type ReloadPluginsRequest,
   RequestSubtype,
   ResponseSubtype,
+  type SeedReadStateRequest,
   type SetMaxThinkingTokensRequest,
   type SetModelRequest,
   type SetPermissionModeRequest,
@@ -48,7 +50,9 @@ export type OutboundControlRequest =
   | McpToggleRequest
   | McpSetServersRequest
   | StopTaskRequest
-  | ApplyFlagSettingsRequest;
+  | ApplyFlagSettingsRequest
+  | ReloadPluginsRequest
+  | SeedReadStateRequest;
 
 /**
  * Type-safe control request builder functions
@@ -107,6 +111,16 @@ export const ControlRequests = {
   applyFlagSettings: (settings: Record<string, unknown>): ApplyFlagSettingsRequest => ({
     subtype: RequestSubtype.APPLY_FLAG_SETTINGS,
     settings,
+  }),
+
+  reloadPlugins: (): ReloadPluginsRequest => ({
+    subtype: RequestSubtype.RELOAD_PLUGINS,
+  }),
+
+  seedReadState: (path: string, mtime: number): SeedReadStateRequest => ({
+    subtype: RequestSubtype.SEED_READ_STATE,
+    path,
+    mtime,
   }),
 };
 
@@ -176,6 +190,8 @@ export class ControlProtocolHandler {
         case RequestSubtype.MCP_RECONNECT:
         case RequestSubtype.MCP_TOGGLE:
         case RequestSubtype.APPLY_FLAG_SETTINGS:
+        case RequestSubtype.RELOAD_PLUGINS:
+        case RequestSubtype.SEED_READ_STATE:
           // These are sent FROM SDK TO CLI, not the other way around
           // If we receive them, just acknowledge
           this.sendSuccess(req.request_id, {});

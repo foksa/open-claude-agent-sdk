@@ -463,6 +463,24 @@ describe('CLI arguments compatibility', () => {
   );
 
   test.concurrent(
+    'taskBudget option args match official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { taskBudget: { total: 10000 } }),
+        capture(officialQuery, 'test', { taskBudget: { total: 10000 } }),
+      ]);
+
+      expect(open.args).toContain('--task-budget');
+      expect(open.args).toContain('10000');
+      expect(official.args).toContain('--task-budget');
+      expect(official.args).toContain('10000');
+
+      console.log('   taskBudget args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'plugins --plugin-dir args match official SDK',
     async () => {
       const plugins = [
