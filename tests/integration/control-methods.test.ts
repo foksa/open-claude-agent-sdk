@@ -73,6 +73,31 @@ testWithBothSDKs(
 );
 
 testWithBothSDKs(
+  'getContextUsage() returns context usage breakdown',
+  async (sdk) => {
+    const usage = await queryWithControlMethod(sdk, (q) => q.getContextUsage());
+
+    expect(usage).toBeDefined();
+    expect(typeof usage).toBe('object');
+    expect(Array.isArray(usage.categories)).toBe(true);
+    expect(typeof usage.totalTokens).toBe('number');
+    expect(typeof usage.maxTokens).toBe('number');
+    expect(typeof usage.percentage).toBe('number');
+    expect(typeof usage.model).toBe('string');
+    expect(typeof usage.isAutoCompactEnabled).toBe('boolean');
+    expect(Array.isArray(usage.gridRows)).toBe(true);
+    expect(Array.isArray(usage.memoryFiles)).toBe(true);
+    expect(Array.isArray(usage.mcpTools)).toBe(true);
+    expect(Array.isArray(usage.agents)).toBe(true);
+
+    console.log(
+      `   [${sdk}] getContextUsage(): ${usage.totalTokens}/${usage.maxTokens} tokens (${usage.percentage.toFixed(1)}%), model=${usage.model}`
+    );
+  },
+  120000
+);
+
+testWithBothSDKs(
   'reloadPlugins() returns response with expected shape',
   async (sdk) => {
     const response = await queryWithControlMethod(sdk, (q) => q.reloadPlugins());

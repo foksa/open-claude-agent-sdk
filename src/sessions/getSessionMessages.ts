@@ -134,9 +134,11 @@ function buildConversationChain(entries: TranscriptEntry[]): TranscriptEntry[] {
 }
 
 /**
- * Filter to keep only user/assistant messages that aren't meta/sidechain/team.
+ * Filter to keep conversation messages that aren't meta/sidechain/team.
+ * When includeSystemMessages is true, also keeps system-type entries.
  */
-function isConversationMessage(entry: TranscriptEntry): boolean {
+function isConversationMessage(entry: TranscriptEntry, includeSystemMessages?: boolean): boolean {
+  if (entry.type === 'system') return !!includeSystemMessages;
   if (entry.type !== 'user' && entry.type !== 'assistant') return false;
   if (entry.isMeta) return false;
   if (entry.isSidechain) return false;
@@ -168,7 +170,9 @@ export async function getSessionMessages(
 
   const entries = parseTranscript(content);
   const chain = buildConversationChain(entries);
-  const messages = chain.filter(isConversationMessage).map(toSessionMessage);
+  const messages = chain
+    .filter((e) => isConversationMessage(e, options?.includeSystemMessages))
+    .map(toSessionMessage);
 
   const offset = options?.offset ?? 0;
   if (options?.limit !== undefined && options.limit > 0) {

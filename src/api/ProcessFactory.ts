@@ -106,19 +106,10 @@ export class DefaultProcessFactory implements ProcessFactory {
       });
     }
 
-    // JS file with executableArgs: need explicit runtime
-    if (executableArgs.length > 0) {
-      const executable = getDefaultExecutable();
-      const fullArgs = [...executableArgs, scriptPath, ...args];
-      return spawnClaude(executable, fullArgs, {
-        cwd: options.cwd,
-        env,
-        stderr: options.stderr,
-      });
-    }
-
-    // JS file without executableArgs: use script directly (shebang handles runtime)
-    return spawnClaude(scriptPath, args, {
+    // JS file: always use explicit runtime (cli.js may lack executable bit)
+    const executable = getDefaultExecutable();
+    const fullArgs = [...executableArgs, scriptPath, ...args];
+    return spawnClaude(executable, fullArgs, {
       cwd: options.cwd,
       env,
       stderr: options.stderr,

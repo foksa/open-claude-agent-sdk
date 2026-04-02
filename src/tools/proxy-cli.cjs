@@ -55,7 +55,7 @@ log(`Process args: ${process.argv.slice(2).join(' ')}`);
 log('');
 
 // Spawn real CLI with same args
-const realCli = spawn(REAL_CLI, process.argv.slice(2), {
+const realCli = spawn('node', [REAL_CLI, ...process.argv.slice(2)], {
   stdio: ['pipe', 'pipe', process.stderr], // stderr goes directly through
 });
 

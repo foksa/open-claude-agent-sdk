@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-03-31
+**Last Updated:** 2026-04-02
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -44,7 +44,7 @@
 | `reloadPlugins()` | 🔌 | Sends control request matching official SDK (v0.2.85) |
 | `seedReadState()` | 🔌 | Sends control request matching official SDK (v0.2.83) |
 | `applyFlagSettings()` | 🔌 | Sends control request matching official SDK; no behavioral test |
-| `getContextUsage()` | 🔌 | Sends control request matching official SDK (v0.2.86) |
+| `getContextUsage()` | ✅ | Returns context usage breakdown; E2E tested (v0.2.86) |
 | **Query Options** |
 | `prompt` | ✅ | String and AsyncIterable |
 | `permissionMode` | ✅ | Multiple modes tested behaviorally |
@@ -85,7 +85,7 @@
 | `thinking` | ✅ | adaptive/enabled/disabled all E2E tested |
 | `effort` | ✅ | E2E tested with low effort level |
 | `taskBudget` | 🔌 | CLI flag `--task-budget` verified to match official SDK (v0.2.84) |
-| `includeHookEvents` | 🔌 | CLI flag `--include-hook-events` verified to match official SDK (v0.2.88) |
+| `includeHookEvents` | 🔌 | CLI flag verified; lifecycle messages only for declarative hooks (v0.2.88) |
 | `promptSuggestions` | 🔌 | Init message verified to match official SDK |
 | `agentProgressSummaries` | 🔌 | Init message verified to match official SDK (v0.2.72) |
 | `debug` | 🔌 | CLI flag passed |
@@ -130,11 +130,13 @@
 | Session management | ✅ | Resume, fork, continue, sessionId all E2E tested |
 | Session storage API | ✅ | listSessions, getSessionMetadata, renameSession, deleteSession, getProjectStoragePath — via `./storage` subpath |
 | `listSessions()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
-| `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
+| `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; `includeSystemMessages` supported (v0.2.89); compared with official SDK |
 | `forkSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.76); E2E tested in session-utils.test.ts |
 | `renameSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.74); E2E tested in session-utils.test.ts |
 | `tagSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.76); E2E tested in session-utils.test.ts |
 | `getSessionInfo()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.74); E2E tested in session-utils.test.ts |
+| `listSubagents()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.89); E2E tested |
+| `getSubagentMessages()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.89); E2E tested |
 | `SDKTaskProgressMessage` type | ⚠️ | Re-exported from official SDK; includes `summary` field (v0.2.72) |
 | `SDKElicitationCompleteMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
 | `SDKLocalCommandOutputMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
@@ -147,6 +149,10 @@
 | `SDKControlGetContextUsageResponse` type | ⚠️ | Re-exported from official SDK (v0.2.86) |
 | `PermissionDeniedHookInput` type | ⚠️ | Re-exported from official SDK (v0.2.88) |
 | `PermissionDeniedHookSpecificOutput` type | ⚠️ | Re-exported from official SDK (v0.2.88) |
+| `HookPermissionDecision` type | ⚠️ | Re-exported from official SDK (v0.2.89) |
+| `SDKDeferredToolUse` type | ⚠️ | Re-exported from official SDK (v0.2.89) |
+| `GetSubagentMessagesOptions` type | ⚠️ | Re-exported from official SDK (v0.2.89) |
+| `ListSubagentsOptions` type | ⚠️ | Re-exported from official SDK (v0.2.89) |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

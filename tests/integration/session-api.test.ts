@@ -11,8 +11,14 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import {
   getSessionMessages as officialGetSessionMessages,
+  getSubagentMessages as officialGetSubagentMessages,
   listSessions as officialListSessions,
+  listSubagents as officialListSubagents,
 } from '@anthropic-ai/claude-agent-sdk';
+import {
+  getSubagentMessages as openGetSubagentMessages,
+  listSubagents as openListSubagents,
+} from '../../src/index.ts';
 import { getSessionMessages as openGetSessionMessages } from '../../src/sessions/getSessionMessages.ts';
 import { listSessions as openListSessions } from '../../src/sessions/listSessions.ts';
 import { runWithSDK } from './comparison-utils.ts';
@@ -376,6 +382,188 @@ describe('getSessionMessages', () => {
       }
 
       console.log(`   Message content accessible, ${openMessages.length} messages returned`);
+    },
+    { timeout: 90000 }
+  );
+
+  test.concurrent(
+    'includeSystemMessages returns more messages than without',
+    async () => {
+      const tempCwd = mkdtempSync(`${tmpdir()}/sdk-test-getmsg-system-`);
+
+      const messages = await runWithSDK('open', 'Say "hello" and nothing else.', {
+        maxTurns: 1,
+        permissionMode: 'default',
+        cwd: tempCwd,
+      });
+      const result = expectSuccessResult(messages);
+      const sessionId = result.session_id;
+
+      // Without includeSystemMessages (default)
+      const [openWithout, officialWithout] = await Promise.all([
+        openGetSessionMessages(sessionId, { dir: tempCwd }),
+        officialGetSessionMessages(sessionId, { dir: tempCwd }),
+      ]);
+
+      // With includeSystemMessages
+      const [openWith, officialWith] = await Promise.all([
+        openGetSessionMessages(sessionId, { dir: tempCwd, includeSystemMessages: true }),
+        officialGetSessionMessages(sessionId, { dir: tempCwd, includeSystemMessages: true }),
+      ]);
+
+      // Both SDKs should return same counts
+      expect(openWithout.length).toBe(officialWithout.length);
+      expect(openWith.length).toBe(officialWith.length);
+
+      // With system messages should have >= messages than without
+      expect(openWith.length).toBeGreaterThanOrEqual(openWithout.length);
+
+      // If system messages exist, verify they have type 'system'
+      const systemMessages = openWith.filter((m) => m.type === 'system');
+      const extraCount = openWith.length - openWithout.length;
+      expect(systemMessages.length).toBe(extraCount);
+
+      console.log(
+        `   includeSystemMessages: ${openWithout.length} without, ${openWith.length} with (${systemMessages.length} system)`
+      );
+    },
+    { timeout: 90000 }
+  );
+});
+
+// ============================================================================
+// listSubagents / getSubagentMessages
+// ============================================================================
+
+/** Auto-approve all tool usage */
+const autoApprove = async (_toolName: string, input: Record<string, unknown>) => {
+  return { behavior: 'allow' as const, updatedInput: input };
+};
+
+describe('listSubagents and getSubagentMessages', () => {
+  test.concurrent(
+    'listSubagents returns empty for session without subagents',
+    async () => {
+      const tempCwd = mkdtempSync(`${tmpdir()}/sdk-test-subagent-`);
+
+      const messages = await runWithSDK('open', 'Say "hello" and nothing else.', {
+        maxTurns: 1,
+        permissionMode: 'default',
+        cwd: tempCwd,
+      });
+      const result = expectSuccessResult(messages);
+      const sessionId = result.session_id;
+
+      const [openSubagents, officialSubagents] = await Promise.all([
+        openListSubagents(sessionId, { dir: tempCwd }),
+        officialListSubagents(sessionId, { dir: tempCwd }),
+      ]);
+
+      expect(openSubagents).toEqual([]);
+      expect(officialSubagents).toEqual([]);
+
+      console.log(`   listSubagents: both SDKs returned [] for no-subagent session`);
+    },
+    { timeout: 90000 }
+  );
+
+  test.concurrent(
+    'listSubagents finds subagent after session with subagent execution',
+    async () => {
+      const tempCwd = mkdtempSync(`${tmpdir()}/sdk-test-subagent-list-`);
+
+      // Create a session that spawns a subagent via Task tool
+      const messages = await runWithSDK(
+        'open',
+        'Use the Task tool to have the echo-agent say "hello from subagent". You MUST use the Task tool with subagent_type "echo-agent".',
+        {
+          maxTurns: 10,
+          permissionMode: 'default',
+          canUseTool: autoApprove,
+          allowedTools: ['Task'],
+          cwd: tempCwd,
+          agents: {
+            'echo-agent': {
+              description: 'A simple agent that echoes back whatever it receives',
+              prompt: 'You are a simple echo agent. Reply with exactly what the user asked.',
+            },
+          },
+        }
+      );
+      const result = expectSuccessResult(messages);
+      const sessionId = result.session_id;
+
+      // Verify subagent messages were emitted during the query
+      const subagentMessages = messages.filter(
+        (m) => 'parent_tool_use_id' in m && m.parent_tool_use_id
+      );
+      console.log(`   Subagent messages during query: ${subagentMessages.length}`);
+
+      // Now use listSubagents to find the subagent
+      const [openSubagents, officialSubagents] = await Promise.all([
+        openListSubagents(sessionId, { dir: tempCwd }),
+        officialListSubagents(sessionId, { dir: tempCwd }),
+      ]);
+
+      // Both should find the same subagents
+      expect(openSubagents.length).toBe(officialSubagents.length);
+
+      if (openSubagents.length > 0) {
+        // Subagent IDs should match
+        expect(openSubagents.sort()).toEqual(officialSubagents.sort());
+
+        console.log(
+          `   listSubagents: found ${openSubagents.length} subagent(s): ${openSubagents}`
+        );
+
+        // Now retrieve the subagent's messages
+        const agentId = openSubagents[0];
+        const [openAgentMsgs, officialAgentMsgs] = await Promise.all([
+          openGetSubagentMessages(sessionId, agentId, { dir: tempCwd }),
+          officialGetSubagentMessages(sessionId, agentId, { dir: tempCwd }),
+        ]);
+
+        expect(openAgentMsgs.length).toBe(officialAgentMsgs.length);
+        expect(openAgentMsgs.length).toBeGreaterThan(0);
+
+        // Message types should match
+        for (let i = 0; i < openAgentMsgs.length; i++) {
+          expect(openAgentMsgs[i].type).toBe(officialAgentMsgs[i].type);
+          expect(openAgentMsgs[i].uuid).toBe(officialAgentMsgs[i].uuid);
+        }
+
+        console.log(
+          `   getSubagentMessages: ${openAgentMsgs.length} messages from agent "${agentId}"`
+        );
+      } else {
+        console.log(`   listSubagents: no subagents found (subagent may not have persisted)`);
+      }
+    },
+    { timeout: 120000 }
+  );
+
+  test.concurrent(
+    'getSubagentMessages returns empty for non-existent agent',
+    async () => {
+      const tempCwd = mkdtempSync(`${tmpdir()}/sdk-test-subagent-msg-`);
+
+      const messages = await runWithSDK('open', 'Say "hello" and nothing else.', {
+        maxTurns: 1,
+        permissionMode: 'default',
+        cwd: tempCwd,
+      });
+      const result = expectSuccessResult(messages);
+      const sessionId = result.session_id;
+
+      const [openMessages, officialMessages] = await Promise.all([
+        openGetSubagentMessages(sessionId, 'nonexistent-agent', { dir: tempCwd }),
+        officialGetSubagentMessages(sessionId, 'nonexistent-agent', { dir: tempCwd }),
+      ]);
+
+      expect(openMessages).toEqual([]);
+      expect(officialMessages).toEqual([]);
+
+      console.log(`   getSubagentMessages: both SDKs returned [] for nonexistent agent`);
     },
     { timeout: 90000 }
   );

@@ -19,9 +19,6 @@ import type { Options } from '../types/index.ts';
 /** Official SDK passes --permission-mode default explicitly */
 const DEFAULT_PERMISSION_MODE = 'default';
 
-/** Empty = no filesystem settings loaded (faster startup) */
-const DEFAULT_SETTING_SOURCES: string[] = [];
-
 /** Required CLI flags for stream-json protocol */
 const REQUIRED_CLI_FLAGS = [
   '--output-format',
@@ -190,9 +187,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--json-schema', JSON.stringify(options.outputFormat.schema));
   }
 
-  // Setting sources — default [] = no settings loaded (must pass explicitly)
-  const settingSources = options.settingSources ?? DEFAULT_SETTING_SOURCES;
-  args.push('--setting-sources', settingSources.join(','));
+  // Setting sources — only pass when explicitly provided
+  // Use = syntax to prevent empty string consuming the next CLI flag
+  if (options.settingSources !== undefined) {
+    args.push(`--setting-sources=${options.settingSources.join(',')}`);
+  }
 
   // Debug — debugFile takes priority over debug flag
   if (!options.debugFile && options.debug) {

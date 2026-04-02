@@ -15,8 +15,12 @@ import type { Options } from '../types/index.ts';
 // CLI detection
 // ============================================================================
 
+/** JS file extensions — these are run via a runtime (node/bun), not directly */
+const JS_EXTENSIONS = ['.js', '.mjs', '.tsx', '.ts', '.jsx'];
+
 /**
- * Validate that a path points to an executable file
+ * Validate that a path points to an executable file.
+ * JS files skip the executable permission check since they're invoked via a runtime.
  * @throws {Error} If path is invalid, not a file, or not executable
  */
 function validateExecutablePath(path: string): void {
@@ -31,10 +35,14 @@ function validateExecutablePath(path: string): void {
     throw new Error(`Claude CLI path is not a file: ${path}`);
   }
 
-  try {
-    accessSync(resolvedPath, constants.X_OK);
-  } catch {
-    throw new Error(`Claude CLI path is not executable: ${path}`);
+  // JS files are run via node/bun — they don't need the executable bit
+  const isJsFile = JS_EXTENSIONS.some((ext) => resolvedPath.endsWith(ext));
+  if (!isJsFile) {
+    try {
+      accessSync(resolvedPath, constants.X_OK);
+    } catch {
+      throw new Error(`Claude CLI path is not executable: ${path}`);
+    }
   }
 }
 

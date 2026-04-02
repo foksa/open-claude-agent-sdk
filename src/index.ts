@@ -10,6 +10,8 @@ export const version = '0.19.0';
 export {
   forkSession,
   getSessionInfo,
+  getSubagentMessages,
+  listSubagents,
   renameSession,
   tagSession,
   unstable_v2_createSession,

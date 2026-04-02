@@ -18,7 +18,7 @@ if (!outputFile) {
 
 const capture = { stdin: [], stdout: [], startTime: Date.now() };
 
-const cli = spawn(REAL_CLI, process.argv.slice(2), {
+const cli = spawn('node', [REAL_CLI, ...process.argv.slice(2)], {
   stdio: ['pipe', 'pipe', process.stderr],
 });
 

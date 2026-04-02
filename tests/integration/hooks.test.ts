@@ -425,3 +425,47 @@ testWithBothSDKs(
   },
   120000
 );
+
+testWithBothSDKs(
+  'includeHookEvents accepted without error and query completes',
+  async (sdk) => {
+    const hooks: Record<string, HookCallbackMatcher[]> = {
+      PreToolUse: [
+        {
+          hooks: [
+            async () => {
+              return {};
+            },
+          ],
+        },
+      ],
+    };
+
+    const messages = await runWithSDK(sdk, 'Read the file package.json', {
+      maxTurns: 3,
+      permissionMode: 'default',
+      canUseTool: autoApprove,
+      includeHookEvents: true,
+      hooks,
+    });
+
+    // Query should complete successfully with the flag enabled
+    const result = messages.find((m) => m.type === 'result');
+    expect(result).toBeTruthy();
+
+    // Note: hook_started/hook_response lifecycle messages are only emitted for
+    // declarative (shell) hooks, not programmatic SDK callback hooks.
+    // The CLI flag is verified in compat tests; here we just confirm no errors.
+    const hookLifecycle = messages.filter(
+      (m) =>
+        m.type === 'system' &&
+        ['hook_started', 'hook_response', 'hook_progress'].includes(
+          (m as Record<string, unknown>).subtype as string
+        )
+    );
+    console.log(
+      `   [${sdk}] includeHookEvents: query completed, ${hookLifecycle.length} lifecycle messages`
+    );
+  },
+  120000
+);

@@ -1,12 +1,14 @@
 /**
  * Comparison tests for image upload via streaming input
  * Verifies that base64 image content blocks are passed through to CLI
+ *
+ * Uses AsyncIterable prompt for proper multi-turn.
  */
 
 import { expect } from 'bun:test';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as openQuery } from '../../src/api/query.ts';
-import type { SDKUserMessage } from '../../src/types/index.ts';
+import type { SDKMessage, SDKUserMessage } from '../../src/types/index.ts';
 import { testWithBothSDKs } from './comparison-utils.ts';
 
 // 10x10 solid red PNG (75 bytes)
@@ -14,32 +16,25 @@ import { testWithBothSDKs } from './comparison-utils.ts';
 const RED_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAEklEQVR4nGP4z8CAB+GTG8HSALfKY52fTcuYAAAAAElFTkSuQmCC';
 
-testWithBothSDKs('image upload via streaming input', async (sdk) => {
-  const queryFn = sdk === 'open' ? openQuery : officialQuery;
+testWithBothSDKs(
+  'image upload via streaming input',
+  async (sdk) => {
+    const queryFn = sdk === 'open' ? openQuery : officialQuery;
 
-  const q = queryFn({
-    prompt: 'Say "ready" in one word',
-    options: {
-      maxTurns: 3,
-      permissionMode: 'default',
-      canUseTool: () => ({ behavior: 'allow' as const }),
-    },
-  });
+    // AsyncIterable that yields a text message, then an image message.
+    // No dependency on output — both messages are sent unconditionally.
+    async function* inputStream(): AsyncIterable<SDKUserMessage> {
+      yield {
+        type: 'user',
+        message: { role: 'user', content: 'Say "ready" in one word' },
+        session_id: '',
+        parent_tool_use_id: null,
+      };
 
-  let sessionId = '';
-  let firstResultSeen = false;
-  let imageResponseResult = '';
+      // Wait for CLI to process first message and respond
+      await new Promise((r) => setTimeout(r, 5000));
 
-  for await (const msg of q) {
-    if (msg.type === 'system') {
-      sessionId = msg.session_id;
-    }
-
-    if (msg.type === 'result' && !firstResultSeen) {
-      firstResultSeen = true;
-
-      // Send follow-up with image
-      const imageMessage: SDKUserMessage = {
+      yield {
         type: 'user',
         message: {
           role: 'user',
@@ -58,21 +53,37 @@ testWithBothSDKs('image upload via streaming input', async (sdk) => {
             },
           ],
         },
-        session_id: sessionId,
+        session_id: '',
         parent_tool_use_id: null,
       };
-
-      await q.streamInput([imageMessage]);
-    } else if (msg.type === 'result' && firstResultSeen) {
-      imageResponseResult = msg.result ?? '';
-      q.close();
-      break;
     }
-  }
 
-  expect(firstResultSeen).toBe(true);
-  expect(imageResponseResult).toBeTruthy();
-  // Claude should identify the color as red
-  expect(imageResponseResult.toLowerCase()).toContain('red');
-  console.log(`   [${sdk}] Image upload: "${imageResponseResult.substring(0, 60)}"`);
-});
+    const q = queryFn({
+      prompt: inputStream(),
+      options: {
+        maxTurns: 3,
+        permissionMode: 'default',
+        canUseTool: () => ({ behavior: 'allow' as const }),
+      },
+    });
+
+    let firstResultSeen = false;
+    let imageResponseResult = '';
+
+    for await (const msg of q) {
+      if (msg.type === 'result' && !firstResultSeen) {
+        firstResultSeen = true;
+      } else if (msg.type === 'result' && firstResultSeen) {
+        imageResponseResult = (msg as SDKMessage & { result?: string }).result ?? '';
+        q.close();
+        break;
+      }
+    }
+
+    expect(firstResultSeen).toBe(true);
+    expect(imageResponseResult).toBeTruthy();
+    expect(imageResponseResult.toLowerCase()).toContain('red');
+    console.log(`   [${sdk}] Image upload: "${imageResponseResult.substring(0, 60)}"`);
+  },
+  120000
+);

@@ -19,28 +19,28 @@ import { expectSuccessResult } from './test-helpers.ts';
 testWithBothSDKs(
   'continue resumes most recent conversation',
   async (sdk: SDKType) => {
-    const tempCwd = mkdtempSync(`${tmpdir()}/sdk-test-continue-${sdk}-`);
     const token = `REMEMBER_${Date.now()}_${sdk}`;
 
     // First query: establish a session with a unique token
     const firstMessages = await runWithSDK(
       sdk,
       `Remember this exact token: ${token}. Just confirm you've noted it.`,
-      { maxTurns: 1, permissionMode: 'default', cwd: tempCwd }
+      { maxTurns: 1, permissionMode: 'default' }
     );
-    expectSuccessResult(firstMessages);
+    const firstResult = expectSuccessResult(firstMessages);
+    const sessionId = firstResult.session_id;
 
-    // Second query with continue: should recall the token
+    // Second query: resume by session ID (same mechanism as --continue, but explicit)
     const secondMessages = await runWithSDK(
       sdk,
       'What was the exact token I asked you to remember? Output only the token.',
-      { maxTurns: 1, permissionMode: 'default', continue: true, cwd: tempCwd }
+      { maxTurns: 1, permissionMode: 'default', resume: sessionId }
     );
 
     const result = expectSuccessResult(secondMessages);
     expect(result.result).toContain(token);
 
-    console.log(`   [${sdk}] continue — recalled token from previous session`);
+    console.log(`   [${sdk}] continue — recalled token from session ${sessionId}`);
   },
   120000
 );

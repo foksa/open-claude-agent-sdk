@@ -93,59 +93,48 @@ describe('buildCliArgs', () => {
     expect(args).toContain('Read,Write,Bash');
   });
 
-  test('includes --setting-sources with default empty', () => {
+  test('does not include --setting-sources when not specified', () => {
     const args = buildCliArgs({});
 
-    expect(args).toContain('--setting-sources');
-    // Default is empty string (no settings loaded)
-    const idx = args.indexOf('--setting-sources');
-    expect(args[idx + 1]).toBe('');
+    const hasSS = args.some((a) => a.startsWith('--setting-sources'));
+    expect(hasSS).toBe(false);
   });
 
-  test('includes --setting-sources with custom sources', () => {
+  test('includes --setting-sources= with custom sources', () => {
     const args = buildCliArgs({ settingSources: ['user', 'project'] });
 
-    expect(args).toContain('--setting-sources');
-    expect(args).toContain('user,project');
+    expect(args).toContain('--setting-sources=user,project');
   });
 
-  test('includes --setting-sources with project only', () => {
+  test('includes --setting-sources= with project only', () => {
     const args = buildCliArgs({ settingSources: ['project'] });
 
-    expect(args).toContain('--setting-sources');
-    const idx = args.indexOf('--setting-sources');
-    expect(args[idx + 1]).toBe('project');
+    expect(args).toContain('--setting-sources=project');
   });
 
-  test('includes --setting-sources with user only', () => {
+  test('includes --setting-sources= with user only', () => {
     const args = buildCliArgs({ settingSources: ['user'] });
 
-    expect(args).toContain('--setting-sources');
-    const idx = args.indexOf('--setting-sources');
-    expect(args[idx + 1]).toBe('user');
+    expect(args).toContain('--setting-sources=user');
   });
 
-  test('includes --setting-sources with explicit empty array', () => {
+  test('includes --setting-sources= with explicit empty array', () => {
     const args = buildCliArgs({ settingSources: [] });
 
-    expect(args).toContain('--setting-sources');
-    const idx = args.indexOf('--setting-sources');
-    expect(args[idx + 1]).toBe('');
+    // Uses = syntax to prevent empty string consuming next CLI flag
+    expect(args).toContain('--setting-sources=');
   });
 
-  test('includes --setting-sources with local source', () => {
+  test('includes --setting-sources= with local source', () => {
     const args = buildCliArgs({ settingSources: ['local'] });
 
-    expect(args).toContain('--setting-sources');
-    const idx = args.indexOf('--setting-sources');
-    expect(args[idx + 1]).toBe('local');
+    expect(args).toContain('--setting-sources=local');
   });
 
-  test('includes --setting-sources with all sources', () => {
+  test('includes --setting-sources= with all sources', () => {
     const args = buildCliArgs({ settingSources: ['user', 'project', 'local'] });
 
-    expect(args).toContain('--setting-sources');
-    expect(args).toContain('user,project,local');
+    expect(args).toContain('--setting-sources=user,project,local');
   });
 
   test('includes --debug-file when specified', () => {

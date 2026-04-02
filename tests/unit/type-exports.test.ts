@@ -817,3 +817,35 @@ describe('v0.2.88 type re-exports', () => {
     expect(output.retry).toBe(true);
   });
 });
+
+describe('v0.2.90 type re-exports', () => {
+  test('HookPermissionDecision is importable', () => {
+    const decision: import('../../src/types/index.ts').HookPermissionDecision = 'allow';
+    expect(decision).toBe('allow');
+  });
+
+  test('SDKDeferredToolUse is importable', () => {
+    const deferred: import('../../src/types/index.ts').SDKDeferredToolUse = {
+      id: 'tool-123',
+      name: 'Read',
+      input: { file_path: '/tmp/test.txt' },
+    };
+    expect(deferred.name).toBe('Read');
+  });
+
+  test('GetSubagentMessagesOptions is importable', () => {
+    const opts: import('../../src/types/index.ts').GetSubagentMessagesOptions = {
+      dir: '/tmp/project',
+      limit: 10,
+      offset: 0,
+    };
+    expect(opts.limit).toBe(10);
+  });
+
+  test('ListSubagentsOptions is importable', () => {
+    const opts: import('../../src/types/index.ts').ListSubagentsOptions = {
+      dir: '/tmp/project',
+    };
+    expect(opts.dir).toBe('/tmp/project');
+  });
+});

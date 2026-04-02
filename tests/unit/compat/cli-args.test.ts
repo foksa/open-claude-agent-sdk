@@ -123,16 +123,20 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { settingSources: ['project', 'user'] }),
       ]);
 
-      expect(open.args).toContain('--setting-sources');
-      expect(official.args).toContain('--setting-sources');
+      // Both use --setting-sources= format (single arg with = sign)
+      const openSettingSources = open.args.find((a) => a.startsWith('--setting-sources='));
+      const officialSettingSources = official.args.find((a) => a.startsWith('--setting-sources='));
 
-      // Find the setting-sources value
-      const openIdx = open.args.indexOf('--setting-sources');
-      const officialIdx = official.args.indexOf('--setting-sources');
+      expect(openSettingSources).toBeTruthy();
+      expect(officialSettingSources).toBeTruthy();
 
       // Values should match (order may differ)
-      const openValue = open.args[openIdx + 1].split(',').sort().join(',');
-      const officialValue = official.args[officialIdx + 1].split(',').sort().join(',');
+      const openValue = (openSettingSources ?? '').split('=')[1].split(',').sort().join(',');
+      const officialValue = (officialSettingSources ?? '')
+        .split('=')[1]
+        .split(',')
+        .sort()
+        .join(',');
 
       expect(openValue).toBe(officialValue);
 
