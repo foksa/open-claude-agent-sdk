@@ -726,7 +726,7 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
-    'SDK mcpServers --mcp-config includes stripped SDK server matching official SDK',
+    'SDK mcpServers excluded from --mcp-config matching official SDK',
     async () => {
       // Each SDK needs its own McpServer instance (McpServer only allows one connection)
       const makeServer = () =>
@@ -748,24 +748,11 @@ describe('stdin message compatibility', () => {
         }),
       ]);
 
-      // Both should have --mcp-config with the SDK server (stripped of instance)
-      expect(open.args).toContain('--mcp-config');
-      expect(official.args).toContain('--mcp-config');
+      // SDK-only servers should NOT produce --mcp-config (handled in-process via sdkMcpServers init)
+      expect(open.args).not.toContain('--mcp-config');
+      expect(official.args).not.toContain('--mcp-config');
 
-      const openIdx = open.args.indexOf('--mcp-config');
-      const officialIdx = official.args.indexOf('--mcp-config');
-
-      const openMcpConfig = JSON.parse(open.args[openIdx + 1]);
-      const officialMcpConfig = JSON.parse(official.args[officialIdx + 1]);
-
-      expect(openMcpConfig).toEqual(officialMcpConfig);
-
-      // Should have type: 'sdk' and name, but no instance
-      expect(openMcpConfig.mcpServers['test-tools'].type).toBe('sdk');
-      expect(openMcpConfig.mcpServers['test-tools'].name).toBe('test-tools');
-      expect(openMcpConfig.mcpServers['test-tools'].instance).toBeUndefined();
-
-      console.log('   SDK mcpServers --mcp-config args match');
+      console.log('   SDK mcpServers excluded from --mcp-config');
     },
     { timeout: 60000 }
   );
@@ -905,6 +892,35 @@ describe('stdin message compatibility', () => {
       }
 
       console.log('   stopTask stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'getContextUsage sends get_context_usage control request matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.getContextUsage();
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.getContextUsage();
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'get_context_usage');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'get_context_usage');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   getContextUsage stdin messages match');
     },
     { timeout: 60000 }
   );

@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-03-27
+**Last Updated:** 2026-03-31
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -44,6 +44,7 @@
 | `reloadPlugins()` | 🔌 | Sends control request matching official SDK (v0.2.85) |
 | `seedReadState()` | 🔌 | Sends control request matching official SDK (v0.2.83) |
 | `applyFlagSettings()` | 🔌 | Sends control request matching official SDK; no behavioral test |
+| `getContextUsage()` | 🔌 | Sends control request matching official SDK (v0.2.86) |
 | **Query Options** |
 | `prompt` | ✅ | String and AsyncIterable |
 | `permissionMode` | ✅ | Multiple modes tested behaviorally |
@@ -84,6 +85,7 @@
 | `thinking` | ✅ | adaptive/enabled/disabled all E2E tested |
 | `effort` | ✅ | E2E tested with low effort level |
 | `taskBudget` | 🔌 | CLI flag `--task-budget` verified to match official SDK (v0.2.84) |
+| `includeHookEvents` | 🔌 | CLI flag `--include-hook-events` verified to match official SDK (v0.2.88) |
 | `promptSuggestions` | 🔌 | Init message verified to match official SDK |
 | `agentProgressSummaries` | 🔌 | Init message verified to match official SDK (v0.2.72) |
 | `debug` | 🔌 | CLI flag passed |
@@ -142,6 +144,9 @@
 | `SDKControlReloadPluginsResponse` type | ⚠️ | Re-exported from official SDK (v0.2.85) |
 | `SDKSessionStateChangedMessage` type | ⚠️ | Re-exported from official SDK (v0.2.83) |
 | `SDKControlInitializeResponse` type | ⚠️ | Now re-exported from official SDK (previously local) |
+| `SDKControlGetContextUsageResponse` type | ⚠️ | Re-exported from official SDK (v0.2.86) |
+| `PermissionDeniedHookInput` type | ⚠️ | Re-exported from official SDK (v0.2.88) |
+| `PermissionDeniedHookSpecificOutput` type | ⚠️ | Re-exported from official SDK (v0.2.88) |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

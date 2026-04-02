@@ -772,3 +772,48 @@ describe('v0.2.45 type re-exports', () => {
     expect(output.hookEventName).toBe('SubagentStart');
   });
 });
+
+describe('v0.2.88 type re-exports', () => {
+  test('SDKControlGetContextUsageResponse is importable', () => {
+    const response: import('../../src/types/index.ts').SDKControlGetContextUsageResponse = {
+      categories: [{ name: 'messages', tokens: 1000, color: '#blue' }],
+      totalTokens: 1000,
+      maxTokens: 200000,
+      rawMaxTokens: 200000,
+      percentage: 0.5,
+      gridRows: [],
+      model: 'claude-sonnet-4-20250514',
+      memoryFiles: [],
+      mcpTools: [],
+      agents: [],
+      isAutoCompactEnabled: true,
+      apiUsage: null,
+    };
+    expect(response.totalTokens).toBe(1000);
+    expect(response.model).toBe('claude-sonnet-4-20250514');
+  });
+
+  test('PermissionDeniedHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').PermissionDeniedHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'PermissionDenied',
+      tool_name: 'Bash',
+      tool_input: { command: 'rm -rf /' },
+      tool_use_id: 'tool-123',
+      reason: 'User denied',
+    };
+    expect(input.hook_event_name).toBe('PermissionDenied');
+    expect(input.tool_name).toBe('Bash');
+  });
+
+  test('PermissionDeniedHookSpecificOutput is importable', () => {
+    const output: import('../../src/types/index.ts').PermissionDeniedHookSpecificOutput = {
+      hookEventName: 'PermissionDenied',
+      retry: true,
+    };
+    expect(output.hookEventName).toBe('PermissionDenied');
+    expect(output.retry).toBe(true);
+  });
+});

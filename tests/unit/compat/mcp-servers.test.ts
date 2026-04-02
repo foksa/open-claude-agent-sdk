@@ -98,14 +98,21 @@ describe('mcpServers init message compatibility', () => {
         }),
       ]);
 
-      // CLI args: --mcp-config should include both (SDK server stripped of instance)
+      // CLI args: --mcp-config should include only process-based servers (SDK servers excluded)
       const openIdx = open.args.indexOf('--mcp-config');
       const officialIdx = official.args.indexOf('--mcp-config');
+
+      expect(openIdx).toBeGreaterThanOrEqual(0);
+      expect(officialIdx).toBeGreaterThanOrEqual(0);
 
       const openMcpConfig = JSON.parse(open.args[openIdx + 1]);
       const officialMcpConfig = JSON.parse(official.args[officialIdx + 1]);
 
       expect(openMcpConfig).toEqual(officialMcpConfig);
+
+      // Only process-based server should be in --mcp-config
+      expect(openMcpConfig.mcpServers.playwright).toBeDefined();
+      expect(openMcpConfig.mcpServers['custom-tools']).toBeUndefined();
 
       // Init message: should have sdkMcpServers with only SDK server name
       const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');

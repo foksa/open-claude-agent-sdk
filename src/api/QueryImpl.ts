@@ -23,6 +23,7 @@ import type {
   PermissionMode,
   Query,
   RewindFilesResult,
+  SDKControlGetContextUsageResponse,
   SDKControlInitializeResponse,
   SDKControlReloadPluginsResponse,
   SDKMessage,
@@ -361,6 +362,12 @@ export class QueryImpl implements Query {
   async accountInfo(): Promise<AccountInfo> {
     const init = await this.controlManager.waitForInit();
     return init.account;
+  }
+
+  async getContextUsage(): Promise<SDKControlGetContextUsageResponse> {
+    return this.controlManager.sendControlRequestWithResponse<SDKControlGetContextUsageResponse>(
+      ControlRequests.getContextUsage()
+    );
   }
 
   async reloadPlugins(): Promise<SDKControlReloadPluginsResponse> {

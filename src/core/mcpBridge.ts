@@ -28,7 +28,9 @@ export function connectMcpBridges(
   const bridges = new Map<string, McpServerBridge>();
   for (const [name, config] of Object.entries(options.mcpServers)) {
     if ('instance' in config && config.instance) {
-      const bridge = new McpServerBridge(config.instance);
+      // Type assertion needed: official SDK may bundle its own @modelcontextprotocol/sdk
+      // copy, causing structurally identical but nominally different McpServer types
+      const bridge = new McpServerBridge(config.instance as unknown as McpServer);
       bridge.connect(); // async but we don't await — server connects in background
       bridges.set(name, bridge);
       sdkMcpServerNames.push(name);

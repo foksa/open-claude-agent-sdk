@@ -14,6 +14,7 @@ import {
   type ApplyFlagSettingsRequest,
   type ControlRequest,
   type ControlResponse,
+  type GetContextUsageRequest,
   type InternalHookCallback,
   type InterruptRequest,
   type McpReconnectRequest,
@@ -52,7 +53,8 @@ export type OutboundControlRequest =
   | StopTaskRequest
   | ApplyFlagSettingsRequest
   | ReloadPluginsRequest
-  | SeedReadStateRequest;
+  | SeedReadStateRequest
+  | GetContextUsageRequest;
 
 /**
  * Type-safe control request builder functions
@@ -121,6 +123,10 @@ export const ControlRequests = {
     subtype: RequestSubtype.SEED_READ_STATE,
     path,
     mtime,
+  }),
+
+  getContextUsage: (): GetContextUsageRequest => ({
+    subtype: RequestSubtype.GET_CONTEXT_USAGE,
   }),
 };
 
@@ -192,6 +198,7 @@ export class ControlProtocolHandler {
         case RequestSubtype.APPLY_FLAG_SETTINGS:
         case RequestSubtype.RELOAD_PLUGINS:
         case RequestSubtype.SEED_READ_STATE:
+        case RequestSubtype.GET_CONTEXT_USAGE:
           // These are sent FROM SDK TO CLI, not the other way around
           // If we receive them, just acknowledge
           this.sendSuccess(req.request_id, {});

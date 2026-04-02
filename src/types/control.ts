@@ -40,6 +40,7 @@ export const RequestSubtype = {
   APPLY_FLAG_SETTINGS: 'apply_flag_settings',
   RELOAD_PLUGINS: 'reload_plugins',
   SEED_READ_STATE: 'seed_read_state',
+  GET_CONTEXT_USAGE: 'get_context_usage',
 } as const;
 
 /** Control response subtypes */
@@ -99,7 +100,8 @@ export type ControlRequestInner =
   | McpToggleRequest
   | ApplyFlagSettingsRequest
   | ReloadPluginsRequest
-  | SeedReadStateRequest;
+  | SeedReadStateRequest
+  | GetContextUsageRequest;
 
 export type CanUseToolRequest = {
   subtype: typeof RequestSubtype.CAN_USE_TOOL;
@@ -109,7 +111,10 @@ export type CanUseToolRequest = {
   permission_suggestions?: PermissionUpdate[];
   blocked_path?: string;
   decision_reason?: string;
+  title?: string;
+  display_name?: string;
   agent_id?: string;
+  description?: string;
 };
 
 export type HookCallbackRequest = {
@@ -198,6 +203,10 @@ export type SeedReadStateRequest = {
   subtype: typeof RequestSubtype.SEED_READ_STATE;
   path: string;
   mtime: number;
+};
+
+export type GetContextUsageRequest = {
+  subtype: typeof RequestSubtype.GET_CONTEXT_USAGE;
 };
 
 /**

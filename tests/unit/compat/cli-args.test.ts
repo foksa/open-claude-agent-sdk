@@ -481,6 +481,22 @@ describe('CLI arguments compatibility', () => {
   );
 
   test.concurrent(
+    'includeHookEvents args match official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { includeHookEvents: true }),
+        capture(officialQuery, 'test', { includeHookEvents: true }),
+      ]);
+
+      expect(open.args).toContain('--include-hook-events');
+      expect(official.args).toContain('--include-hook-events');
+
+      console.log('   includeHookEvents args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'plugins --plugin-dir args match official SDK',
     async () => {
       const plugins = [

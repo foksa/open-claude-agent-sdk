@@ -66,6 +66,7 @@ const FLAG_MAP: FlagMapping[] = [
   { key: 'continue', flag: '--continue', type: 'boolean' },
   { key: 'forkSession', flag: '--fork-session', type: 'boolean' },
   { key: 'strictMcpConfig', flag: '--strict-mcp-config', type: 'boolean' },
+  { key: 'includeHookEvents', flag: '--include-hook-events', type: 'boolean' },
 
   // Boolean inverted (flag present when value is false)
   { key: 'persistSession', flag: '--no-session-persistence', type: 'boolean-inverted' },
@@ -239,16 +240,15 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
   }
 
-  // MCP servers → --mcp-config (strip non-serializable `instance` from SDK servers)
+  // MCP servers → --mcp-config (only process-based servers; SDK servers are handled in-process)
   if (options.mcpServers) {
     const serializedServers: Record<string, unknown> = {};
     for (const [name, config] of Object.entries(options.mcpServers)) {
       if ('instance' in config) {
-        const { instance: _, ...rest } = config;
-        serializedServers[name] = rest;
-      } else {
-        serializedServers[name] = config;
+        // SDK (in-process) servers — skip from --mcp-config, handled via sdkMcpServers in init
+        continue;
       }
+      serializedServers[name] = config;
     }
     if (Object.keys(serializedServers).length > 0) {
       args.push('--mcp-config', JSON.stringify({ mcpServers: serializedServers }));

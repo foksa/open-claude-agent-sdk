@@ -295,6 +295,18 @@ describe('buildCliArgs', () => {
     expect(args).not.toContain('--task-budget');
   });
 
+  test('includes --include-hook-events when set', () => {
+    const args = buildCliArgs({ includeHookEvents: true });
+
+    expect(args).toContain('--include-hook-events');
+  });
+
+  test('does not include --include-hook-events when not set', () => {
+    const args = buildCliArgs({});
+
+    expect(args).not.toContain('--include-hook-events');
+  });
+
   test('_testCliArgs only works in test environment', () => {
     const originalEnv = process.env.NODE_ENV;
 
