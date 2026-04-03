@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-04-02
+**Last Updated:** 2026-04-03
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -153,6 +153,9 @@
 | `SDKDeferredToolUse` type | ⚠️ | Re-exported from official SDK (v0.2.89) |
 | `GetSubagentMessagesOptions` type | ⚠️ | Re-exported from official SDK (v0.2.89) |
 | `ListSubagentsOptions` type | ⚠️ | Re-exported from official SDK (v0.2.89) |
+| `TerminalReason` type | ⚠️ | Re-exported from official SDK (v0.2.91); on result messages |
+| `PermissionMode` includes `'auto'` | 🔌 | Re-exported from official SDK (v0.2.91); CLI flag verified |
+| Sandbox `failIfUnavailable` default | 🔌 | Defaults to `true` when `enabled: true` (v0.2.91); CLI args verified |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

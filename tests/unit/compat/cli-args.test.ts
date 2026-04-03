@@ -459,7 +459,6 @@ describe('CLI arguments compatibility', () => {
       const officialSettings = JSON.parse(official.args[officialIdx + 1]);
 
       expect(openSettings).toEqual(officialSettings);
-      expect(openSettings.sandbox).toEqual(sandbox);
 
       console.log('   settings + sandbox merged args match');
     },
@@ -496,6 +495,71 @@ describe('CLI arguments compatibility', () => {
       expect(official.args).toContain('--include-hook-events');
 
       console.log('   includeHookEvents args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'permissionMode auto args match official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { permissionMode: 'auto' }),
+        capture(officialQuery, 'test', { permissionMode: 'auto' }),
+      ]);
+
+      expect(open.args).toContain('--permission-mode');
+      expect(open.args).toContain('auto');
+      expect(official.args).toContain('--permission-mode');
+      expect(official.args).toContain('auto');
+
+      console.log('   permissionMode auto args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'sandbox failIfUnavailable default matches official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { sandbox: { enabled: true } }),
+        capture(officialQuery, 'test', { sandbox: { enabled: true } }),
+      ]);
+
+      const openIdx = open.args.indexOf('--settings');
+      const officialIdx = official.args.indexOf('--settings');
+
+      const openSettings = JSON.parse(open.args[openIdx + 1]);
+      const officialSettings = JSON.parse(official.args[officialIdx + 1]);
+
+      // Both should default failIfUnavailable to true when enabled: true
+      expect(openSettings.sandbox.failIfUnavailable).toBe(true);
+      expect(officialSettings.sandbox.failIfUnavailable).toBe(true);
+      expect(openSettings.sandbox).toEqual(officialSettings.sandbox);
+
+      console.log('   sandbox failIfUnavailable default args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'sandbox explicit failIfUnavailable false matches official SDK',
+    async () => {
+      const sandbox = { enabled: true, failIfUnavailable: false };
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { sandbox }),
+        capture(officialQuery, 'test', { sandbox }),
+      ]);
+
+      const openIdx = open.args.indexOf('--settings');
+      const officialIdx = official.args.indexOf('--settings');
+
+      const openSettings = JSON.parse(open.args[openIdx + 1]);
+      const officialSettings = JSON.parse(official.args[officialIdx + 1]);
+
+      expect(openSettings.sandbox.failIfUnavailable).toBe(false);
+      expect(officialSettings.sandbox.failIfUnavailable).toBe(false);
+
+      console.log('   sandbox explicit failIfUnavailable false args match');
     },
     { timeout: 60000 }
   );

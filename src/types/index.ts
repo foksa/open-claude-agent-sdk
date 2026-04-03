@@ -249,6 +249,7 @@ export type {
   SDKPermissionDenial,
   SdkBeta,
   SlashCommand,
+  TerminalReason,
   ThinkingAdaptive,
   ThinkingConfig,
   ThinkingDisabled,

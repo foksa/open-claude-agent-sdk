@@ -223,7 +223,12 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
           ? { ...options.settings }
           : {};
       if (options.sandbox) {
-        settingsObj = { ...settingsObj, sandbox: options.sandbox };
+        // Official SDK defaults failIfUnavailable: true when enabled: true
+        const sandbox =
+          options.sandbox.enabled && options.sandbox.failIfUnavailable === undefined
+            ? { ...options.sandbox, failIfUnavailable: true }
+            : options.sandbox;
+        settingsObj = { ...settingsObj, sandbox };
       }
       args.push('--settings', JSON.stringify(settingsObj));
     }

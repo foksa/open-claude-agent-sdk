@@ -16,7 +16,8 @@ describe('sandbox CLI arguments', () => {
     expect(args).toContain('--settings');
     const settingsIndex = args.indexOf('--settings');
     const settingsValue = args[settingsIndex + 1];
-    expect(settingsValue).toBe('{"sandbox":{"enabled":true}}');
+    // failIfUnavailable defaults to true when enabled: true (v0.2.91+)
+    expect(settingsValue).toBe('{"sandbox":{"enabled":true,"failIfUnavailable":true}}');
   });
 
   test('sandbox with autoAllowBashIfSandboxed=false is included in JSON', () => {

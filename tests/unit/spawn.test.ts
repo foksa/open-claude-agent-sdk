@@ -259,7 +259,8 @@ describe('buildCliArgs', () => {
     const idx = args.indexOf('--settings');
     const parsed = JSON.parse(args[idx + 1]);
     expect(parsed.model).toBe('claude-sonnet-4-6');
-    expect(parsed.sandbox).toEqual({ enabled: true });
+    // failIfUnavailable defaults to true when enabled: true (v0.2.91+)
+    expect(parsed.sandbox).toEqual({ enabled: true, failIfUnavailable: true });
   });
 
   test('sandbox without settings produces --settings with sandbox only', () => {
@@ -268,7 +269,8 @@ describe('buildCliArgs', () => {
     expect(args).toContain('--settings');
     const idx = args.indexOf('--settings');
     const parsed = JSON.parse(args[idx + 1]);
-    expect(parsed.sandbox).toEqual({ enabled: true });
+    // failIfUnavailable defaults to true when enabled: true (v0.2.91+)
+    expect(parsed.sandbox).toEqual({ enabled: true, failIfUnavailable: true });
   });
 
   test('includes --task-budget when taskBudget specified', () => {
@@ -294,6 +296,39 @@ describe('buildCliArgs', () => {
     const args = buildCliArgs({});
 
     expect(args).not.toContain('--include-hook-events');
+  });
+
+  test('sandbox defaults failIfUnavailable to true when enabled', () => {
+    const args = buildCliArgs({ sandbox: { enabled: true } } as Options);
+
+    const idx = args.indexOf('--settings');
+    const parsed = JSON.parse(args[idx + 1]);
+    expect(parsed.sandbox.failIfUnavailable).toBe(true);
+  });
+
+  test('sandbox preserves explicit failIfUnavailable: false', () => {
+    const args = buildCliArgs({
+      sandbox: { enabled: true, failIfUnavailable: false },
+    } as Options);
+
+    const idx = args.indexOf('--settings');
+    const parsed = JSON.parse(args[idx + 1]);
+    expect(parsed.sandbox.failIfUnavailable).toBe(false);
+  });
+
+  test('sandbox does not add failIfUnavailable when not enabled', () => {
+    const args = buildCliArgs({ sandbox: { enabled: false } } as Options);
+
+    const idx = args.indexOf('--settings');
+    const parsed = JSON.parse(args[idx + 1]);
+    expect(parsed.sandbox.failIfUnavailable).toBeUndefined();
+  });
+
+  test('passes permissionMode auto', () => {
+    const args = buildCliArgs({ permissionMode: 'auto' });
+
+    expect(args).toContain('--permission-mode');
+    expect(args).toContain('auto');
   });
 
   test('_testCliArgs only works in test environment', () => {

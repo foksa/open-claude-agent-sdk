@@ -849,3 +849,33 @@ describe('v0.2.90 type re-exports', () => {
     expect(opts.dir).toBe('/tmp/project');
   });
 });
+
+describe('v0.2.91 type re-exports', () => {
+  test('TerminalReason is importable', () => {
+    const reason: import('../../src/types/index.ts').TerminalReason = 'completed';
+    expect(reason).toBe('completed');
+  });
+
+  test('TerminalReason includes all values', () => {
+    const reasons: import('../../src/types/index.ts').TerminalReason[] = [
+      'blocking_limit',
+      'rapid_refill_breaker',
+      'prompt_too_long',
+      'image_error',
+      'model_error',
+      'aborted_streaming',
+      'aborted_tools',
+      'stop_hook_prevented',
+      'hook_stopped',
+      'tool_deferred',
+      'max_turns',
+      'completed',
+    ];
+    expect(reasons).toHaveLength(12);
+  });
+
+  test('PermissionMode includes auto', () => {
+    const mode: import('../../src/types/index.ts').PermissionMode = 'auto';
+    expect(mode).toBe('auto');
+  });
+});
