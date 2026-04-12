@@ -60,6 +60,7 @@ export type {
   SDKTaskNotificationMessage,
   SDKTaskProgressMessage,
   SDKTaskStartedMessage,
+  SDKTaskUpdatedMessage,
   SDKToolProgressMessage,
   SDKToolUseSummaryMessage,
   SDKUserMessage,
@@ -247,6 +248,7 @@ export type {
   SDKControlGetContextUsageResponse,
   SDKControlReloadPluginsResponse,
   SDKPermissionDenial,
+  SDKSettingsParseError,
   SdkBeta,
   SlashCommand,
   TerminalReason,
@@ -303,6 +305,10 @@ export interface SessionMetadata extends SessionInfo {
 // ============================================================================
 
 export type {
+  ConnectRemoteControlError,
+  ConnectRemoteControlOptions,
+  ConnectRemoteControlResult,
+  InboundPrompt,
   SpawnedProcess,
   SpawnOptions,
   Transport,

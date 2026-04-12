@@ -924,4 +924,74 @@ describe('stdin message compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'excludeDynamicSections in init message matches official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', {
+          systemPrompt: { type: 'preset', preset: 'claude_code', excludeDynamicSections: true },
+        }),
+        capture(officialQuery, 'test', {
+          systemPrompt: { type: 'preset', preset: 'claude_code', excludeDynamicSections: true },
+        }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      if (openInit && officialInit) {
+        expect(openInit.request.excludeDynamicSections).toBe(true);
+        expect(officialInit.request.excludeDynamicSections).toBe(true);
+        // Should NOT have systemPrompt when using preset
+        expect('systemPrompt' in openInit.request).toBe('systemPrompt' in officialInit.request);
+      }
+
+      console.log('   excludeDynamicSections init messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'excludeDynamicSections with append in init message matches official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', {
+          systemPrompt: {
+            type: 'preset',
+            preset: 'claude_code',
+            append: 'Extra instructions',
+            excludeDynamicSections: true,
+          },
+        }),
+        capture(officialQuery, 'test', {
+          systemPrompt: {
+            type: 'preset',
+            preset: 'claude_code',
+            append: 'Extra instructions',
+            excludeDynamicSections: true,
+          },
+        }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      if (openInit && officialInit) {
+        expect(openInit.request.excludeDynamicSections).toBe(true);
+        expect(officialInit.request.excludeDynamicSections).toBe(true);
+        expect(openInit.request.appendSystemPrompt).toBe('Extra instructions');
+        expect(officialInit.request.appendSystemPrompt).toBe('Extra instructions');
+      }
+
+      console.log('   excludeDynamicSections with append init messages match');
+    },
+    { timeout: 60000 }
+  );
 });

@@ -31,7 +31,13 @@ import {
   type SetPermissionModeRequest,
   type StopTaskRequest,
 } from '../types/control.ts';
-import type { McpServerConfig, Options, PermissionMode, PermissionResult } from '../types/index.ts';
+import type {
+  ElicitationResult,
+  McpServerConfig,
+  Options,
+  PermissionMode,
+  PermissionResult,
+} from '../types/index.ts';
 import type { McpServerBridge } from './mcpBridge.ts';
 
 // ============================================================================
@@ -186,6 +192,9 @@ export class ControlProtocolHandler {
         case RequestSubtype.MCP_MESSAGE:
           await this.handleMcpMessage(req);
           break;
+        case RequestSubtype.ELICITATION:
+          await this.handleElicitation(req);
+          break;
         case RequestSubtype.SET_PERMISSION_MODE:
         case RequestSubtype.SET_MODEL:
         case RequestSubtype.SET_MAX_THINKING_TOKENS:
@@ -289,6 +298,35 @@ export class ControlProtocolHandler {
 
   private async handleInterrupt(req: ControlRequest) {
     this.sendSuccess(req.request_id, {});
+  }
+
+  private async handleElicitation(req: ControlRequest) {
+    if (req.request.subtype !== RequestSubtype.ELICITATION) return;
+
+    const r = req.request;
+
+    if (!this.options.onElicitation) {
+      // No callback — decline automatically (matches official SDK behavior)
+      this.sendSuccess(req.request_id, { action: 'decline' } as Record<string, unknown>);
+      return;
+    }
+
+    const result: ElicitationResult = await this.options.onElicitation(
+      {
+        serverName: r.mcp_server_name,
+        message: r.message,
+        mode: r.mode,
+        url: r.url,
+        elicitationId: r.elicitation_id,
+        requestedSchema: r.requested_schema,
+        title: r.title,
+        displayName: r.display_name,
+        description: r.description,
+      },
+      { signal: new AbortController().signal }
+    );
+
+    this.sendSuccess(req.request_id, result as unknown as Record<string, unknown>);
   }
 
   private async handleMcpMessage(req: ControlRequest) {

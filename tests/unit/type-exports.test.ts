@@ -879,3 +879,86 @@ describe('v0.2.91 type re-exports', () => {
     expect(mode).toBe('auto');
   });
 });
+
+describe('v0.2.104 type re-exports', () => {
+  test('SDKTaskUpdatedMessage is importable and part of SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKTaskUpdatedMessage = {
+      type: 'system',
+      subtype: 'task_updated',
+      task_id: 'task-123',
+      patch: {
+        status: 'completed',
+        description: 'Analysis done',
+      },
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKTaskUpdatedMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('task_updated');
+    expect(msg.patch.status).toBe('completed');
+
+    // Verify it's assignable to SDKMessage
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('SDKSettingsParseError is importable', () => {
+    const err: import('../../src/types/index.ts').SDKSettingsParseError = {
+      file: '/home/user/.claude/settings.json',
+      path: 'permissions.allow',
+      message: 'Invalid pattern',
+    };
+    expect(err.path).toBe('permissions.allow');
+    expect(err.message).toBe('Invalid pattern');
+  });
+
+  test('ConnectRemoteControlError is importable', () => {
+    const err: import('../../src/types/index.ts').ConnectRemoteControlError = {
+      kind: 'conflict',
+      detail: 'Another session is already connected',
+    };
+    expect(err.kind).toBe('conflict');
+  });
+
+  test('InboundPrompt is importable', () => {
+    const prompt: import('../../src/types/index.ts').InboundPrompt = {
+      content: 'Hello from the UI',
+      uuid: 'uuid-123',
+    };
+    expect(prompt.content).toBe('Hello from the UI');
+  });
+
+  test('AgentDefinition model is now string (not union)', () => {
+    const agent: import('../../src/types/index.ts').AgentDefinition = {
+      type: 'custom-agent',
+      model: 'claude-opus-4-6',
+    };
+    expect(agent.model).toBe('claude-opus-4-6');
+  });
+
+  test('AgentDefinition has new fields', () => {
+    const agent: import('../../src/types/index.ts').AgentDefinition = {
+      type: 'custom-agent',
+      initialPrompt: 'You are a code reviewer',
+      background: true,
+      memory: 'project',
+      effort: 'high',
+      permissionMode: 'default',
+    };
+    expect(agent.initialPrompt).toBe('You are a code reviewer');
+    expect(agent.background).toBe(true);
+    expect(agent.memory).toBe('project');
+    expect(agent.effort).toBe('high');
+    expect(agent.permissionMode).toBe('default');
+  });
+
+  test('SDKAssistantMessageError includes max_output_tokens', () => {
+    const err: import('../../src/types/index.ts').SDKAssistantMessageError = 'max_output_tokens';
+    expect(err).toBe('max_output_tokens');
+  });
+
+  test('ApiKeySource includes oauth', () => {
+    const source: import('../../src/types/index.ts').ApiKeySource = 'oauth';
+    expect(source).toBe('oauth');
+  });
+});

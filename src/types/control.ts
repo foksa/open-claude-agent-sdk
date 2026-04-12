@@ -41,6 +41,7 @@ export const RequestSubtype = {
   RELOAD_PLUGINS: 'reload_plugins',
   SEED_READ_STATE: 'seed_read_state',
   GET_CONTEXT_USAGE: 'get_context_usage',
+  ELICITATION: 'elicitation',
 } as const;
 
 /** Control response subtypes */
@@ -101,7 +102,8 @@ export type ControlRequestInner =
   | ApplyFlagSettingsRequest
   | ReloadPluginsRequest
   | SeedReadStateRequest
-  | GetContextUsageRequest;
+  | GetContextUsageRequest
+  | ElicitationControlRequest;
 
 export type CanUseToolRequest = {
   subtype: typeof RequestSubtype.CAN_USE_TOOL;
@@ -207,6 +209,19 @@ export type SeedReadStateRequest = {
 
 export type GetContextUsageRequest = {
   subtype: typeof RequestSubtype.GET_CONTEXT_USAGE;
+};
+
+export type ElicitationControlRequest = {
+  subtype: typeof RequestSubtype.ELICITATION;
+  mcp_server_name: string;
+  message: string;
+  mode?: 'form' | 'url';
+  url?: string;
+  elicitation_id?: string;
+  requested_schema?: Record<string, unknown>;
+  title?: string;
+  display_name?: string;
+  description?: string;
 };
 
 /**

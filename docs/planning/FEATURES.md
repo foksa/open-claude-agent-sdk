@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-04-03
+**Last Updated:** 2026-04-12
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -74,7 +74,7 @@
 | Image uploads (streaming input) | ✅ | Base64 image in content blocks, tested E2E |
 | `abortController` | ✅ | Signal cancellation tested |
 | `settings` | 🔌 | CLI flag passed (string path or JSON object), sandbox merges in |
-| `onElicitation` | ❌ | Callback for MCP elicitation requests (v0.2.63) |
+| `onElicitation` | ⚠️ | Callback for MCP elicitation requests; control protocol handler implemented (v0.2.104) |
 | `plugins` | 🔌 | CLI flag passed, plugin loading not behaviorally tested |
 | `additionalDirectories` | 🔌 | CLI flag passed |
 | `agent` | 🔌 | CLI flag passed |
@@ -156,6 +156,12 @@
 | `TerminalReason` type | ⚠️ | Re-exported from official SDK (v0.2.91); on result messages |
 | `PermissionMode` includes `'auto'` | 🔌 | Re-exported from official SDK (v0.2.91); CLI flag verified |
 | Sandbox `failIfUnavailable` default | 🔌 | Defaults to `true` when `enabled: true` (v0.2.91); CLI args verified |
+| `excludeDynamicSections` | 🔌 | Init message field verified to match official SDK (v0.2.104) |
+| `SDKTaskUpdatedMessage` type | ⚠️ | Re-exported from official SDK (v0.2.104); part of SDKMessage union |
+| `SDKSettingsParseError` type | ⚠️ | Re-exported from official SDK (v0.2.104) |
+| `ConnectRemoteControl*` types | ⚠️ | Re-exported from official SDK (v0.2.104); alpha API |
+| `InboundPrompt` type | ⚠️ | Re-exported from official SDK (v0.2.104); alpha API |
+| `AgentDefinition` new fields | ⚠️ | `initialPrompt`, `background`, `memory`, `effort`, `permissionMode` (v0.2.104) |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |
@@ -171,7 +177,6 @@
 | Feature | Priority | Notes |
 |---------|----------|-------|
 | `rewindFiles()` | LOW | Stub throws; CLI has no protocol for this |
-| `onElicitation` callback | MEDIUM | MCP elicitation requests (form fields, URL auth) |
 | V2 API (`unstable_v2_*`) | LOW | Experimental preview in official SDK |
 | Context compaction trigger | LOW | CLI compacts automatically |
 | Agent teams | LOW | Experimental (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) |

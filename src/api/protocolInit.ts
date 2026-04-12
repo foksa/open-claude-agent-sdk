@@ -36,12 +36,19 @@ export function sendProtocolInit(
   let systemPrompt: string | undefined;
   let appendSystemPrompt: string | undefined;
 
+  let excludeDynamicSections: boolean | undefined;
+
   if (options.systemPrompt === undefined) {
     systemPrompt = '';
   } else if (typeof options.systemPrompt === 'string') {
     systemPrompt = options.systemPrompt;
-  } else if (options.systemPrompt.type === 'preset' && options.systemPrompt.append) {
-    appendSystemPrompt = options.systemPrompt.append;
+  } else if (options.systemPrompt.type === 'preset') {
+    if (options.systemPrompt.append) {
+      appendSystemPrompt = options.systemPrompt.append;
+    }
+    if (options.systemPrompt.excludeDynamicSections) {
+      excludeDynamicSections = true;
+    }
   }
 
   const request: {
@@ -51,12 +58,14 @@ export function sendProtocolInit(
     sdkMcpServers?: string[];
     agents?: Record<string, unknown>;
     hooks?: ReturnType<typeof buildHookConfig>;
+    excludeDynamicSections?: boolean;
     promptSuggestions?: boolean;
     agentProgressSummaries?: boolean;
   } = {
     subtype: RequestSubtype.INITIALIZE,
     ...(systemPrompt !== undefined && { systemPrompt }),
     ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
+    ...(excludeDynamicSections !== undefined && { excludeDynamicSections }),
     ...(sdkMcpServerNames.length > 0 && { sdkMcpServers: sdkMcpServerNames }),
     ...(options.agents && { agents: options.agents }),
     ...(options.promptSuggestions !== undefined && {
