@@ -16,9 +16,10 @@ import type { ControlRequestManager } from './ControlRequestManager.ts';
 /**
  * Send the control protocol init message to CLI.
  *
- * Resolves systemPrompt according to official SDK behavior:
- * - undefined → systemPrompt: "" (minimal prompt, saves tokens)
- * - string → systemPrompt: "..." (custom full prompt)
+ * Resolves systemPrompt according to official SDK behavior (v0.2.110+):
+ * - undefined → systemPrompt: [""] (minimal prompt wrapped in array)
+ * - string → systemPrompt: ["..."] (custom prompt wrapped in array)
+ * - string[] → systemPrompt: [...] (array passed through)
  * - { type: 'preset', preset: 'claude_code' } → neither field (use preset)
  * - { type: 'preset', preset: 'claude_code', append: '...' } → appendSystemPrompt: "..."
  *
@@ -33,14 +34,19 @@ export function sendProtocolInit(
   const requestId = `init_${Date.now()}`;
   manager.initRequestId = requestId;
 
-  let systemPrompt: string | undefined;
+  let systemPrompt: string[] | undefined;
   let appendSystemPrompt: string | undefined;
 
   let excludeDynamicSections: boolean | undefined;
 
   if (options.systemPrompt === undefined) {
-    systemPrompt = '';
+    // v0.2.110: empty string wrapped in array
+    systemPrompt = [''];
   } else if (typeof options.systemPrompt === 'string') {
+    // v0.2.110: string wrapped in array
+    systemPrompt = [options.systemPrompt];
+  } else if (Array.isArray(options.systemPrompt)) {
+    // Array of strings for cache boundary support - pass through directly
     systemPrompt = options.systemPrompt;
   } else if (options.systemPrompt.type === 'preset') {
     if (options.systemPrompt.append) {
@@ -53,7 +59,7 @@ export function sendProtocolInit(
 
   const request: {
     subtype: typeof RequestSubtype.INITIALIZE;
-    systemPrompt?: string;
+    systemPrompt?: string[];
     appendSystemPrompt?: string;
     sdkMcpServers?: string[];
     agents?: Record<string, unknown>;

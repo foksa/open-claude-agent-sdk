@@ -962,3 +962,115 @@ describe('v0.2.104 type re-exports', () => {
     expect(source).toBe('oauth');
   });
 });
+
+describe('v0.2.110 type re-exports', () => {
+  test('SDKMemoryRecallMessage is importable and part of SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKMemoryRecallMessage = {
+      type: 'system',
+      subtype: 'memory_recall',
+      mode: 'select',
+      memories: [{ path: '/home/user/.claude/memory/user_prefs.md', scope: 'personal' }],
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKMemoryRecallMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('memory_recall');
+    expect(msg.mode).toBe('select');
+    expect(msg.memories).toHaveLength(1);
+
+    // Verify it's assignable to SDKMessage
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('SDKMemoryRecallMessage synthesize mode', () => {
+    const msg: import('../../src/types/index.ts').SDKMemoryRecallMessage = {
+      type: 'system',
+      subtype: 'memory_recall',
+      mode: 'synthesize',
+      memories: [
+        {
+          path: '<synthesis:/home/user/.claude/memory>',
+          scope: 'personal',
+          content: 'User prefers concise responses and uses TypeScript.',
+        },
+      ],
+      uuid: 'uuid-456' as import('../../src/types/index.ts').SDKMemoryRecallMessage['uuid'],
+      session_id: 'session-456',
+    };
+    expect(msg.mode).toBe('synthesize');
+    expect(msg.memories[0].content).toBeDefined();
+  });
+
+  test('SDKPluginInstallMessage is importable and part of SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKPluginInstallMessage = {
+      type: 'system',
+      subtype: 'plugin_install',
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKPluginInstallMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('plugin_install');
+
+    // Verify it's assignable to SDKMessage
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('SDKNotificationMessage is importable and part of SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKNotificationMessage = {
+      type: 'system',
+      subtype: 'notification',
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKNotificationMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('notification');
+
+    // Verify it's assignable to SDKMessage
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('SDKStatus includes requesting', () => {
+    const status: import('../../src/types/index.ts').SDKStatus = 'requesting';
+    expect(status).toBe('requesting');
+
+    const allStatuses: import('../../src/types/index.ts').SDKStatus[] = [
+      'compacting',
+      'requesting',
+      null,
+    ];
+    expect(allStatuses).toHaveLength(3);
+  });
+
+  test('SDKUserMessage has optional shouldQuery field', () => {
+    const msg: import('../../src/types/index.ts').SDKUserMessage = {
+      type: 'user',
+      message: { role: 'user', content: 'Hello' },
+      session_id: 'session-123',
+      parent_tool_use_id: null,
+      shouldQuery: false,
+    };
+    expect(msg.shouldQuery).toBe(false);
+
+    // Works without shouldQuery too
+    const msg2: import('../../src/types/index.ts').SDKUserMessage = {
+      type: 'user',
+      message: { role: 'user', content: 'Hello' },
+      session_id: 'session-123',
+      parent_tool_use_id: null,
+    };
+    expect(msg2.shouldQuery).toBeUndefined();
+  });
+
+  test('Options.systemPrompt accepts string array', () => {
+    const opts: import('../../src/types/index.ts').Options = {
+      systemPrompt: ['part1', 'part2'],
+    };
+    expect(Array.isArray(opts.systemPrompt)).toBe(true);
+    if (Array.isArray(opts.systemPrompt)) {
+      expect(opts.systemPrompt).toHaveLength(2);
+    }
+  });
+});

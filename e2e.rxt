@@ -1,0 +1,6 @@
+[0m[1mbun test [0m[2mv1.3.9 (cf6cdbbb)[0m
+   Nonexistent CLI binary correctly throws before iteration
+   CLI exit 1: yielded 1 messages before generator ended
+   Empty CLI output: generator completed without hanging
+   CLI crash: yielded 2 messages before generator ended
+   Invalid NDJSON: got 2 messages, no crash

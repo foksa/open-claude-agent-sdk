@@ -1,0 +1,1216 @@
+bun test v1.3.9 (cf6cdbbb)
+
+tests/unit/spawner-options.test.ts:
+(pass) spawner options > stderr callback wired up without breaking query [337.42ms]
+
+tests/unit/detection.test.ts:
+(pass) detectClaudeBinary > uses pathToClaudeCodeExecutable option when provided [1.57ms]
+(pass) detectClaudeBinary > throws error for non-existent pathToClaudeCodeExecutable [0.06ms]
+(pass) detectClaudeBinary > throws error for directory path [0.23ms]
+(pass) detectClaudeBinary > throws error for non-executable file [0.77ms]
+(pass) detectClaudeBinary > uses CLAUDE_BINARY env var when set [0.74ms]
+(pass) detectClaudeBinary > validates CLAUDE_BINARY env var path
+(pass) detectClaudeBinary > pathToClaudeCodeExecutable takes priority over CLAUDE_BINARY [1.79ms]
+(pass) detectClaudeBinary > falls back to PATH lookup when no option or env var [6.80ms]
+(pass) detectClaudeBinary > resolves relative paths to absolute [0.78ms]
+
+tests/unit/query-impl.test.ts:
+(pass) QueryImpl AsyncGenerator compliance > return() after completion returns done [334.99ms]
+(pass) QueryImpl AsyncGenerator compliance > throw() after completion rejects with error [334.36ms]
+(pass) QueryImpl AsyncGenerator compliance > return() is idempotent - can be called multiple times safely [350.67ms]
+(pass) QueryImpl AsyncGenerator compliance > Symbol.asyncDispose closes the query [341.43ms]
+
+tests/unit/sandbox.test.ts:
+(pass) sandbox CLI arguments > sandbox enabled adds --settings flag with JSON
+(pass) sandbox CLI arguments > sandbox with autoAllowBashIfSandboxed=false is included in JSON
+(pass) sandbox CLI arguments > sandbox with autoAllowBashIfSandboxed=true is included in JSON
+(pass) sandbox CLI arguments > no sandbox option does not add --settings flag
+(pass) sandbox CLI arguments > sandbox.enabled=false still passes sandbox config to CLI [0.37ms]
+
+tests/unit/index.test.ts:
+(pass) version consistency > package.json, src/index.ts, and src/query.ts all export the same version [0.97ms]
+
+tests/unit/message-router.test.ts:
+(pass) MessageRouter > routes regular messages to onMessage callback [1.38ms]
+(pass) MessageRouter > calls onDone when stream ends [0.13ms]
+(pass) MessageRouter > filters out control_response messages [0.10ms]
+(pass) MessageRouter > skips empty lines
+Failed to parse line: invalid json - JSON Parse error: Unexpected identifier "invalid"
+(pass) MessageRouter > handles parse errors gracefully [0.30ms]
+(pass) MessageRouter > close stops the readline interface [0.22ms]
+
+tests/unit/error-handling.test.ts:
+   Nonexistent CLI binary correctly throws before iteration
+(pass) error handling > nonexistent CLI binary throws before iteration
+   CLI exit 1: yielded 1 messages before generator ended
+(pass) error handling > CLI exits non-zero after partial output completes generator [229.62ms]
+   Empty CLI output: generator completed without hanging
+(pass) error handling > CLI that writes no output completes generator without hanging [131.00ms]
+   CLI crash: yielded 2 messages before generator ended
+(pass) error handling > CLI crashes mid-stream yields partial messages then completes [351.50ms]
+Failed to parse line: THIS IS NOT JSON - JSON Parse error: Unexpected identifier "THIS"
+   Invalid NDJSON: got 2 messages, no crash
+(pass) error handling > invalid NDJSON from CLI is handled gracefully [163.83ms]
+
+tests/unit/control.test.ts:
+(pass) ControlProtocolHandler > unknown request types > sends error for unknown request type [1.34ms]
+(pass) ControlProtocolHandler > canUseTool handling > allows tool use by default when no canUseTool callback [0.22ms]
+(pass) ControlProtocolHandler > canUseTool handling > calls canUseTool callback when provided
+(pass) ControlProtocolHandler > canUseTool handling > sends error when canUseTool callback throws
+(pass) ControlProtocolHandler > hook_callback handling > continues by default when hook callback not found
+(pass) ControlProtocolHandler > hook_callback handling > executes registered hook and returns result [1.22ms]
+(pass) ControlProtocolHandler > hook_callback handling > sends error when hook throws [0.10ms]
+(pass) ControlProtocolHandler > initialize handling > acknowledges initialize request
+(pass) ControlProtocolHandler > interrupt handling > acknowledges interrupt request [0.44ms]
+(pass) ControlProtocolHandler > SDK-to-CLI request types (passthrough) > acknowledges set_permission_mode request
+(pass) ControlProtocolHandler > SDK-to-CLI request types (passthrough) > acknowledges stop_task request [0.18ms]
+(pass) ControlProtocolHandler > SDK-to-CLI request types (passthrough) > acknowledges mcp_status request [0.03ms]
+(pass) ControlProtocolHandler > registerCallback > registers callback that can be invoked later
+(pass) ControlProtocolHandler > registerCallback > overwrites existing callback with same id
+(pass) ControlRequests builders > stopTask builds correct wire format
+(pass) ControlRequests builders > interrupt builds correct wire format
+(pass) ControlRequests builders > setPermissionMode builds correct wire format [0.48ms]
+
+tests/unit/message-queue.test.ts:
+(pass) MessageQueue > push and next returns items in order
+(pass) MessageQueue > next waits for push when queue is empty
+(pass) MessageQueue > complete marks queue as done
+(pass) MessageQueue > complete with error propagates to consumers
+(pass) MessageQueue > complete resolves waiting consumers [0.56ms]
+(pass) MessageQueue > complete with error rejects waiting consumers [0.05ms]
+(pass) MessageQueue > push after complete is ignored [0.02ms]
+(pass) MessageQueue > isDone returns correct state
+(pass) MessageQueue > getError returns error when set [0.09ms]
+(pass) MessageQueue > multiple waiting consumers are resolved in order [0.08ms]
+(pass) MessageQueue > works with complex types [0.09ms]
+
+tests/unit/type-exports.test.ts:
+(pass) v0.2.49 type re-exports > ConfigChangeHookInput is importable [0.09ms]
+(pass) v0.2.49 type re-exports > ThinkingConfig types are importable
+(pass) v0.2.49 type re-exports > SDKRateLimitEvent is importable
+(pass) v0.2.49 type re-exports > SDKPromptSuggestionMessage is importable
+(pass) v0.2.49 type re-exports > Hook specific output types are importable
+(pass) v0.2.49 type re-exports > McpClaudeAIProxyServerConfig is importable
+(pass) v0.2.49 type re-exports > HOOK_EVENTS const includes ConfigChange
+(pass) v0.2.49 type re-exports > EXIT_REASONS const is importable
+(pass) v0.2.50 type re-exports > WorktreeCreateHookInput is importable
+(pass) v0.2.50 type re-exports > WorktreeRemoveHookInput is importable [0.55ms]
+(pass) v0.2.50 type re-exports > HOOK_EVENTS const includes WorktreeCreate and WorktreeRemove
+(pass) v0.2.50 type re-exports > HookEvent union includes worktree events [0.04ms]
+(pass) v0.2.62 type re-exports > SDKTaskProgressMessage is importable and part of SDKMessage
+(pass) v0.2.62 type re-exports > SDKSessionInfo is importable
+(pass) v0.2.62 type re-exports > SessionMessage is importable [0.09ms]
+(pass) v0.2.62 type re-exports > GetSessionMessagesOptions is importable
+(pass) v0.2.62 type re-exports > ListSessionsOptions is importable
+(pass) v0.2.62 type re-exports > listSessions function is importable from main entry
+(pass) v0.2.62 type re-exports > getSessionMessages function is importable from main entry
+(pass) v0.2.63 type re-exports > AgentInfo is importable
+(pass) v0.2.63 type re-exports > AgentInfo with optional model field
+(pass) v0.2.63 type re-exports > SDKElicitationCompleteMessage is importable
+(pass) v0.2.63 type re-exports > SDKLocalCommandOutputMessage is importable
+(pass) v0.2.63 type re-exports > ElicitationHookInput is importable
+(pass) v0.2.63 type re-exports > FastModeState is importable
+(pass) v0.2.63 type re-exports > OnElicitation callback type is importable
+(pass) v0.2.63 type re-exports > SDKRateLimitEvent is now re-exported from official SDK
+(pass) v0.2.63 type re-exports > SDKPromptSuggestionMessage is now re-exported from official SDK
+(pass) v0.2.63 type re-exports > BaseOutputFormat is importable
+(pass) v0.2.63 type re-exports > SandboxFilesystemConfig is importable
+(pass) v0.2.63 type re-exports > SDKSessionOptions is importable
+(pass) v0.2.63 type re-exports > HOOK_EVENTS const includes Elicitation and ElicitationResult
+(pass) v0.2.63 type re-exports > SDKControlInitializeResponse includes agents and fast_mode_state fields [0.48ms]
+(pass) v0.2.70 type re-exports > ToolConfig is importable
+(pass) v0.2.70 type re-exports > ToolConfig previewFormat accepts markdown
+(pass) v0.2.70 type re-exports > InstructionsLoadedHookInput is importable
+(pass) v0.2.70 type re-exports > BaseHookInput includes agent_id and agent_type fields
+(pass) v0.2.70 type re-exports > ModelInfo includes supportsFastMode
+(pass) v0.2.76 type re-exports > PostCompactHookInput is importable
+(pass) v0.2.76 type re-exports > HOOK_EVENTS const includes PostCompact
+(pass) v0.2.76 type re-exports > ForkSessionOptions is importable
+(pass) v0.2.76 type re-exports > ForkSessionResult is importable
+(pass) v0.2.76 type re-exports > GetSessionInfoOptions is importable
+(pass) v0.2.76 type re-exports > SessionMutationOptions is importable
+(pass) v0.2.76 type re-exports > Settings is importable
+(pass) v0.2.76 type re-exports > SDKSession interface is importable
+(pass) v0.2.76 type re-exports > forkSession function is importable from main entry
+(pass) v0.2.76 type re-exports > renameSession function is importable from main entry
+(pass) v0.2.76 type re-exports > tagSession function is importable from main entry
+(pass) v0.2.76 type re-exports > getSessionInfo function is importable from main entry
+(pass) v0.2.72 type re-exports > SDKTaskProgressMessage has optional summary field
+(pass) v0.2.72 type re-exports > SDKTaskProgressMessage works without summary field
+(pass) v0.2.79 type re-exports > SDKAPIRetryMessage is importable and part of SDKMessage
+(pass) v0.2.79 type re-exports > SDKAPIRetryMessage error_status can be null
+(pass) v0.2.79 type re-exports > ExitReason includes resume
+(pass) v0.2.79 type re-exports > EXIT_REASONS const includes resume
+(pass) v0.2.85 type re-exports > EffortLevel is importable
+(pass) v0.2.85 type re-exports > SDKControlReloadPluginsResponse is importable
+(pass) v0.2.85 type re-exports > SDKSessionStateChangedMessage is importable
+(pass) v0.2.85 type re-exports > PermissionDecisionClassification is importable
+(pass) v0.2.85 type re-exports > SDKControlRequest is importable
+(pass) v0.2.85 type re-exports > SDKControlResponse is importable
+(pass) v0.2.85 type re-exports > CwdChangedHookInput is importable [0.71ms]
+(pass) v0.2.85 type re-exports > FileChangedHookInput is importable [0.02ms]
+(pass) v0.2.85 type re-exports > StopFailureHookInput is importable
+(pass) v0.2.85 type re-exports > TaskCreatedHookInput is importable
+(pass) v0.2.85 type re-exports > WorktreeCreateHookSpecificOutput is importable
+(pass) v0.2.85 type re-exports > SDKControlInitializeResponse is now re-exported from official SDK
+(pass) v0.2.45 type re-exports > SDKTaskStartedMessage is importable and part of SDKMessage
+(pass) v0.2.45 type re-exports > SDKPermissionDenial is importable
+(pass) v0.2.45 type re-exports > NonNullableUsage is importable
+(pass) v0.2.45 type re-exports > PermissionRuleValue is importable
+(pass) v0.2.45 type re-exports > AsyncHookJSONOutput and SyncHookJSONOutput are importable
+(pass) v0.2.45 type re-exports > BaseHookInput is importable [0.03ms]
+(pass) v0.2.45 type re-exports > SubagentStartHookSpecificOutput is importable
+(pass) v0.2.88 type re-exports > SDKControlGetContextUsageResponse is importable [0.03ms]
+(pass) v0.2.88 type re-exports > PermissionDeniedHookInput is importable [0.02ms]
+(pass) v0.2.88 type re-exports > PermissionDeniedHookSpecificOutput is importable
+(pass) v0.2.90 type re-exports > HookPermissionDecision is importable
+(pass) v0.2.90 type re-exports > SDKDeferredToolUse is importable
+(pass) v0.2.90 type re-exports > GetSubagentMessagesOptions is importable
+(pass) v0.2.90 type re-exports > ListSubagentsOptions is importable
+
+tests/unit/sessions.test.ts:
+(pass) getSessionMessages > returns empty for invalid session ID [0.15ms]
+(pass) getSessionMessages > returns empty for non-existent session [2.50ms]
+(pass) getSessionMessages > parses simple linear conversation [0.86ms]
+(pass) getSessionMessages > applies pagination with limit and offset [0.44ms]
+(pass) getSessionMessages > skips sidechain and meta messages [0.19ms]
+(pass) listSessions > lists sessions for a project directory [1.95ms]
+(pass) listSessions > returns empty for non-existent project [0.69ms]
+(pass) listSessions > respects limit option [0.77ms]
+
+tests/unit/process-factory.test.ts:
+(pass) ProcessFactory interface > can create mock implementation
+(pass) DefaultProcessFactory > throws when CLI not found
+(pass) DefaultProcessFactory > uses pathToClaudeCodeExecutable option [0.15ms]
+
+tests/unit/storage.test.ts:
+(pass) getProjectStoragePath / encodePath > encodes path by replacing non-alphanumeric with dashes
+(pass) getProjectStoragePath / encodePath > handles deep paths
+(pass) getProjectStoragePath / encodePath > getProjectStoragePath returns full path under ~/.claude/projects/ [0.05ms]
+(pass) storage API > listSessions > returns empty array for project with no sessions [0.53ms]
+(pass) storage API > listSessions > returns empty array for non-existent project [0.34ms]
+(pass) storage API > listSessions > lists sessions from JSONL files [1.37ms]
+(pass) storage API > listSessions > ignores non-UUID filenames [0.83ms]
+(pass) storage API > listSessions > uses customTitle for displayName when present [0.61ms]
+(pass) storage API > listSessions > uses slug for displayName when no customTitle or prompt [0.51ms]
+(pass) storage API > listSessions > falls back to session ID prefix [0.58ms]
+(pass) storage API > listSessions > sorts by lastModifiedAt descending [51.82ms]
+(pass) storage API > getSessionMetadata > extracts full metadata from session [1.56ms]
+(pass) storage API > getSessionMetadata > throws for invalid session ID [0.29ms]
+(pass) storage API > getSessionMetadata > throws for non-existent session [0.28ms]
+(pass) storage API > getSessionMetadata > handles agent sessions [0.87ms]
+(pass) storage API > getSessionMetadata > totalCost is undefined when no assistant messages [0.91ms]
+(pass) storage API > getSessionMetadata > deduplicates token usage by requestId [0.66ms]
+(pass) storage API > renameSession > appends custom-title entry to JSONL [0.80ms]
+(pass) storage API > renameSession > renamed session shows new name in listSessions [0.97ms]
+(pass) storage API > renameSession > throws for invalid session ID [0.41ms]
+(pass) storage API > renameSession > throws for non-existent session [0.33ms]
+(pass) storage API > deleteSession > removes JSONL file [0.49ms]
+(pass) storage API > deleteSession > removes companion directory [1.22ms]
+(pass) storage API > deleteSession > throws for invalid session ID [0.38ms]
+(pass) storage API > deleteSession > throws for non-existent session [0.38ms]
+(pass) real sessions (smoke test) > can list real sessions for this project [84.42ms]
+
+tests/unit/setting-sources.test.ts:
+(pass) settingSources CLI args > empty array passes no setting sources [362.67ms]
+(pass) settingSources CLI args > project source is passed to CLI [329.13ms]
+(pass) settingSources CLI args > user source is passed to CLI [330.27ms]
+(pass) settingSources CLI args > multiple sources are passed to CLI [346.75ms]
+
+tests/unit/spawn.test.ts:
+(pass) buildCliArgs > includes required CLI flags [0.27ms]
+(pass) buildCliArgs > includes default permission mode [0.08ms]
+(pass) buildCliArgs > passes custom permission mode [0.04ms]
+(pass) buildCliArgs > includes --allow-dangerously-skip-permissions when set [0.06ms]
+(pass) buildCliArgs > does not include --allow-dangerously-skip-permissions when not set
+(pass) buildCliArgs > includes model when specified [0.02ms]
+(pass) buildCliArgs > includes maxTurns when specified
+(pass) buildCliArgs > includes maxBudgetUsd when specified [0.12ms]
+(pass) buildCliArgs > includes --include-partial-messages when set
+(pass) buildCliArgs > includes --permission-prompt-tool stdio when canUseTool is set [0.09ms]
+(pass) buildCliArgs > includes --json-schema for json_schema output format [0.11ms]
+(pass) buildCliArgs > includes --allowedTools when specified [0.09ms]
+(pass) buildCliArgs > includes --setting-sources= with default empty
+(pass) buildCliArgs > includes --setting-sources= with custom sources
+(pass) buildCliArgs > includes --setting-sources= with project only
+(pass) buildCliArgs > includes --setting-sources= with user only
+(pass) buildCliArgs > includes --setting-sources= with explicit empty array
+(pass) buildCliArgs > includes --setting-sources= with local source
+(pass) buildCliArgs > includes --setting-sources= with all sources [0.05ms]
+(pass) buildCliArgs > includes --debug-file when specified [0.04ms]
+(pass) buildCliArgs > includes --debug when debug is true
+(pass) buildCliArgs > prefers --debug-file over --debug [0.08ms]
+(pass) buildCliArgs > does not include cwd as CLI argument [0.04ms]
+(pass) buildCliArgs > includes --effort when specified [0.02ms]
+(pass) buildCliArgs > includes --effort with all valid values [0.18ms]
+(pass) buildCliArgs > thinking adaptive produces --thinking adaptive [0.03ms]
+(pass) buildCliArgs > thinking disabled produces --thinking disabled
+(pass) buildCliArgs > thinking enabled produces --max-thinking-tokens [0.13ms]
+(pass) buildCliArgs > thinking enabled without budgetTokens falls back to --thinking adaptive [0.02ms]
+(pass) buildCliArgs > thinking option takes precedence over maxThinkingTokens [0.03ms]
+(pass) buildCliArgs > maxThinkingTokens works without thinking option [0.11ms]
+(pass) buildCliArgs > includes --settings with object when specified [0.02ms]
+(pass) buildCliArgs > includes --settings with string path when specified [0.02ms]
+(pass) buildCliArgs > merges sandbox into settings object [0.10ms]
+(pass) buildCliArgs > sandbox without settings produces --settings with sandbox only [0.12ms]
+(pass) buildCliArgs > includes --task-budget when taskBudget specified [0.16ms]
+(pass) buildCliArgs > does not include --task-budget when not specified [0.03ms]
+(pass) buildCliArgs > includes --include-hook-events when set [0.09ms]
+(pass) buildCliArgs > does not include --include-hook-events when not set [0.09ms]
+(pass) buildCliArgs > _testCliArgs only works in test environment [0.08ms]
+
+tests/integration/cost-tracking.test.ts:
+(pass) Cost tracking - Result message fields > usage has input_tokens and output_tokens > 0 > [official] usage has input_tokens and output_tokens > 0 [3101.70ms]
+(pass) Cost tracking - Result message fields > total_cost_usd is a number > 0 on result > [official] total_cost_usd is a number > 0 on result [3281.14ms]
+(pass) Cost tracking - Result message fields > modelUsage is a non-empty record with valid entries > [official] modelUsage is a non-empty record with valid entries [3346.83ms]
+(pass) Cost tracking - Assistant message usage > assistant messages have message.usage with token counts > [official] assistant messages have message.usage with token counts [3514.96ms]
+(pass) Cost tracking - Result message fields > modelUsage is a non-empty record with valid entries > [open] modelUsage is a non-empty record with valid entries [3751.12ms]
+(pass) Cost tracking - Result message fields > total_cost_usd is a number > 0 on result > [open] total_cost_usd is a number > 0 on result [3878.40ms]
+(pass) Cost tracking - Multi-step cumulative > result total_cost_usd accumulates across steps > [official] result total_cost_usd accumulates across steps [5178.53ms]
+(pass) Cost tracking - Result message fields > usage has input_tokens and output_tokens > 0 > [open] usage has input_tokens and output_tokens > 0 [5186.88ms]
+(pass) Cost tracking - Assistant message usage > assistant messages have message.usage with token counts > [open] assistant messages have message.usage with token counts [5305.58ms]
+(pass) Cost tracking - Message ID deduplication > duplicate message IDs have identical usage > [official] duplicate message IDs have identical usage [6242.97ms]
+(pass) Cost tracking - Multi-step cumulative > result total_cost_usd accumulates across steps > [open] result total_cost_usd accumulates across steps [6641.88ms]
+(pass) Cost tracking - Message ID deduplication > duplicate message IDs have identical usage > [open] duplicate message IDs have identical usage [6833.70ms]
+
+tests/integration/query.test.ts:
+(pass) basic hello world query > [official] basic hello world query [3771.53ms]
+(pass) custom model > [open] custom model [4467.61ms]
+(pass) custom model > [official] custom model [5005.30ms]
+   [open] Got 23 stream_event messages
+(pass) streaming with includePartialMessages > [open] streaming with includePartialMessages [5199.15ms]
+   [official] Got 27 stream_event messages
+(pass) streaming with includePartialMessages > [official] streaming with includePartialMessages [6132.73ms]
+(pass) basic hello world query > [open] basic hello world query [6457.17ms]
+(pass) plan mode > [official] plan mode [9973.41ms]
+(pass) plan mode > [open] plan mode [12277.25ms]
+   Structure comparison: {
+  open: "5 messages",
+  official: "5 messages",
+}
+(pass) structure comparison: both SDKs produce similar message flow [4814.20ms]
+
+tests/integration/image-upload.test.ts:
+69 |       break;
+70 |     }
+71 |   }
+72 | 
+73 |   expect(firstResultSeen).toBe(true);
+74 |   expect(imageResponseResult).toBeTruthy();
+                                   ^
+error: expect(received).toBeTruthy()
+
+Received: ""
+
+      at <anonymous> (/Users/djordjeradakovic/Work/open-claude-agent-sdk/tests/integration/image-upload.test.ts:74:31)
+(fail) image upload via streaming input > [official] image upload via streaming input [3272.69ms]
+   [open] Image upload: "Red"
+(pass) image upload via streaming input > [open] image upload via streaming input [7422.74ms]
+
+tests/integration/control-methods.test.ts:
+   [open] setMcpServers() returned: {"added":["new-server"],"removed":[],"errors":{"new-server":"MCP error -32000: Connection closed"}}
+   [open] reconnectMcpServer() succeeded
+   [official] toggleMcpServer(false) succeeded
+   [official] toggleMcpServer(true) succeeded
+   [open] toggleMcpServer(false) succeeded
+   [official] setMcpServers() returned: {"added":["new-server"],"removed":[],"errors":{"new-server":"MCP error -32000: Connection closed"}}
+   [official] reconnectMcpServer() succeeded
+   [open] toggleMcpServer(true) succeeded
+   [official] mcpServerStatus() with server: [{"name":"claude.ai Gmail","status":"needs-auth","config":{"type":"claudeai-proxy","url":"https://gmail.mcp.claude.com/mcp","id":"mcpsrv_016fk1whm2tRDnuYT7wywHSy"},"scope":"claudeai"},{"name":"claude.ai Google Calendar","status":"needs-auth","config":{"type":"claudeai-proxy","url":"https://gcal.mcp.
+(pass) mcpServerStatus() shows SDK MCP server status > [official] mcpServerStatus() shows SDK MCP server status [3998.49ms]
+   [official] mcpServerStatus() returned: [{"name":"claude.ai Gmail","status":"needs-auth","config":{"type":"claudeai-proxy","url":"https://gmail.mcp.claude.com/mcp","id":"mcpsrv_016fk1whm2tRDnuYT7wywHSy"},"scope":"claudeai"},{"name":"claude.
+(pass) mcpServerStatus() returns valid response > [official] mcpServerStatus() returns valid response [4431.91ms]
+(pass) setMcpServers() updates server configuration > [open] setMcpServers() updates server configuration [4733.32ms]
+   [official] reloadPlugins() returned: 75 commands, 4 agents, 0 plugins, 0 errors
+(pass) reloadPlugins() returns response with expected shape > [official] reloadPlugins() returns response with expected shape [4769.73ms]
+   [open] reloadPlugins() returned: 75 commands, 4 agents, 0 plugins, 0 errors
+(pass) reloadPlugins() returns response with expected shape > [open] reloadPlugins() returns response with expected shape [4962.62ms]
+(pass) setMcpServers() updates server configuration > [official] setMcpServers() updates server configuration [5005.62ms]
+(pass) reconnectMcpServer() reconnects a stdio MCP server > [open] reconnectMcpServer() reconnects a stdio MCP server [5024.18ms]
+   [open] mcpServerStatus() returned: [{"name":"claude.ai Gmail","status":"needs-auth","config":{"type":"claudeai-proxy","url":"https://gmail.mcp.claude.com/mcp","id":"mcpsrv_016fk1whm2tRDnuYT7wywHSy"},"scope":"claudeai"},{"name":"claude.
+(pass) mcpServerStatus() returns valid response > [open] mcpServerStatus() returns valid response [5114.93ms]
+(pass) toggleMcpServer() disables and re-enables a stdio MCP server > [open] toggleMcpServer() disables and re-enables a stdio MCP server [5211.62ms]
+   [official] accountInfo() returned: {"email":"djole.munze@gmail.com","subscriptionType":"Claude Max","apiProvider":"firstParty"}
+(pass) accountInfo() returns account data with expected shape > [official] accountInfo() returns account data with expected shape [5241.58ms]
+   [open] getContextUsage(): 19445/200000 tokens (10.0%), model=claude-haiku-4-5-20251001
+(pass) getContextUsage() returns context usage breakdown > [open] getContextUsage() returns context usage breakdown [5271.70ms]
+   [official] getContextUsage(): 26494/200000 tokens (13.0%), model=claude-haiku-4-5-20251001
+(pass) getContextUsage() returns context usage breakdown > [official] getContextUsage() returns context usage breakdown [5480.60ms]
+(pass) reconnectMcpServer() reconnects a stdio MCP server > [official] reconnectMcpServer() reconnects a stdio MCP server [5564.62ms]
+   [open] mcpServerStatus() with server: [{"name":"claude.ai Gmail","status":"needs-auth","config":{"type":"claudeai-proxy","url":"https://gmail.mcp.claude.com/mcp","id":"mcpsrv_016fk1whm2tRDnuYT7wywHSy"},"scope":"claudeai"},{"name":"claude.ai Google Calendar","status":"needs-auth","config":{"type":"claudeai-proxy","url":"https://gcal.mcp.
+(pass) mcpServerStatus() shows SDK MCP server status > [open] mcpServerStatus() shows SDK MCP server status [5870.55ms]
+   [open] accountInfo() returned: {"email":"djole.munze@gmail.com","subscriptionType":"Claude Max","apiProvider":"firstParty"}
+(pass) accountInfo() returns account data with expected shape > [open] accountInfo() returns account data with expected shape [5993.91ms]
+(pass) toggleMcpServer() disables and re-enables a stdio MCP server > [official] toggleMcpServer() disables and re-enables a stdio MCP server [6547.27ms]
+
+tests/integration/permission-modes.test.ts:
+   [official] Got permission_denials array
+(pass) result includes permission_denials array > [official] result includes permission_denials array [5142.71ms]
+   [open] canUseTool NOT triggered with bypassPermissions
+(pass) permissionMode bypassPermissions skips approval > [open] permissionMode bypassPermissions skips approval [6581.78ms]
+   [official] Write auto-approved: false
+(pass) permissionMode acceptEdits auto-approves file edits > [official] permissionMode acceptEdits auto-approves file edits [6786.15ms]
+   [official] canUseTool NOT triggered with bypassPermissions
+(pass) permissionMode bypassPermissions skips approval > [official] permissionMode bypassPermissions skips approval [7477.95ms]
+   [official] Permission calls before: 2, after: 0
+(pass) setPermissionMode() changes mode during streaming > [official] setPermissionMode() changes mode during streaming [7515.17ms]
+   [open] Permission calls before: 2, after: 0
+(pass) setPermissionMode() changes mode during streaming > [open] setPermissionMode() changes mode during streaming [7866.67ms]
+   [open] Write auto-approved: true
+(pass) permissionMode acceptEdits auto-approves file edits > [open] permissionMode acceptEdits auto-approves file edits [7995.77ms]
+   [open] canUseTool triggered in default mode: true
+(pass) permissionMode default requires tool approval > [open] permissionMode default requires tool approval [8315.67ms]
+   [open] Got permission_denials array
+(pass) result includes permission_denials array > [open] result includes permission_denials array [8816.43ms]
+   [official] canUseTool triggered in default mode: true
+(pass) permissionMode default requires tool approval > [official] permissionMode default requires tool approval [9210.51ms]
+   [official] Disallowed tools blocked Bash
+(pass) disallowedTools blocks specific tools > [official] disallowedTools blocks specific tools [11699.25ms]
+   [official] Plan mode prevented file creation: true
+(pass) permissionMode plan prevents tool execution > [official] permissionMode plan prevents tool execution [17060.14ms]
+   [open] Disallowed tools blocked Bash
+(pass) disallowedTools blocks specific tools > [open] disallowedTools blocks specific tools [18406.46ms]
+   [official] Allowed tools restricted agent
+(pass) allowedTools restricts available tools > [official] allowedTools restricts available tools [19180.69ms]
+   [open] Plan mode prevented file creation: true
+(pass) permissionMode plan prevents tool execution > [open] permissionMode plan prevents tool execution [21742.29ms]
+   [open] Allowed tools restricted agent
+(pass) allowedTools restricts available tools > [open] allowedTools restricts available tools [22451.47ms]
+
+tests/integration/mcp-servers.test.ts:
+   [official] Bad server status: failed
+(pass) Stdio MCP Servers > bad MCP server config shows failure in init message > [official] bad MCP server config shows failure in init message [3098.04ms]
+   [official] Init message has mcp_servers: [{"name":"test-server","status":"connected"},{"name":"claude.ai Gmail","status":"needs-auth"},{"name":"claude.ai Google Calendar","status":"needs-auth"}]
+(pass) Stdio MCP Servers > init message includes mcp_servers status for stdio server > [official] init message includes mcp_servers status for stdio server [3446.22ms]
+   [open] Bad server status: failed
+(pass) Stdio MCP Servers > bad MCP server config shows failure in init message > [open] bad MCP server config shows failure in init message [3728.02ms]
+   [open] Init message has mcp_servers: [{"name":"test-server","status":"connected"},{"name":"claude.ai Gmail","status":"needs-auth"},{"name":"claude.ai Google Calendar","status":"needs-auth"}]
+(pass) Stdio MCP Servers > init message includes mcp_servers status for stdio server > [open] init message includes mcp_servers status for stdio server [3821.35ms]
+   [official] Stdio MCP server ping tool called, got pong
+(pass) Stdio MCP Servers > stdio MCP server tool is discovered and called by Claude > [official] stdio MCP server tool is discovered and called by Claude [4205.34ms]
+   [official] App code received args from Claude, returned computed result
+(pass) SDK MCP Servers > SDK MCP server receives input args from Claude and returns computed result > [official] SDK MCP server receives input args from Claude and returns computed result [4223.87ms]
+   [open] SDK MCP server tool called and returned result
+(pass) SDK MCP Servers > createSdkMcpServer tool is discovered and called by Claude > [open] createSdkMcpServer tool is discovered and called by Claude [4347.45ms]
+   [open] App code received args from Claude, returned computed result
+(pass) SDK MCP Servers > SDK MCP server receives input args from Claude and returns computed result > [open] SDK MCP server receives input args from Claude and returns computed result [4618.09ms]
+   [official] Allowed tool called: true, blocked tool called: false
+(pass) allowedTools Wildcard Filtering > allowedTools wildcard allows one SDK MCP server and blocks another > [official] allowedTools wildcard allows one SDK MCP server and blocks another [4679.77ms]
+   [official] SDK MCP server tool called and returned result
+(pass) SDK MCP Servers > createSdkMcpServer tool is discovered and called by Claude > [official] createSdkMcpServer tool is discovered and called by Claude [5359.59ms]
+   [open] Stdio MCP server ping tool called, got pong
+(pass) Stdio MCP Servers > stdio MCP server tool is discovered and called by Claude > [open] stdio MCP server tool is discovered and called by Claude [5369.09ms]
+   [open] Allowed tool called: true, blocked tool called: false
+(pass) allowedTools Wildcard Filtering > allowedTools wildcard allows one SDK MCP server and blocks another > [open] allowedTools wildcard allows one SDK MCP server and blocks another [6001.60ms]
+
+tests/integration/streaming.test.ts:
+   [official] Accumulated text: "hello world..."
+(pass) text_delta events contain text chunks > [official] text_delta events contain text chunks [2226.95ms]
+   [official] Streaming input mode works with 5 messages
+(pass) AsyncIterable prompt enables streaming input mode > [official] AsyncIterable prompt enables streaming input mode [3184.06ms]
+   [open] Interrupted after 15 messages
+(pass) interrupt() cancels in-progress generation > [open] interrupt() cancels in-progress generation [3199.55ms]
+   [open] Accumulated text: "hello world..."
+(pass) text_delta events contain text chunks > [open] text_delta events contain text chunks [3294.29ms]
+   [official] Received 14 stream_event messages
+(pass) includePartialMessages enables streaming events > [official] includePartialMessages enables streaming events [3297.10ms]
+   [official] Event types received: message_start, content_block_start, content_block_delta, content_block_stop, message_delta, message_stop
+(pass) stream_event contains raw API event data > [official] stream_event contains raw API event data [3356.88ms]
+   [official] Interrupted after 13 messages
+(pass) interrupt() cancels in-progress generation > [official] interrupt() cancels in-progress generation [3723.46ms]
+   [open] Received 14 stream_event messages
+(pass) includePartialMessages enables streaming events > [open] includePartialMessages enables streaming events [3763.13ms]
+   [open] Event types received: message_start, content_block_start, content_block_delta, content_block_stop, message_delta, message_stop
+(pass) stream_event contains raw API event data > [open] stream_event contains raw API event data [4259.52ms]
+   [open] Streaming input mode works with 5 messages
+(pass) AsyncIterable prompt enables streaming input mode > [open] AsyncIterable prompt enables streaming input mode [4269.51ms]
+
+tests/integration/cli-options.test.ts:
+   [official] tools=[] — no tool_use in response
+(pass) tools empty array disables all built-in tools > [official] tools empty array disables all built-in tools [2040.65ms]
+   [official] fallbackModel — option accepted, query succeeded
+(pass) fallbackModel option is accepted and query succeeds > [official] fallbackModel option is accepted and query succeeds [2358.96ms]
+   [open] fallbackModel — option accepted, query succeeded
+(pass) fallbackModel option is accepted and query succeeds > [open] fallbackModel option is accepted and query succeeds [2655.65ms]
+   [open] tools=[] — no tool_use in response
+(pass) tools empty array disables all built-in tools > [open] tools empty array disables all built-in tools [2770.33ms]
+   [official] tools restriction works
+(pass) tools option restricts available tools > [official] tools option restricts available tools [2939.42ms]
+   [official] additionalDirectories — file read from extra dir
+(pass) additionalDirectories allows reading files from extra dirs > [official] additionalDirectories allows reading files from extra dirs [3609.97ms]
+   [open] tools restriction works
+(pass) tools option restricts available tools > [open] tools option restricts available tools [3630.86ms]
+   [open] additionalDirectories — file read from extra dir
+(pass) additionalDirectories allows reading files from extra dirs > [open] additionalDirectories allows reading files from extra dirs [4308.10ms]
+
+tests/integration/skills.test.ts:
+   [official] Skills discovery test passed
+(pass) skills are discoverable by Claude > [official] skills are discoverable by Claude [3100.76ms]
+   [open] Skills discovery test passed
+(pass) skills are discoverable by Claude > [open] skills are discoverable by Claude [3460.45ms]
+   [official] Skill invocation test passed
+(pass) skill is invoked when matching description > [official] skill is invoked when matching description [4572.00ms]
+   [official] No skills loaded without settingSources
+(pass) skills not available without settingSources > [official] skills not available without settingSources [4584.44ms]
+   [official] Skills not invoked without Skill in allowedTools
+(pass) skills require Skill in allowedTools > [official] skills require Skill in allowedTools [4954.75ms]
+   [open] No skills loaded without settingSources
+(pass) skills not available without settingSources > [open] skills not available without settingSources [5537.99ms]
+   [open] Skills not invoked without Skill in allowedTools
+(pass) skills require Skill in allowedTools > [open] skills require Skill in allowedTools [6443.67ms]
+   [open] Skill invocation test passed
+(pass) skill is invoked when matching description > [open] skill is invoked when matching description [6472.77ms]
+   [open] Skills loaded with settingSources: ['project']
+(pass) skills load when settingSources includes project > [open] skills load when settingSources includes project [7597.72ms]
+   [official] Skills loaded with settingSources: ['project']
+(pass) skills load when settingSources includes project > [official] skills load when settingSources includes project [7718.97ms]
+
+tests/integration/commands.test.ts:
+   [official] Unknown command handled
+(pass) unknown command is handled gracefully > [official] unknown command is handled gracefully [1829.48ms]
+   [open] Unknown command handled
+(pass) unknown command is handled gracefully > [open] unknown command is handled gracefully [2173.99ms]
+   [official] /hello command invoked, result: success
+(pass) custom command is invoked via slash syntax > [official] custom command is invoked via slash syntax [2854.39ms]
+   [official] slash_commands: [
+  "update-config", "debug", "simplify", "batch", "loop", "schedule", "claude-api", "greeting", "sdk-parity",
+  "hello", "greet", "compact", "context", "cost", "heapdump", "init", "pr-comments", "release-notes",
+  "review", "security-review", "extra-usage", "insights"
+]
+   [official] Custom commands found in slash_commands
+(pass) custom commands appear in init message slash_commands > [official] custom commands appear in init message slash_commands [3447.00ms]
+   [official] Available slash commands: [
+  "update-config", "debug", "simplify", "batch", "loop", "schedule", "claude-api", "greeting", "sdk-parity",
+  "hello", "greet", "compact", "context", "cost", "heapdump", "init", "pr-comments", "release-notes",
+  "review", "security-review", "extra-usage", "insights"
+]
+   [official] Custom commands /hello and /greet discovered
+(pass) slash_commands available in system init message > [official] slash_commands available in system init message [3583.73ms]
+   [open] /hello command invoked, result: success
+(pass) custom command is invoked via slash syntax > [open] custom command is invoked via slash syntax [3919.06ms]
+   [open] Custom commands not loaded without settingSources
+(pass) commands not loaded without settingSources > [open] commands not loaded without settingSources [3958.75ms]
+   [open] Available slash commands: [
+  "update-config", "debug", "simplify", "batch", "loop", "schedule", "claude-api", "greeting", "sdk-parity",
+  "hello", "greet", "compact", "context", "cost", "heapdump", "init", "pr-comments", "release-notes",
+  "review", "security-review", "extra-usage", "insights"
+]
+   [open] Custom commands /hello and /greet discovered
+(pass) slash_commands available in system init message > [open] slash_commands available in system init message [4722.78ms]
+   [official] Custom commands not loaded without settingSources
+(pass) commands not loaded without settingSources > [official] commands not loaded without settingSources [5094.51ms]
+   [official] /greet command with argument invoked, result: success
+(pass) command with arguments works > [official] command with arguments works [5329.53ms]
+   [open] /greet command with argument invoked, result: success
+(pass) command with arguments works > [open] command with arguments works [5576.69ms]
+   [open] slash_commands: [
+  "update-config", "debug", "simplify", "batch", "loop", "schedule", "claude-api", "greeting", "sdk-parity",
+  "hello", "greet", "compact", "context", "cost", "heapdump", "init", "pr-comments", "release-notes",
+  "review", "security-review", "extra-usage", "insights"
+]
+   [open] Custom commands found in slash_commands
+(pass) custom commands appear in init message slash_commands > [open] custom commands appear in init message slash_commands [9261.42ms]
+
+tests/integration/plugins.test.ts:
+   [open] Nonexistent plugin handled gracefully
+(pass) nonexistent plugin path is accepted without crashing > [open] nonexistent plugin path is accepted without crashing [3237.25ms]
+   [official] /external-plugin:echo invoked, result: success
+(pass) external plugin command is invokable > [official] external plugin command is invokable [3487.62ms]
+   [official] /internal-plugin:ping invoked, result: success
+(pass) internal plugin command is invokable > [official] internal plugin command is invokable [3530.12ms]
+   [open] /internal-plugin:ping invoked, result: success
+(pass) internal plugin command is invokable > [open] internal plugin command is invokable [3556.50ms]
+   [official] Nonexistent plugin handled gracefully
+(pass) nonexistent plugin path is accepted without crashing > [official] nonexistent plugin path is accepted without crashing [3604.72ms]
+   [official] slash_commands: [
+  "update-config", "debug", "simplify", "batch", "loop", "schedule", "claude-api", "internal-plugin:ping",
+  "compact", "context", "cost", "heapdump", "init", "pr-comments", "release-notes", "review", "security-review",
+  "extra-usage", "insights"
+]
+   [official] Internal plugin loaded
+(pass) internal plugin loads and appears in init message > [official] internal plugin loads and appears in init message [3811.34ms]
+   [open] /external-plugin:echo invoked, result: success
+(pass) external plugin command is invokable > [open] external plugin command is invokable [4003.41ms]
+   [official] Plugin loaded without settingSources
+(pass) plugins load even with empty settingSources > [official] plugins load even with empty settingSources [4135.00ms]
+   [official] slash_commands: [
+  "update-config", "debug", "simplify", "batch", "loop", "schedule", "claude-api", "external-plugin:echo",
+  "compact", "context", "cost", "heapdump", "init", "pr-comments", "release-notes", "review", "security-review",
+  "extra-usage", "insights"
+]
+   [official] External plugin loaded
+(pass) external plugin loads and appears in init message > [official] external plugin loads and appears in init message [4321.60ms]
+   [open] Plugin loaded without settingSources
+(pass) plugins load even with empty settingSources > [open] plugins load even with empty settingSources [4554.86ms]
+   [official] slash_commands: [
+  "update-config", "debug", "simplify", "batch", "loop", "schedule", "claude-api", "internal-plugin:ping",
+  "external-plugin:echo", "compact", "context", "cost", "heapdump", "init", "pr-comments", "release-notes",
+  "review", "security-review", "extra-usage", "insights"
+]
+   [official] Both plugins loaded
+(pass) multiple plugins load together and both commands appear > [official] multiple plugins load together and both commands appear [4589.78ms]
+   [open] slash_commands: [
+  "update-config", "debug", "simplify", "batch", "loop", "schedule", "claude-api", "external-plugin:echo",
+  "compact", "context", "cost", "heapdump", "init", "pr-comments", "release-notes", "review", "security-review",
+  "extra-usage", "insights"
+]
+   [open] External plugin loaded
+(pass) external plugin loads and appears in init message > [open] external plugin loads and appears in init message [4840.76ms]
+   [open] slash_commands: [
+  "update-config", "debug", "simplify", "batch", "loop", "schedule", "claude-api", "internal-plugin:ping",
+  "compact", "context", "cost", "heapdump", "init", "pr-comments", "release-notes", "review", "security-review",
+  "extra-usage", "insights"
+]
+   [open] Internal plugin loaded
+(pass) internal plugin loads and appears in init message > [open] internal plugin loads and appears in init message [4919.49ms]
+   [open] slash_commands: [
+  "update-config", "debug", "simplify", "batch", "loop", "schedule", "claude-api", "internal-plugin:ping",
+  "external-plugin:echo", "compact", "context", "cost", "heapdump", "init", "pr-comments", "release-notes",
+  "review", "security-review", "extra-usage", "insights"
+]
+   [open] Both plugins loaded
+(pass) multiple plugins load together and both commands appear > [open] multiple plugins load together and both commands appear [5418.48ms]
+
+tests/integration/query-methods.test.ts:
+   [open] setMaxThinkingTokens called successfully
+(pass) setMaxThinkingTokens() sends control request without error > [open] setMaxThinkingTokens() sends control request without error [3041.18ms]
+   [official] setMaxThinkingTokens called successfully
+(pass) setMaxThinkingTokens() sends control request without error > [official] setMaxThinkingTokens() sends control request without error [3243.71ms]
+   [official] initializationResult returned data
+(pass) initializationResult() returns initialization data > [official] initializationResult() returns initialization data [3629.52ms]
+   [official] toggleMcpServer correctly handled missing server
+(pass) toggleMcpServer() sends mcp_toggle control request > [official] toggleMcpServer() sends mcp_toggle control request [3675.18ms]
+   [official] Got 4 supported models
+(pass) supportedModels() returns available models > [official] supportedModels() returns available models [3702.47ms]
+   [open] reconnectMcpServer correctly handled missing server
+(pass) reconnectMcpServer() sends mcp_reconnect control request > [open] reconnectMcpServer() sends mcp_reconnect control request [4160.83ms]
+   [official] setMcpServers returned result with correct shape
+(pass) setMcpServers() sends mcp_set_servers control request > [official] setMcpServers() sends mcp_set_servers control request [4174.05ms]
+   [open] setMcpServers returned result with correct shape
+(pass) setMcpServers() sends mcp_set_servers control request > [open] setMcpServers() sends mcp_set_servers control request [4195.24ms]
+   [official] setModel called successfully
+(pass) setModel() changes model during streaming > [official] setModel() changes model during streaming [4271.98ms]
+   [official] Got 18 supported commands
+(pass) supportedCommands() returns available slash commands > [official] supportedCommands() returns available slash commands [4344.29ms]
+   [open] Got 4 supported models
+(pass) supportedModels() returns available models > [open] supportedModels() returns available models [4413.01ms]
+   [open] toggleMcpServer correctly handled missing server
+(pass) toggleMcpServer() sends mcp_toggle control request > [open] toggleMcpServer() sends mcp_toggle control request [4452.32ms]
+   [official] reconnectMcpServer correctly handled missing server
+(pass) reconnectMcpServer() sends mcp_reconnect control request > [official] reconnectMcpServer() sends mcp_reconnect control request [4683.87ms]
+   [open] initializationResult returned data
+(pass) initializationResult() returns initialization data > [open] initializationResult() returns initialization data [5064.28ms]
+   [open] setModel called successfully
+(pass) setModel() changes model during streaming > [open] setModel() changes model during streaming [5063.91ms]
+   [open] Got 18 supported commands
+(pass) supportedCommands() returns available slash commands > [open] supportedCommands() returns available slash commands [5988.33ms]
+
+tests/integration/thinking.test.ts:
+   [open] thinking: adaptive produces valid response
+(pass) thinking: adaptive produces valid response > [open] thinking: adaptive produces valid response [3008.60ms]
+   [official] thinking: disabled produces valid response without thinking blocks
+(pass) thinking: disabled produces valid response > [official] thinking: disabled produces valid response [3023.41ms]
+   [open] effort: low produces valid response
+(pass) effort option produces valid response > [open] effort option produces valid response [3108.82ms]
+   [official] effort: low produces valid response
+(pass) effort option produces valid response > [official] effort option produces valid response [3169.27ms]
+   [official] thinking: adaptive produces valid response
+(pass) thinking: adaptive produces valid response > [official] thinking: adaptive produces valid response [3465.15ms]
+   [official] Extended thinking query completed with thinking blocks
+(pass) maxThinkingTokens option works > [official] maxThinkingTokens option works [3734.72ms]
+   [open] Extended thinking query completed with thinking blocks
+(pass) maxThinkingTokens option works > [open] maxThinkingTokens option works [4342.59ms]
+   [open] thinking: disabled produces valid response without thinking blocks
+(pass) thinking: disabled produces valid response > [open] thinking: disabled produces valid response [4621.52ms]
+   [official] thinking: enabled with budgetTokens works
+(pass) thinking: enabled with budgetTokens works > [official] thinking: enabled with budgetTokens works [5191.75ms]
+   [open] thinking: enabled with budgetTokens works
+(pass) thinking: enabled with budgetTokens works > [open] thinking: enabled with budgetTokens works [5454.87ms]
+
+tests/integration/abort.test.ts:
+   [open] Messages with pre-aborted controller: 0
+(pass) abortController signal is respected immediately > [open] abortController signal is respected immediately [0.34ms]
+   [official] Messages with pre-aborted controller: 0
+(pass) abortController signal is respected immediately > [official] abortController signal is respected immediately [1.17ms]
+   [official] Messages received: 0, wasAborted: true
+   [official] Query was successfully aborted
+(pass) abortController can interrupt long-running query > [official] abortController can interrupt long-running query [900.59ms]
+   [open] Messages received: 3, wasAborted: true
+   [open] Query was successfully aborted
+(pass) abortController can interrupt long-running query > [open] abortController can interrupt long-running query [1326.70ms]
+
+tests/integration/structured-outputs.test.ts:
+   [open] No structured_output as expected
+(pass) without outputFormat returns no structured_output > [open] without outputFormat returns no structured_output [3175.45ms]
+   [official] No structured_output as expected
+(pass) without outputFormat returns no structured_output > [official] without outputFormat returns no structured_output [3632.81ms]
+   [official] Structured output: {
+  color: "Turquoise",
+  hex_code: "#40E0D0",
+}
+(pass) structured output with multiple fields > [official] structured output with multiple fields [5819.73ms]
+   [official] Structured output: {
+  greeting: "Hello! 👋 Great to meet you! I'm here and ready to help with whatever you need. Whether it's coding, debugging, planning, exploring your codebase, or just brainstorming ideas, I'm happy to assist. What can I help you with today?",
+}
+(pass) structured output with string field > [official] structured output with string field [5871.62ms]
+   [open] Structured output: {
+  answer: 4,
+}
+(pass) basic structured output with json_schema > [open] basic structured output with json_schema [6209.14ms]
+   [open] Structured output: {
+  color: "Periwinkle Blue",
+  hex_code: "#7B68EE",
+}
+(pass) structured output with multiple fields > [open] structured output with multiple fields [6503.26ms]
+   [official] Structured output: {
+  answer: 4,
+}
+(pass) basic structured output with json_schema > [official] basic structured output with json_schema [7206.99ms]
+   [open] Structured output: {
+  greeting: "Hey there! 👋 Welcome! I'm Claude, and I'm here to help you with whatever you need. Whether it's coding, debugging, planning, writing, or just bouncing ideas around, I'm ready to jump in. What can I help you with today?",
+}
+(pass) structured output with string field > [open] structured output with string field [8739.69ms]
+
+tests/integration/sessions.test.ts:
+   [official] All 5 messages have consistent session_id
+(pass) all messages include consistent session_id > [official] all messages include consistent session_id [2576.18ms]
+   [official] Session ID from init: 30b0ad04-e56f-4317-8ac4-93159eac3be1
+(pass) captures session ID from init message > [official] captures session ID from init message [2833.94ms]
+   [open] Session ID from init: 7367ba62-f363-4ec2-b211-1aca3ca542cb
+(pass) captures session ID from init message > [open] captures session ID from init message [3363.32ms]
+   [open] All 5 messages have consistent session_id
+(pass) all messages include consistent session_id > [open] all messages include consistent session_id [3448.56ms]
+   [official] forkSession — new session ID, retained context
+(pass) forkSession retains context but creates new session > [official] forkSession retains context but creates new session [4865.65ms]
+   [official] sessionId — custom UUID, resumed with context
+(pass) sessionId allows resuming with custom ID > [official] sessionId allows resuming with custom ID [5508.02ms]
+   [open] sessionId — custom UUID, resumed with context
+(pass) sessionId allows resuming with custom ID > [open] sessionId allows resuming with custom ID [5804.04ms]
+   [official] persistSession=false — session not saved
+(pass) persistSession false prevents session from being saved > [official] persistSession false prevents session from being saved [5887.11ms]
+   [open] persistSession=false — session not saved
+(pass) persistSession false prevents session from being saved > [open] persistSession false prevents session from being saved [6615.91ms]
+36 |       'What was the exact token I asked you to remember? Output only the token.',
+37 |       { maxTurns: 1, permissionMode: 'default', continue: true, cwd: tempCwd }
+38 |     );
+39 | 
+40 |     const result = expectSuccessResult(secondMessages);
+41 |     expect(result.result).toContain(token);
+                               ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "REMEMBER_1775124891520_open"
+Received: "I don't have any record of you asking me to remember a token in this conversation. This is the first message in our chat, so there's no previous context about a token.\n\nIf you'd like me to remember a token for future reference, please provide it now and let me know what you'd like me to do with it."
+
+      at <anonymous> (/Users/djordjeradakovic/Work/open-claude-agent-sdk/tests/integration/sessions.test.ts:41:27)
+(fail) continue resumes most recent conversation > [open] continue resumes most recent conversation [6953.46ms]
+   [open] forkSession — new session ID, retained context
+(pass) forkSession retains context but creates new session > [open] forkSession retains context but creates new session [6959.97ms]
+36 |       'What was the exact token I asked you to remember? Output only the token.',
+37 |       { maxTurns: 1, permissionMode: 'default', continue: true, cwd: tempCwd }
+38 |     );
+39 | 
+40 |     const result = expectSuccessResult(secondMessages);
+41 |     expect(result.result).toContain(token);
+                               ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "REMEMBER_1775124891521_official"
+Received: "I don't have any record of you asking me to remember a token in our conversation. This appears to be the first message, so there's no previous token that was shared. \n\nCould you please provide the token again, or clarify what you're referring to?"
+
+      at <anonymous> (/Users/djordjeradakovic/Work/open-claude-agent-sdk/tests/integration/sessions.test.ts:41:27)
+(fail) continue resumes most recent conversation > [official] continue resumes most recent conversation [9217.92ms]
+
+tests/integration/output-styles.test.ts:
+   [open] currentOutputStyle: "default", styles: [default, Explanatory, Learning, Concise]
+(pass) availableOutputStyles() returns custom styles (open extension) > [open] availableOutputStyles() returns custom styles (open extension) [3276.78ms]
+   [open] Without settingSources: [default, Explanatory, Learning]
+(pass) custom output style not loaded without settingSources > [open] custom output style not loaded without settingSources [3301.36ms]
+   [official] Without settingSources: [default, Explanatory, Learning]
+(pass) custom output style not loaded without settingSources > [official] custom output style not loaded without settingSources [3458.37ms]
+   [official] Verified via initializationResult()
+(pass) availableOutputStyles() returns custom styles (open extension) > [official] availableOutputStyles() returns custom styles (open extension) [3710.77ms]
+   [open] Output styles: [default, Explanatory, Learning, Concise]
+(pass) custom output style appears in initializationResult > [open] custom output style appears in initializationResult [4046.89ms]
+   [official] Output styles: [default, Explanatory, Learning, Concise]
+(pass) custom output style appears in initializationResult > [official] custom output style appears in initializationResult [7629.72ms]
+
+tests/integration/multi-turn.test.ts:
+56 |       break;
+57 |     }
+58 |   }
+59 | 
+60 |   expect(firstResultSeen).toBe(true);
+61 |   expect(secondResultSeen).toBe(true);
+                                ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/Users/djordjeradakovic/Work/open-claude-agent-sdk/tests/integration/multi-turn.test.ts:61:28)
+(fail) multi-turn conversation via streamInput > [official] multi-turn conversation via streamInput [4107.51ms]
+   [open] Multi-turn: 9 messages
+(pass) multi-turn conversation via streamInput > [open] multi-turn conversation via streamInput [7179.67ms]
+
+tests/integration/system-prompt.test.ts:
+   [official] Response: Marshall
+(pass) systemPrompt injects context that model can reference > [official] systemPrompt injects context that model can reference [2423.87ms]
+   [open] Response: Marshall
+(pass) systemPrompt injects context that model can reference > [open] systemPrompt injects context that model can reference [2629.24ms]
+   [official] Response: *sways slightly and gestures dramatically with hands*
+
+Ah, mate, I be Captain Jack Sparrow, savvy—the most notorious pirate to ever sail the seven sea
+(pass) systemPrompt can set assistant persona > [official] systemPrompt can set assistant persona [3155.93ms]
+   [open] Response: *sways slightly and gestures grandly with hands*
+
+Aye, I be Captain Jack Sparrow, the most notorious - and considerably attractive - pirate to ever sa
+(pass) systemPrompt can set assistant persona > [open] systemPrompt can set assistant persona [3231.78ms]
+
+tests/integration/hooks.test.ts:
+   [official] UserPromptSubmit calls: 1
+(pass) UserPromptSubmit hook is called > [official] UserPromptSubmit hook is called [4471.57ms]
+   [open] UserPromptSubmit calls: 1
+(pass) UserPromptSubmit hook is called > [open] UserPromptSubmit hook is called [5227.03ms]
+(pass) hook can cancel tool execution > [open] hook can cancel tool execution [6878.88ms]
+   [official] Stop called: true, input: Stop
+(pass) Stop hook fires on query completion > [official] Stop hook fires on query completion [2448.38ms]
+   [open] Stop called: true, input: Stop
+(pass) Stop hook fires on query completion > [open] Stop hook fires on query completion [3440.09ms]
+   [open] PostToolUse calls: 1
+(pass) PostToolUse hook is called after tool execution > [open] PostToolUse hook is called after tool execution [8468.40ms]
+(pass) no hooks configured allows normal execution > [official] no hooks configured allows normal execution [8700.39ms]
+   [official] Read hooks: 1
+(pass) hooks with tool name matcher filter correctly > [official] hooks with tool name matcher filter correctly [8998.07ms]
+   [open] Hook event: PreToolUse
+(pass) hooks receive correct input data > [open] hooks receive correct input data [9044.12ms]
+   [official] Multiple matchers - Read: 1, Glob: 0
+(pass) multiple matchers can coexist > [official] multiple matchers can coexist [9390.75ms]
+   [official] PostToolUse calls: 1
+(pass) PostToolUse hook is called after tool execution > [official] PostToolUse hook is called after tool execution [9471.14ms]
+   [official] Hook delay: 100 ms
+(pass) hook with async operations > [official] hook with async operations [9884.38ms]
+   [official] Hook event: PreToolUse
+(pass) hooks receive correct input data > [official] hooks receive correct input data [10022.42ms]
+(pass) hook can cancel tool execution > [official] hook can cancel tool execution [10075.79ms]
+   [open] PreToolUse calls: 1
+(pass) PreToolUse hook is called before tool execution > [open] PreToolUse hook is called before tool execution [10086.76ms]
+   [open] Multiple matchers - Read: 1, Glob: 0
+(pass) multiple matchers can coexist > [open] multiple matchers can coexist [10371.28ms]
+   [open] Read hooks: 1
+(pass) hooks with tool name matcher filter correctly > [open] hooks with tool name matcher filter correctly [10754.08ms]
+   [open] Read hooks: 1, Write hooks: 0
+(pass) matcher filters by tool name correctly > [open] matcher filters by tool name correctly [10899.90ms]
+   [official] Read hooks: 1, Write hooks: 0
+(pass) matcher filters by tool name correctly > [official] matcher filters by tool name correctly [11152.25ms]
+(pass) no hooks configured allows normal execution > [open] no hooks configured allows normal execution [11379.26ms]
+   [open] Hook delay: 101 ms
+(pass) hook with async operations > [open] hook with async operations [11662.35ms]
+   [official] PostToolUseFailure called: true, input: PostToolUseFailure
+(pass) PostToolUseFailure hook fires when MCP tool throws > [official] PostToolUseFailure hook fires when MCP tool throws [4164.39ms]
+   [official] PreToolUse calls: 1
+(pass) PreToolUse hook is called before tool execution > [official] PreToolUse hook is called before tool execution [12412.92ms]
+   [open] PostToolUseFailure called: true, input: PostToolUseFailure
+(pass) PostToolUseFailure hook fires when MCP tool throws > [open] PostToolUseFailure hook fires when MCP tool throws [5821.25ms]
+   [official] includeHookEvents: 0 hook_started, 0 hook_response
+465 |     const result = messages.find((m) => m.type === 'result');
+466 |     expect(result).toBeTruthy();
+467 | 
+468 |     // At least some hook lifecycle messages should appear
+469 |     // (SessionStart/Setup always fire, PreToolUse fires if a tool is used)
+470 |     expect(hookStarted.length + hookResponse.length).toBeGreaterThan(0);
+                                                           ^
+error: expect(received).toBeGreaterThan(expected)
+
+Expected: > 0
+Received: 0
+
+      at <anonymous> (/Users/djordjeradakovic/Work/open-claude-agent-sdk/tests/integration/hooks.test.ts:470:54)
+(fail) includeHookEvents emits hook lifecycle messages > [official] includeHookEvents emits hook lifecycle messages [6878.39ms]
+   [open] includeHookEvents: 0 hook_started, 0 hook_response
+465 |     const result = messages.find((m) => m.type === 'result');
+466 |     expect(result).toBeTruthy();
+467 | 
+468 |     // At least some hook lifecycle messages should appear
+469 |     // (SessionStart/Setup always fire, PreToolUse fires if a tool is used)
+470 |     expect(hookStarted.length + hookResponse.length).toBeGreaterThan(0);
+                                                           ^
+error: expect(received).toBeGreaterThan(expected)
+
+Expected: > 0
+Received: 0
+
+      at <anonymous> (/Users/djordjeradakovic/Work/open-claude-agent-sdk/tests/integration/hooks.test.ts:470:54)
+(fail) includeHookEvents emits hook lifecycle messages > [open] includeHookEvents emits hook lifecycle messages [8559.11ms]
+
+tests/integration/session-api.test.ts:
+(pass) getSessionMessages > returns empty for invalid session ID [0.05ms]
+(pass) getSessionMessages > returns empty for non-existent session [7.79ms]
+(pass) listSessions > returns empty for non-existent project [49.44ms]
+   Message content accessible, 3 messages returned
+(pass) getSessionMessages > message content is accessible [2571.04ms]
+   includeSystemMessages: 3 without, 3 with (0 system)
+(pass) getSessionMessages > includeSystemMessages returns more messages than without [2683.31ms]
+   getSubagentMessages: both SDKs returned [] for nonexistent agent
+(pass) listSubagents and getSubagentMessages > getSubagentMessages returns empty for non-existent agent [2693.70ms]
+   listSubagents: both SDKs returned [] for no-subagent session
+(pass) listSubagents and getSubagentMessages > listSubagents returns empty for session without subagents [2790.36ms]
+   Both SDKs match for session 20c09b2b-fdc4-4986-97aa-598785251df9
+(pass) listSessions > both SDKs return matching session data [2859.86ms]
+   listSessions found session 6ec0e41c-6d7d-4c0e-afc1-36a163dc2892 in both SDKs
+(pass) listSessions > finds session created by open SDK query [3071.82ms]
+   getSessionMessages returned 3 messages from both SDKs
+(pass) getSessionMessages > reads messages from a session created by query [3399.18ms]
+   Metadata match — open summary: "Say "META_1775124935277" and nothing else."
+   Metadata match — official summary: "Say "META_1775124935277" and nothing else."
+(pass) listSessions > session metadata fields match between SDKs [4092.80ms]
+   Pagination: 6 total, limit=2 → 2, offset=1 → 5
+(pass) getSessionMessages > pagination with limit and offset matches official SDK [4575.43ms]
+   listSessions limit works: 2 total, 1 with limit
+(pass) listSessions > respects limit option [5838.14ms]
+   Subagent messages during query: 1
+   listSubagents: found 1 subagent(s): a882ee8daadcfa595
+   getSubagentMessages: 2 messages from agent "a882ee8daadcfa595"
+(pass) listSubagents and getSubagentMessages > listSubagents finds subagent after session with subagent execution [6325.85ms]
+
+tests/integration/protocol-comparison.test.ts:
+141 |         captureProtocol(openQuery, 'test'),
+142 |         captureProtocol(officialQuery, 'test'),
+143 |       ]);
+144 |       const openInit = open.stdin.find((m) => m.message?.request?.subtype === 'initialize');
+145 |       const officialInit = official.stdin.find((m) => m.message?.request?.subtype === 'initialize');
+146 |       expect(openInit).toBeTruthy();
+                             ^
+error: expect(received).toBeTruthy()
+
+Received: undefined
+
+      at <anonymous> (/Users/djordjeradakovic/Work/open-claude-agent-sdk/tests/integration/protocol-comparison.test.ts:146:24)
+(fail) protocol comparison > init structure matches [1973.53ms]
+   Stdin: []
+(pass) protocol comparison > stdin sequence matches [2220.02ms]
+164 |         captureProtocol(openQuery, 'Protocol test'),
+165 |         captureProtocol(officialQuery, 'Protocol test'),
+166 |       ]);
+167 |       const openUser = open.stdin.find((m) => m.message?.type === 'user');
+168 |       const officialUser = official.stdin.find((m) => m.message?.type === 'user');
+169 |       expect(openUser).toBeTruthy();
+                             ^
+error: expect(received).toBeTruthy()
+
+Received: undefined
+
+      at <anonymous> (/Users/djordjeradakovic/Work/open-claude-agent-sdk/tests/integration/protocol-comparison.test.ts:169:24)
+(fail) protocol comparison > user message matches [2722.92ms]
+   Hooks registration matches
+(pass) protocol comparison > hooks registration matches [3244.03ms]
+   Stdout open: []
+   Stdout official: []
+(pass) protocol comparison > stdout has expected messages [3740.61ms]
+
+tests/integration/permissions.test.ts:
+   [open] Denied tools: [ "Write" ]
+(pass) canUseTool callback denies tool execution > [open] canUseTool callback denies tool execution [5678.14ms]
+   [official] Denied tools: [ "Write" ]
+(pass) canUseTool callback denies tool execution > [official] canUseTool callback denies tool execution [6166.35ms]
+   [official] Captured tool: Read input: {
+  file_path: "/tmp/permission-params-test.txt",
+}
+(pass) canUseTool callback receives correct parameters > [official] canUseTool callback receives correct parameters [6526.61ms]
+   [open] Captured tool: Read input: {
+  file_path: "/tmp/permission-params-test.txt",
+}
+(pass) canUseTool callback receives correct parameters > [open] canUseTool callback receives correct parameters [8522.47ms]
+   [official] Allowed tools: [ "Bash", "Read" ]
+(pass) canUseTool callback allows tool execution > [official] canUseTool callback allows tool execution [8734.93ms]
+   [open] Allowed tools: [ "Read" ]
+(pass) canUseTool callback allows tool execution > [open] canUseTool callback allows tool execution [9241.21ms]
+   [official] Tools requested: [ "Read", "Bash", "Bash" ]
+(pass) canUseTool callback with selective filtering > [official] canUseTool callback with selective filtering [12898.07ms]
+   [open] Tools requested: [ "Bash", "Read" ]
+(pass) canUseTool callback with selective filtering > [open] canUseTool callback with selective filtering [19352.23ms]
+
+tests/integration/subagents.test.ts:
+(pass) parent_tool_use_id > messages from main context do not have parent_tool_use_id set > [official] messages from main context do not have parent_tool_use_id set [3632.42ms]
+(pass) Programmatic Agent Definition > agents with tools and model accepted > [official] agents with tools and model accepted [3875.93ms]
+(pass) Programmatic Agent Definition > agents with tools and model accepted > [open] agents with tools and model accepted [4124.13ms]
+(pass) Programmatic Agent Definition > agents option accepted without error > [official] agents option accepted without error [4788.95ms]
+(pass) parent_tool_use_id > messages from main context do not have parent_tool_use_id set > [open] messages from main context do not have parent_tool_use_id set [4922.99ms]
+(pass) Programmatic Agent Definition > agents option accepted without error > [open] agents option accepted without error [5085.14ms]
+   [official] Got task_started, stopping task: a190dd1801e8fd37f
+   [open] Subagent started, aborting in 500ms...
+   [official] Subagent started, aborting in 500ms...
+   [open] Got task_started, stopping task: a80ccd7ac9dbb6144
+(pass) Task Tool Requirement > Task tool enables built-in general-purpose subagent > [official] Task tool enables built-in general-purpose subagent [8279.65ms]
+   [open] Messages: 10, sawSubagent: true, aborted: true
+(pass) Abort with subagents > abort terminates query with running subagent > [open] abort terminates query with running subagent [8440.97ms]
+   [official] Total messages: 11, subagent messages: 1
+(pass) Subagent E2E Execution > subagent actually executes and produces parent_tool_use_id messages > [official] subagent actually executes and produces parent_tool_use_id messages [8589.45ms]
+   [official] Messages: 6, sawSubagent: true, aborted: true
+(pass) Abort with subagents > abort terminates query with running subagent > [official] abort terminates query with running subagent [8814.41ms]
+   [open] Total messages: 11, subagent messages: 1
+(pass) Subagent E2E Execution > subagent actually executes and produces parent_tool_use_id messages > [open] subagent actually executes and produces parent_tool_use_id messages [8835.94ms]
+   [open] SubagentStop called: true
+(pass) Subagent Hooks > SubagentStop hook fires when subagent stops > [open] SubagentStop hook fires when subagent stops [9390.02ms]
+   [official] SubagentStart called: true
+(pass) Subagent Hooks > SubagentStart hook fires when subagent starts > [official] SubagentStart hook fires when subagent starts [10370.21ms]
+(pass) Task Tool Requirement > Task tool enables built-in general-purpose subagent > [open] Task tool enables built-in general-purpose subagent [11712.61ms]
+   [open] SubagentStart called: true
+(pass) Subagent Hooks > SubagentStart hook fires when subagent starts > [open] SubagentStart hook fires when subagent starts [13140.59ms]
+   [official] SubagentStop called: true
+(pass) Subagent Hooks > SubagentStop hook fires when subagent stops > [official] SubagentStop hook fires when subagent stops [19266.99ms]
+   [official] Total messages: 14, stoppedTaskId: a190dd1801e8fd37f
+(pass) stopTask > stopTask completes without hanging after stopping a subagent > [official] stopTask completes without hanging after stopping a subagent [89976.11ms]
+   [open] Total messages: 10, stoppedTaskId: a80ccd7ac9dbb6144
+(pass) stopTask > stopTask completes without hanging after stopping a subagent > [open] stopTask completes without hanging after stopping a subagent [90450.69ms]
+
+tests/integration/session-utils.test.ts:
+   getSessionInfo — undefined for missing session
+(pass) getSessionInfo > returns undefined for non-existent session [49.86ms]
+   official renameSession — both SDKs see "OfficialRenamed_1775125057656"
+(pass) renameSession > official renameSession produces same result as open SDK [2459.81ms]
+   forkSession — new session 2273e3a9-a7d3-4872-a7a4-859ba38c78a4
+(pass) forkSession > forks a session and returns a new session ID [2542.74ms]
+   forkSession — custom title "Fork_1775125057743"
+(pass) forkSession > forkSession with custom title [2542.08ms]
+   renameSession — title set to "Renamed_1775125057786"
+(pass) renameSession > renames a session and both SDKs see the new title [2591.83ms]
+   getSessionInfo — matching results for 3f5e1c46-e4cb-41c1-9758-63176add4fc8
+(pass) getSessionInfo > returns info matching between open and official SDK [2769.12ms]
+   tagSession — cleared tag with null
+(pass) tagSession > clears a tag with null [2836.55ms]
+   official forkSession — new session 5b7292c7-f013-48d3-8246-fb2cbc5e2309
+(pass) forkSession > official forkSession produces same result structure [2868.85ms]
+   tagSession — tag set to "tag_1775125058490"
+(pass) tagSession > tags a session and both SDKs see the tag [3293.24ms]
+
+tests/unit/compat/stdin-messages.test.ts:
+   Init messages captured: {
+  open: true,
+  official: true,
+}
+(pass) stdin message compatibility > init message structure matches official SDK [1267.66ms]
+   User messages captured: {
+  open: true,
+  official: true,
+}
+(pass) stdin message compatibility > user message format matches official SDK [1831.08ms]
+   Hooks registration captured: {
+  open: true,
+  official: true,
+}
+(pass) stdin message compatibility > hooks registration format matches official SDK [2371.96ms]
+   Message order: {
+  open: [ "initialize", "user" ],
+  official: [ "initialize", "user" ],
+}
+(pass) stdin message compatibility > message ordering matches official SDK [2937.70ms]
+   Multiple hooks test passed
+(pass) stdin message compatibility > multiple hooks registration works correctly [3443.96ms]
+   Permission mode test passed
+(pass) stdin message compatibility > permissionMode flag is passed correctly [3950.67ms]
+   Model option test passed
+(pass) stdin message compatibility > model option is serialized correctly [4444.60ms]
+   maxTurns option test passed
+(pass) stdin message compatibility > maxTurns option is serialized correctly [4952.47ms]
+   All hook event types test passed
+(pass) stdin message compatibility > all hook event types are supported [5449.16ms]
+   All 22 hook events register correctly
+(pass) stdin message compatibility > all 22 hook events register correctly matching official SDK [5947.15ms]
+   Empty prompt handling test passed
+(pass) stdin message compatibility > empty prompt handling matches [6445.66ms]
+   systemPrompt option test passed
+   Open systemPrompt: You are a helpful assistant named TestBot.
+   Official systemPrompt: You are a helpful assistant named TestBot.
+(pass) stdin message compatibility > systemPrompt option is serialized correctly [6966.49ms]
+   systemPrompt preset (no append) test passed
+(pass) stdin message compatibility > systemPrompt preset without append sends no systemPrompt fields [7510.54ms]
+   systemPrompt preset with append test passed
+(pass) stdin message compatibility > systemPrompt preset with append sends appendSystemPrompt matching official SDK [8022.50ms]
+   settingSources: [project] test passed
+(pass) stdin message compatibility > settingSources with project matches official SDK [8796.23ms]
+   settingSources: [user] test passed
+(pass) stdin message compatibility > settingSources with user matches official SDK [9311.91ms]
+   settingSources: [user, project] test passed
+(pass) stdin message compatibility > settingSources with multiple sources matches official SDK [9843.76ms]
+   settingSources: [] test passed
+(pass) stdin message compatibility > settingSources empty array matches official SDK [10336.84ms]
+   mcpServerStatus stdin messages match
+(pass) stdin message compatibility > mcpServerStatus sends mcp_status control request matching official SDK [10830.05ms]
+   reconnectMcpServer stdin messages match
+(pass) stdin message compatibility > reconnectMcpServer sends mcp_reconnect control request matching official SDK [11359.50ms]
+   toggleMcpServer stdin messages match
+(pass) stdin message compatibility > toggleMcpServer sends mcp_toggle control request matching official SDK [10606.37ms]
+   setMcpServers stdin messages match
+(pass) stdin message compatibility > setMcpServers sends mcp_set_servers control request matching official SDK [10549.09ms]
+   outputFormat json_schema args match
+(pass) stdin message compatibility > outputFormat json_schema args match official SDK [10599.19ms]
+   process-based mcpServers --mcp-config args match
+(pass) stdin message compatibility > process-based mcpServers --mcp-config args match official SDK [10542.76ms]
+   SDK mcpServers excluded from --mcp-config
+(pass) stdin message compatibility > SDK mcpServers excluded from --mcp-config matching official SDK [10564.68ms]
+   agentProgressSummaries init message test passed
+(pass) stdin message compatibility > agentProgressSummaries in init message matches official SDK [10594.24ms]
+   applyFlagSettings stdin messages match
+(pass) stdin message compatibility > applyFlagSettings sends apply_flag_settings control request matching official SDK [10623.73ms]
+   reloadPlugins stdin messages match
+(pass) stdin message compatibility > reloadPlugins sends reload_plugins control request matching official SDK [10615.13ms]
+   seedReadState stdin messages match
+(pass) stdin message compatibility > seedReadState sends seed_read_state control request matching official SDK [10626.23ms]
+   stopTask stdin messages match
+(pass) stdin message compatibility > stopTask sends stop_task control request matching official SDK [10641.22ms]
+   getContextUsage stdin messages match
+(pass) stdin message compatibility > getContextUsage sends get_context_usage control request matching official SDK [10681.55ms]
+
+tests/unit/compat/agents.test.ts:
+   agents in init message matches
+(pass) agents init message compatibility > agents in init message matches official SDK [1180.82ms]
+   no agents field when not provided
+(pass) agents init message compatibility > no agents field when agents option is not provided [1676.62ms]
+   multiple agents in init message match
+(pass) agents init message compatibility > multiple agents in init message match official SDK [2179.34ms]
+
+tests/unit/compat/mcp-servers.test.ts:
+   sdkMcpServers in init message matches
+(pass) mcpServers init message compatibility > sdkMcpServers in init message matches official SDK [1197.40ms]
+   process-only mcpServers: no sdkMcpServers in init
+(pass) mcpServers init message compatibility > process-only mcpServers do not add sdkMcpServers to init [1741.99ms]
+   mixed mcpServers match
+(pass) mcpServers init message compatibility > mixed process + SDK mcpServers match official SDK [2258.57ms]
+
+tests/unit/compat/cli-options.test.ts:
+   additionalDirectories --add-dir args match
+(pass) new CLI options compatibility > additionalDirectories --add-dir args match official SDK [1180.32ms]
+   agent args match
+(pass) new CLI options compatibility > agent option args match official SDK [1677.92ms]
+   betas args match
+(pass) new CLI options compatibility > betas option args match official SDK [2166.48ms]
+   continue args match
+(pass) new CLI options compatibility > continue option args match official SDK [2671.87ms]
+   fallbackModel args match
+(pass) new CLI options compatibility > fallbackModel option args match official SDK [3175.12ms]
+   forkSession args match
+(pass) new CLI options compatibility > forkSession option args match official SDK [3671.51ms]
+   sessionId args match
+(pass) new CLI options compatibility > sessionId option args match official SDK [4205.97ms]
+   resumeSessionAt args match
+(pass) new CLI options compatibility > resumeSessionAt option args match official SDK [4715.88ms]
+   persistSession=false args match
+(pass) new CLI options compatibility > persistSession false args match official SDK [5205.32ms]
+   strictMcpConfig args match
+(pass) new CLI options compatibility > strictMcpConfig option args match official SDK [5744.46ms]
+   tools string array args match
+(pass) new CLI options compatibility > tools string array args match official SDK [6243.58ms]
+   tools empty array args match
+(pass) new CLI options compatibility > tools empty array args match official SDK [6766.80ms]
+   tools preset args match
+(pass) new CLI options compatibility > tools preset args match official SDK [7277.42ms]
+   permissionPromptToolName args match
+(pass) new CLI options compatibility > permissionPromptToolName args match official SDK [7784.77ms]
+   extraArgs args match
+(pass) new CLI options compatibility > extraArgs pass-through matches official SDK [8277.50ms]
+   sandbox + extraArgs merged correctly
+(pass) new CLI options compatibility > sandbox + extraArgs merged correctly matching official SDK [8799.84ms]
+
+tests/unit/compat/cli-args.test.ts:
+   Basic args match
+(pass) CLI arguments compatibility > basic args match official SDK [1220.16ms]
+   Model args match
+(pass) CLI arguments compatibility > model option args match official SDK [1747.13ms]
+   maxTurns args match
+(pass) CLI arguments compatibility > maxTurns option args match official SDK [2240.30ms]
+   permissionMode args match
+(pass) CLI arguments compatibility > permissionMode option args match official SDK [2737.13ms]
+   sandbox args match
+   Open sandbox: {
+  enabled: true,
+  autoAllowBashIfSandboxed: false,
+}
+   Official sandbox: {
+  enabled: true,
+  autoAllowBashIfSandboxed: false,
+}
+(pass) CLI arguments compatibility > sandbox option args match official SDK [3241.16ms]
+   settingSources args match
+(pass) CLI arguments compatibility > settingSources option args match official SDK [3765.39ms]
+   resume args match
+(pass) CLI arguments compatibility > resume option args match official SDK [4346.22ms]
+   maxThinkingTokens args match
+(pass) CLI arguments compatibility > maxThinkingTokens option args match official SDK [4860.08ms]
+   allowedTools args match
+(pass) CLI arguments compatibility > allowedTools option args match official SDK [5357.78ms]
+   disallowedTools args match
+(pass) CLI arguments compatibility > disallowedTools option args match official SDK [5873.76ms]
+   effort args match
+(pass) CLI arguments compatibility > effort option args match official SDK [6383.80ms]
+   thinking adaptive args match
+(pass) CLI arguments compatibility > thinking adaptive option args match official SDK [6887.50ms]
+   thinking enabled args match
+(pass) CLI arguments compatibility > thinking enabled option args match official SDK [7387.00ms]
+   thinking disabled args match
+(pass) CLI arguments compatibility > thinking disabled option args match official SDK [7889.57ms]
+   thinking enabled (no budget) args match
+(pass) CLI arguments compatibility > thinking enabled without budgetTokens args match official SDK [8385.69ms]
+   promptSuggestions init message match
+(pass) CLI arguments compatibility > promptSuggestions option is in init message (not CLI args) [8911.07ms]
+   toolConfig previewFormat env var match
+(pass) CLI arguments compatibility > toolConfig previewFormat env var matches official SDK [9409.40ms]
+   settings object args match
+(pass) CLI arguments compatibility > settings object args match official SDK [9925.95ms]
+   settings string path args match
+(pass) CLI arguments compatibility > settings string path args match official SDK [10432.37ms]
+   settings + sandbox merged args match
+(pass) CLI arguments compatibility > settings + sandbox merged args match official SDK [10930.39ms]
+   taskBudget args match
+(pass) CLI arguments compatibility > taskBudget option args match official SDK [10255.88ms]
+   includeHookEvents args match
+(pass) CLI arguments compatibility > includeHookEvents args match official SDK [10225.73ms]
+   plugins --plugin-dir args match
+(pass) CLI arguments compatibility > plugins --plugin-dir args match official SDK [10242.45ms]
+
+tests/unit/compat/executable-args.test.ts:
+   executableArgs included for native binary via spawnClaudeCodeProcess
+(pass) executableArgs included for both native and JS binaries > spawnClaudeCodeProcess receives executableArgs for native binary [1.27ms]
+   executableArgs included for JS binary via spawnClaudeCodeProcess
+(pass) executableArgs included for both native and JS binaries > spawnClaudeCodeProcess receives executableArgs for JS binary [0.31ms]
+
+tests/unit/compat/validation.test.ts:
+(pass) option validation > fallbackModel same as model throws [0.74ms]
+(pass) option validation > canUseTool + permissionPromptToolName throws [0.14ms]
+
+tests/integration/unimplemented/file-checkpointing.test.ts:
+(todo) rewindFiles() restores files to checkpoint state > [open] rewindFiles() restores files to checkpoint state
+(todo) rewindFiles() restores files to checkpoint state > [official] rewindFiles() restores files to checkpoint state
+(todo) enableFileCheckpointing adds uuid to user messages > [open] enableFileCheckpointing adds uuid to user messages
+(todo) enableFileCheckpointing adds uuid to user messages > [official] enableFileCheckpointing adds uuid to user messages
+(todo) rewindFiles() deletes files created after checkpoint > [open] rewindFiles() deletes files created after checkpoint
+(todo) rewindFiles() deletes files created after checkpoint > [official] rewindFiles() deletes files created after checkpoint
+(todo) rewindFiles({ dryRun: true }) previews without applying > [open] rewindFiles({ dryRun: true }) previews without applying
+(todo) rewindFiles({ dryRun: true }) previews without applying > [official] rewindFiles({ dryRun: true }) previews without applying
+
+8 tests todo:
+(todo) rewindFiles() restores files to checkpoint state > [open] rewindFiles() restores files to checkpoint state
+(todo) rewindFiles() restores files to checkpoint state > [official] rewindFiles() restores files to checkpoint state
+(todo) enableFileCheckpointing adds uuid to user messages > [open] enableFileCheckpointing adds uuid to user messages
+(todo) enableFileCheckpointing adds uuid to user messages > [official] enableFileCheckpointing adds uuid to user messages
+(todo) rewindFiles() deletes files created after checkpoint > [open] rewindFiles() deletes files created after checkpoint
+(todo) rewindFiles() deletes files created after checkpoint > [official] rewindFiles() deletes files created after checkpoint
+(todo) rewindFiles({ dryRun: true }) previews without applying > [open] rewindFiles({ dryRun: true }) previews without applying
+(todo) rewindFiles({ dryRun: true }) previews without applying > [official] rewindFiles({ dryRun: true }) previews without applying
+
+
+8 tests failed:
+(fail) image upload via streaming input > [official] image upload via streaming input [3272.69ms]
+(fail) continue resumes most recent conversation > [open] continue resumes most recent conversation [6953.46ms]
+(fail) continue resumes most recent conversation > [official] continue resumes most recent conversation [9217.92ms]
+(fail) multi-turn conversation via streamInput > [official] multi-turn conversation via streamInput [4107.51ms]
+(fail) includeHookEvents emits hook lifecycle messages > [official] includeHookEvents emits hook lifecycle messages [6878.39ms]
+(fail) includeHookEvents emits hook lifecycle messages > [open] includeHookEvents emits hook lifecycle messages [8559.11ms]
+(fail) protocol comparison > init structure matches [1973.53ms]
+(fail) protocol comparison > user message matches [2722.92ms]
+
+ 557 pass
+ 8 todo
+ 8 fail
+ 1517 expect() calls
+Ran 573 tests across 48 files. [333.10s]

@@ -37,7 +37,8 @@ describe('stdin message compatibility', () => {
 
         // Critical: systemPrompt field must be present (caused 73% cost increase when missing)
         expect('systemPrompt' in openInit.request).toBe('systemPrompt' in officialInit.request);
-        expect(openInit.request.systemPrompt).toBe(officialInit.request.systemPrompt);
+        // v0.2.110: systemPrompt is now always an array
+        expect(openInit.request.systemPrompt).toEqual(officialInit.request.systemPrompt);
       }
 
       console.log('   Init messages captured:', {
@@ -399,9 +400,9 @@ describe('stdin message compatibility', () => {
       expect(openInit).toBeTruthy();
       expect(officialInit).toBeTruthy();
 
-      // Both should have systemPrompt in the init request
-      expect(openInit?.request?.systemPrompt).toBe(systemPrompt);
-      expect(officialInit?.request?.systemPrompt).toBe(systemPrompt);
+      // v0.2.110: Both should wrap systemPrompt in array
+      expect(openInit?.request?.systemPrompt).toEqual([systemPrompt]);
+      expect(officialInit?.request?.systemPrompt).toEqual([systemPrompt]);
 
       console.log('   systemPrompt option test passed');
       console.log('   Open systemPrompt:', openInit?.request?.systemPrompt);
@@ -991,6 +992,33 @@ describe('stdin message compatibility', () => {
       }
 
       console.log('   excludeDynamicSections with append init messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'systemPrompt string array in init message matches official SDK',
+    async () => {
+      const systemPrompt = ['part1', 'part2', 'part3'];
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { systemPrompt }),
+        capture(officialQuery, 'test', { systemPrompt }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      // Both should have systemPrompt as array in the init request
+      expect(openInit?.request?.systemPrompt).toEqual(systemPrompt);
+      expect(officialInit?.request?.systemPrompt).toEqual(systemPrompt);
+
+      console.log('   systemPrompt string array test passed');
+      console.log('   Open systemPrompt:', openInit?.request?.systemPrompt);
+      console.log('   Official systemPrompt:', officialInit?.request?.systemPrompt);
     },
     { timeout: 60000 }
   );

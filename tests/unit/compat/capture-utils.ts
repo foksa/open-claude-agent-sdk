@@ -10,7 +10,7 @@ import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as openQuery } from '../../../src/api/query.ts';
 import type { Query } from '../../../src/types/index.ts';
 
-export { openQuery, officialQuery };
+export { officialQuery, openQuery };
 
 export const CAPTURE_CLI = './src/tools/capture-cli.cjs';
 

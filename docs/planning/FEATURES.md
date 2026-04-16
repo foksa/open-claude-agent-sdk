@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-04-12
+**Last Updated:** 2026-04-16
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -162,6 +162,12 @@
 | `ConnectRemoteControl*` types | ⚠️ | Re-exported from official SDK (v0.2.104); alpha API |
 | `InboundPrompt` type | ⚠️ | Re-exported from official SDK (v0.2.104); alpha API |
 | `AgentDefinition` new fields | ⚠️ | `initialPrompt`, `background`, `memory`, `effort`, `permissionMode` (v0.2.104) |
+| `SDKMemoryRecallMessage` type | ⚠️ | Re-exported from official SDK (v0.2.105); system/memory_recall event |
+| `SDKStatus` includes `'requesting'` | ⚠️ | Re-exported from official SDK (v0.2.108); status before API requests |
+| `SDKPluginInstallMessage` type | ⚠️ | Re-exported from official SDK (v0.2.110); part of SDKMessage union |
+| `SDKNotificationMessage` type | ⚠️ | Re-exported from official SDK (v0.2.110); part of SDKMessage union |
+| `shouldQuery` field on `SDKUserMessage` | ⚠️ | Re-exported from official SDK (v0.2.110); skip assistant turn |
+| `systemPrompt` accepts `string[]` | 🔌 | Cache boundary support (v0.2.110); init message verified |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |
