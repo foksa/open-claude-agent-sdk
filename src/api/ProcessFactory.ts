@@ -41,8 +41,9 @@ export class DefaultProcessFactory implements ProcessFactory {
   spawn(options: Options): ChildProcess {
     const args = buildCliArgs({ ...options, prompt: '' });
 
-    // Build environment with enableFileCheckpointing support
-    const env: Record<string, string | undefined> = { ...(options.env ?? {}) };
+    // v0.2.113+: user env replaces process.env entirely; undefined means use process.env
+    const base = options.env !== undefined ? options.env : process.env;
+    const env: Record<string, string | undefined> = { ...base };
     if (options.enableFileCheckpointing) {
       env.CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING = 'true';
     }
@@ -61,8 +62,8 @@ export class DefaultProcessFactory implements ProcessFactory {
         ? [...executableArgs, ...args]
         : [...executableArgs, scriptPath, ...args];
 
-      // Build full env for SpawnOptions
-      const fullEnv: Record<string, string | undefined> = { ...process.env, ...env };
+      // Build full env for SpawnOptions (env already has correct base)
+      const fullEnv: Record<string, string | undefined> = { ...env };
       if (!fullEnv.CLAUDE_CODE_ENTRYPOINT) fullEnv.CLAUDE_CODE_ENTRYPOINT = 'sdk-ts';
       delete fullEnv.NODE_OPTIONS;
       if (fullEnv.DEBUG_CLAUDE_AGENT_SDK) fullEnv.DEBUG = '1';

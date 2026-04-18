@@ -1022,4 +1022,26 @@ describe('stdin message compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'title in init message matches official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { title: 'My Test Session' }),
+        capture(officialQuery, 'test', { title: 'My Test Session' }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      expect(openInit?.request?.title).toBe('My Test Session');
+      expect(officialInit?.request?.title).toBe('My Test Session');
+
+      console.log('   title init message match');
+    },
+    { timeout: 60000 }
+  );
 });

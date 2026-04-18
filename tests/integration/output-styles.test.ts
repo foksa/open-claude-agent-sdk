@@ -38,9 +38,6 @@ testWithBothSDKs(
         model: 'haiku',
         settingSources: ['project'],
         cwd: fixturesDir,
-        pathToClaudeCodeExecutable: path.resolve(
-          './node_modules/@anthropic-ai/claude-agent-sdk/cli.js'
-        ),
       },
     });
 
@@ -80,9 +77,6 @@ testWithBothSDKs(
         model: 'haiku',
         settingSources: [],
         cwd: fixturesDir,
-        pathToClaudeCodeExecutable: path.resolve(
-          './node_modules/@anthropic-ai/claude-agent-sdk/cli.js'
-        ),
       },
     });
 
@@ -122,9 +116,6 @@ testWithBothSDKs(
           model: 'haiku',
           settingSources: ['project'],
           cwd: fixturesDir,
-          pathToClaudeCodeExecutable: path.resolve(
-            './node_modules/@anthropic-ai/claude-agent-sdk/cli.js'
-          ),
         },
       });
       const init = await q.initializationResult();
@@ -148,9 +139,6 @@ testWithBothSDKs(
         model: 'haiku',
         settingSources: ['project'],
         cwd: fixturesDir,
-        pathToClaudeCodeExecutable: path.resolve(
-          './node_modules/@anthropic-ai/claude-agent-sdk/cli.js'
-        ),
       },
     }) as ExtendedQuery;
 

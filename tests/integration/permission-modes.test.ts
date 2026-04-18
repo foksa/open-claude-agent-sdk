@@ -11,8 +11,6 @@
 import { expect } from 'bun:test';
 import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
-const CLI_PATH = './node_modules/@anthropic-ai/claude-agent-sdk/cli.js';
-
 // =============================================================================
 // permissionMode: default
 // =============================================================================
@@ -217,7 +215,6 @@ testWithBothSDKs(
         permissionMode: 'default',
         model: 'haiku',
         settingSources: [],
-        pathToClaudeCodeExecutable: CLI_PATH,
         canUseTool: async (_toolName, input, _context) => {
           if (!modeChanged) {
             permissionCallsBeforeChange++;

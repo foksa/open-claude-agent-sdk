@@ -47,6 +47,8 @@ export type {
   SDKHookStartedMessage,
   SDKLocalCommandOutputMessage,
   SDKMemoryRecallMessage,
+  SDKMessageOrigin,
+  SDKMirrorErrorMessage,
   SDKNotificationMessage,
   SDKPartialAssistantMessage,
   SDKPluginInstallMessage,
@@ -155,6 +157,7 @@ export type {
   McpServerConfigForProcessTransport,
   McpServerStatus,
   McpServerStatusConfig,
+  McpServerToolPolicy,
   McpSetServersResult,
   McpSSEServerConfig,
   McpStdioServerConfig,
@@ -223,13 +226,17 @@ export type {
   GetSessionInfoOptions,
   GetSessionMessagesOptions,
   GetSubagentMessagesOptions,
+  ImportSessionToStoreOptions,
   ListSessionsOptions,
   ListSubagentsOptions,
   SDKSession,
   SDKSessionInfo,
   SDKSessionOptions,
+  SessionKey,
   SessionMessage,
   SessionMutationOptions,
+  SessionStore,
+  SessionStoreEntry,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================
@@ -315,4 +322,10 @@ export type {
   SpawnedProcess,
   SpawnOptions,
   Transport,
+  WarmQuery,
+} from '@anthropic-ai/claude-agent-sdk';
+
+export {
+  InMemorySessionStore,
+  SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
 } from '@anthropic-ai/claude-agent-sdk';

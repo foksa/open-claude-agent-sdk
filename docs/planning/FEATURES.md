@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-18
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -168,6 +168,19 @@
 | `SDKNotificationMessage` type | ⚠️ | Re-exported from official SDK (v0.2.110); part of SDKMessage union |
 | `shouldQuery` field on `SDKUserMessage` | ⚠️ | Re-exported from official SDK (v0.2.110); skip assistant turn |
 | `systemPrompt` accepts `string[]` | 🔌 | Cache boundary support (v0.2.110); init message verified |
+| `mcp_set_servers` per-tool `permission_policy` | ⚠️ | `McpServerToolPolicy` type re-exported; `McpHttpServerConfig`/`McpSSEServerConfig` `tools` field (v0.2.111) |
+| `WarmQuery` interface | ✅ | Re-exported from official SDK (v0.2.111); E2E tested in startup.test.ts |
+| `startup()` function | ✅ | Re-exported from official SDK (v0.2.111); E2E tested in startup.test.ts |
+| `title` option | ✅ | Init message field verified + customTitle confirmed via getSessionInfo (v0.2.113) |
+| `options.env` replaces `process.env` | 🔌 | v0.2.113 behavior: user env replaces instead of overlays process.env |
+| `SessionStore` / `SessionKey` / `SessionStoreEntry` types | ⚠️ | Re-exported from official SDK (v0.2.113); alpha session mirror API |
+| `ImportSessionToStoreOptions` type | ⚠️ | Re-exported from official SDK (v0.2.113) |
+| `InMemorySessionStore` class | ✅ | Re-exported from official SDK (v0.2.113); E2E tested in session-utils.test.ts |
+| `importSessionToStore()` function | ✅ | Re-exported from official SDK (v0.2.113); E2E tested in session-utils.test.ts |
+| `deleteSession()` function | ✅ | Re-exported from official SDK (v0.2.113); E2E tested in session-utils.test.ts |
+| `SDKMirrorErrorMessage` type | ⚠️ | Re-exported from official SDK (v0.2.113); part of SDKMessage union |
+| `SDKMessageOrigin` type | ⚠️ | Re-exported from official SDK (v0.2.113); message origin discriminated union |
+| `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` constant | ⚠️ | Re-exported from official SDK (v0.2.113); cache boundary marker for systemPrompt arrays |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

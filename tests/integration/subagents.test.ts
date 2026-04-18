@@ -246,7 +246,7 @@ describe('stopTask', () => {
       const testOptions: Options = {
         model: 'haiku',
         settingSources: [],
-        pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+
         maxTurns: 3,
         permissionMode: 'default',
         canUseTool: autoApprove,
@@ -319,7 +319,7 @@ describe('Abort with subagents', () => {
       const testOptions: Options = {
         model: 'haiku',
         settingSources: [],
-        pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+
         maxTurns: 10,
         permissionMode: 'default',
         canUseTool: autoApprove,

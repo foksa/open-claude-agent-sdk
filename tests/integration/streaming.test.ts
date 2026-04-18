@@ -117,7 +117,6 @@ testWithBothSDKs(
         maxTurns: 1,
         model: 'haiku',
         settingSources: [],
-        pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
       },
     })) {
       messages.push(msg);
@@ -149,7 +148,7 @@ testWithBothSDKs(
         maxTurns: 1,
         model: 'haiku',
         settingSources: [],
-        pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+
         includePartialMessages: true,
       },
     });

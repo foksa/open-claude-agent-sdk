@@ -50,21 +50,28 @@ describe('executableArgs included for both native and JS binaries', () => {
 
   test('spawnClaudeCodeProcess receives executableArgs for JS binary', () => {
     const { DefaultProcessFactory } = require('../../../src/api/ProcessFactory.ts');
+    const { writeFileSync, unlinkSync } = require('node:fs');
     const factory = new DefaultProcessFactory();
 
-    // Use the embedded cli.js — a real .js file that isNativeBinary() correctly identifies as JS
-    const jsScript = `${process.cwd()}/node_modules/@anthropic-ai/claude-agent-sdk/cli.js`;
+    // Create a temp .js file — isNativeBinary() identifies it as a JS script
+    const jsScript = `/tmp/fake-claude-${Date.now()}.js`;
+    writeFileSync(jsScript, '', { mode: 0o755 });
+
     let captured: { command: string; args: string[] } | null = null;
 
-    factory.spawn({
-      pathToClaudeCodeExecutable: jsScript,
-      permissionMode: 'default',
-      executableArgs: ['--max-old-space-size=4096'],
-      spawnClaudeCodeProcess: (opts: { command: string; args: string[] }) => {
-        captured = opts;
-        return { stdout: null, stderr: null, stdin: null };
-      },
-    });
+    try {
+      factory.spawn({
+        pathToClaudeCodeExecutable: jsScript,
+        permissionMode: 'default',
+        executableArgs: ['--max-old-space-size=4096'],
+        spawnClaudeCodeProcess: (opts: { command: string; args: string[] }) => {
+          captured = opts;
+          return { stdout: null, stderr: null, stdin: null };
+        },
+      });
+    } finally {
+      unlinkSync(jsScript);
+    }
 
     expect(captured).not.toBeNull();
     // JS binary: command is the runtime (node/bun), not the script
@@ -72,11 +79,11 @@ describe('executableArgs included for both native and JS binaries', () => {
     // executableArgs should be in the args
     expect(captured?.args).toContain('--max-old-space-size=4096');
     // Script path should also be in args (after executableArgs)
-    const hasScriptInArgs = captured?.args.some((a) => a.endsWith('cli.js'));
+    const hasScriptInArgs = captured?.args.some((a) => a.endsWith('.js'));
     expect(hasScriptInArgs).toBe(true);
     // executableArgs should come before script path
     const execArgIdx = captured?.args.indexOf('--max-old-space-size=4096');
-    const scriptIdx = captured?.args.findIndex((a) => a.endsWith('cli.js'));
+    const scriptIdx = captured?.args.findIndex((a) => a.endsWith('.js'));
     expect(execArgIdx).toBeLessThan(scriptIdx);
 
     console.log('   executableArgs included for JS binary via spawnClaudeCodeProcess');

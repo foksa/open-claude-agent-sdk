@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
+import { InMemorySessionStore, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '../../src/types/index.ts';
 
 describe('v0.2.49 type re-exports', () => {
   test('ConfigChangeHookInput is importable', () => {
@@ -1072,5 +1073,92 @@ describe('v0.2.110 type re-exports', () => {
     if (Array.isArray(opts.systemPrompt)) {
       expect(opts.systemPrompt).toHaveLength(2);
     }
+  });
+});
+
+describe('v0.2.114 type re-exports', () => {
+  test('SDKMirrorErrorMessage is importable and part of SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKMirrorErrorMessage = {
+      type: 'system',
+      subtype: 'mirror_error',
+      error: 'Connection failed',
+      key: { projectKey: 'my-project', sessionId: 'session-123' },
+      uuid: 'uuid-456' as import('../../src/types/index.ts').SDKMirrorErrorMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('mirror_error');
+
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('SessionStore, SessionKey, SessionStoreEntry are importable', () => {
+    const key: import('../../src/types/index.ts').SessionKey = {
+      projectKey: 'my-project',
+      sessionId: 'session-123',
+    };
+    expect(key.projectKey).toBe('my-project');
+
+    const entry: import('../../src/types/index.ts').SessionStoreEntry = {
+      type: 'user',
+      uuid: 'uuid-123',
+      timestamp: new Date().toISOString(),
+    };
+    expect(entry.type).toBe('user');
+
+    const store: import('../../src/types/index.ts').SessionStore = {
+      append: async (_key, _entries) => {},
+      load: async (_key) => null,
+    };
+    expect(typeof store.append).toBe('function');
+  });
+
+  test('McpServerToolPolicy is importable', () => {
+    const policy: import('../../src/types/index.ts').McpServerToolPolicy = {
+      name: 'my-tool',
+      permission_policy: 'always_allow',
+    };
+    expect(policy.name).toBe('my-tool');
+    expect(policy.permission_policy).toBe('always_allow');
+  });
+
+  test('McpHttpServerConfig accepts tools field', () => {
+    const config: import('../../src/types/index.ts').McpHttpServerConfig = {
+      type: 'http',
+      url: 'https://example.com/mcp',
+      tools: [{ name: 'search', permission_policy: 'always_ask' }],
+    };
+    expect(config.tools?.[0].name).toBe('search');
+  });
+
+  test('SDKMessageOrigin is importable', () => {
+    const origin: import('../../src/types/index.ts').SDKMessageOrigin = {
+      kind: 'human',
+    };
+    expect(origin.kind).toBe('human');
+
+    const channelOrigin: import('../../src/types/index.ts').SDKMessageOrigin = {
+      kind: 'channel',
+      server: 'my-server',
+    };
+    expect(channelOrigin.kind).toBe('channel');
+  });
+
+  test('Options.title is accepted', () => {
+    const opts: import('../../src/types/index.ts').Options = {
+      title: 'My Custom Session Title',
+    };
+    expect(opts.title).toBe('My Custom Session Title');
+  });
+
+  test('InMemorySessionStore is importable and usable', () => {
+    const store = new InMemorySessionStore();
+    expect(typeof store.append).toBe('function');
+    expect(typeof store.load).toBe('function');
+  });
+
+  test('SYSTEM_PROMPT_DYNAMIC_BOUNDARY is the expected string', () => {
+    expect(SYSTEM_PROMPT_DYNAMIC_BOUNDARY).toBe('__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__');
   });
 });

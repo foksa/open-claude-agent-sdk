@@ -21,7 +21,7 @@ const runWithAbort = async (
   const testOptions: Options = {
     model: 'haiku',
     settingSources: [],
-    pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+
     abortController,
     ...options,
   };
@@ -92,7 +92,7 @@ testWithBothSDKs('abortController signal is respected immediately', async (sdk) 
   const testOptions: Options = {
     model: 'haiku',
     settingSources: [],
-    pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
+
     maxTurns: 1,
     abortController,
   };

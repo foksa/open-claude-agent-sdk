@@ -4,6 +4,7 @@
  */
 
 import { expect, test } from 'bun:test';
+import type { SDKSystemMessage } from '../../src/types/index.ts';
 import { compareMessageStructures, runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
 testWithBothSDKs('basic hello world query', async (sdk) => {
@@ -58,8 +59,10 @@ testWithBothSDKs('plan mode', async (sdk) => {
   expect(messages.length).toBeGreaterThan(0);
 
   // Check system message has correct permission mode
-  const systemMsg = messages.find((m) => m.type === 'system');
-  if (systemMsg && systemMsg.type === 'system') {
+  const systemMsg = messages.find(
+    (m): m is SDKSystemMessage => m.type === 'system' && 'model' in m
+  );
+  if (systemMsg) {
     expect(systemMsg.permissionMode).toBe('plan');
   }
 });
@@ -71,8 +74,10 @@ testWithBothSDKs('custom model', async (sdk) => {
   });
 
   // Check system message has correct model
-  const systemMsg = messages.find((m) => m.type === 'system');
-  if (systemMsg && systemMsg.type === 'system') {
+  const systemMsg = messages.find(
+    (m): m is SDKSystemMessage => m.type === 'system' && 'model' in m
+  );
+  if (systemMsg) {
     expect(systemMsg.model).toBe('claude-sonnet-4-5-20250929');
   }
 });

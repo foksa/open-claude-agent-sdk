@@ -32,7 +32,6 @@ testWithBothSDKsTodo('rewindFiles() restores files to checkpoint state', async (
       enableFileCheckpointing: true,
       model: 'haiku',
       settingSources: [],
-      pathToClaudeCodeExecutable: './node_modules/@anthropic-ai/claude-agent-sdk/cli.js',
     },
   });
 

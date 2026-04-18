@@ -4,11 +4,19 @@
  *
  * Set COMPARE_OUTPUT_FILE env var before running.
  */
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
-const path = require('node:path');
 
-const REAL_CLI = path.join(__dirname, '../../node_modules/@anthropic-ai/claude-agent-sdk/cli.js');
+function findClaudeBinary() {
+  if (process.env.CLAUDE_BINARY) return process.env.CLAUDE_BINARY;
+  const result = spawnSync('which', ['claude'], { encoding: 'utf-8' });
+  if (result.status === 0 && result.stdout.trim()) return result.stdout.trim();
+  throw new Error(
+    'claude binary not found — set CLAUDE_BINARY or install @anthropic-ai/claude-code'
+  );
+}
+
+const REAL_CLI = findClaudeBinary();
 const outputFile = process.env.COMPARE_OUTPUT_FILE;
 
 if (!outputFile) {
@@ -18,7 +26,7 @@ if (!outputFile) {
 
 const capture = { stdin: [], stdout: [], startTime: Date.now() };
 
-const cli = spawn('node', [REAL_CLI, ...process.argv.slice(2)], {
+const cli = spawn(REAL_CLI, [...process.argv.slice(2)], {
   stdio: ['pipe', 'pipe', process.stderr],
 });
 

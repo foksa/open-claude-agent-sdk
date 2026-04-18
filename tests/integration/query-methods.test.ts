@@ -12,15 +12,12 @@ import { expect } from 'bun:test';
 import type { SDKMessage } from '../../src/types/index.ts';
 import { testWithBothSDKs } from './comparison-utils.ts';
 
-const CLI_PATH = './node_modules/@anthropic-ai/claude-agent-sdk/cli.js';
-
 /** Shared query options */
 const baseOptions = {
   permissionMode: 'default' as const,
   maxTurns: 1,
   model: 'haiku' as const,
   settingSources: [] as string[],
-  pathToClaudeCodeExecutable: CLI_PATH,
 };
 
 /** Create a query using the correct SDK */

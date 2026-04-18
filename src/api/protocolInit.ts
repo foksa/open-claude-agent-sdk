@@ -67,6 +67,7 @@ export function sendProtocolInit(
     excludeDynamicSections?: boolean;
     promptSuggestions?: boolean;
     agentProgressSummaries?: boolean;
+    title?: string;
   } = {
     subtype: RequestSubtype.INITIALIZE,
     ...(systemPrompt !== undefined && { systemPrompt }),
@@ -80,6 +81,7 @@ export function sendProtocolInit(
     ...(options.agentProgressSummaries !== undefined && {
       agentProgressSummaries: options.agentProgressSummaries,
     }),
+    ...(options.title !== undefined && { title: options.title }),
   };
 
   if (options.hooks) {

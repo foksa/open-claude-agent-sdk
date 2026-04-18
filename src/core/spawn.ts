@@ -104,9 +104,9 @@ export function spawnClaude(
     stderr?: (data: string) => void;
   }
 ): ChildProcess {
+  // v0.2.113+: options.env replaces process.env entirely (not overlay)
   const env: Record<string, string | undefined> = {
-    ...process.env,
-    ...(options?.env ?? {}),
+    ...(options?.env !== undefined ? options.env : process.env),
   };
 
   // Official SDK always sets these

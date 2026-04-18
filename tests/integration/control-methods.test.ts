@@ -12,8 +12,6 @@ import { query as openQuery } from '../../src/api/query.ts';
 import type { McpStdioServerConfig, Options } from '../../src/types/index.ts';
 import { testWithBothSDKs } from './comparison-utils.ts';
 
-const CLI_PATH = path.resolve('./node_modules/@anthropic-ai/claude-agent-sdk/cli.js');
-
 /** Run a query, invoke a control method, then consume remaining messages */
 async function queryWithControlMethod<T>(
   sdk: 'open' | 'official',
@@ -27,7 +25,6 @@ async function queryWithControlMethod<T>(
       model: 'haiku',
       permissionMode: 'default',
       settingSources: [],
-      pathToClaudeCodeExecutable: CLI_PATH,
       maxTurns: 1,
       ...extraOptions,
     },
@@ -167,7 +164,6 @@ testWithBothSDKs(
         model: 'haiku',
         permissionMode: 'default',
         settingSources: [],
-        pathToClaudeCodeExecutable: CLI_PATH,
         maxTurns: 1,
         ...mcpServerOptions,
       },
@@ -196,7 +192,6 @@ testWithBothSDKs(
         model: 'haiku',
         permissionMode: 'default',
         settingSources: [],
-        pathToClaudeCodeExecutable: CLI_PATH,
         maxTurns: 1,
         ...mcpServerOptions,
       },
@@ -222,7 +217,6 @@ testWithBothSDKs(
         model: 'haiku',
         permissionMode: 'default',
         settingSources: [],
-        pathToClaudeCodeExecutable: CLI_PATH,
         maxTurns: 1,
         canUseTool: async () => ({ behavior: 'allow' as const }),
       },

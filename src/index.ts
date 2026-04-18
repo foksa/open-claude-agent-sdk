@@ -3,16 +3,21 @@
  * A lightweight alternative to Claude Agent SDK - uses local CLI
  */
 
-export const version = '0.23.0';
+export const version = '0.24.0';
 
 // Session utilities — re-exported from official SDK (read/write JSONL files directly)
 // V2 Session API (unstable) — re-exported from official SDK
 export {
+  deleteSession,
   forkSession,
   getSessionInfo,
   getSubagentMessages,
+  InMemorySessionStore,
+  importSessionToStore,
   listSubagents,
   renameSession,
+  SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
+  startup,
   tagSession,
   unstable_v2_createSession,
   unstable_v2_prompt,
