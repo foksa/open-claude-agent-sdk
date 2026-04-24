@@ -25,6 +25,7 @@ import type {
   RewindFilesResult,
   SDKControlGetContextUsageResponse,
   SDKControlInitializeResponse,
+  SDKControlReadFileResponse,
   SDKControlReloadPluginsResponse,
   SDKMessage,
   SDKUserMessage,
@@ -368,6 +369,19 @@ export class QueryImpl implements Query {
     return this.controlManager.sendControlRequestWithResponse<SDKControlGetContextUsageResponse>(
       ControlRequests.getContextUsage()
     );
+  }
+
+  async readFile(
+    path: string,
+    options?: { maxBytes?: number }
+  ): Promise<SDKControlReadFileResponse | null> {
+    try {
+      return await this.controlManager.sendControlRequestWithResponse<SDKControlReadFileResponse>(
+        ControlRequests.readFile(path, options?.maxBytes)
+      );
+    } catch {
+      return null;
+    }
   }
 
   async reloadPlugins(): Promise<SDKControlReloadPluginsResponse> {

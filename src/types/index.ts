@@ -256,6 +256,7 @@ export type {
   PromptResponse,
   RewindFilesResult,
   SDKControlGetContextUsageResponse,
+  SDKControlReadFileResponse,
   SDKControlReloadPluginsResponse,
   SDKPermissionDenial,
   SDKSettingsParseError,

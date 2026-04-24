@@ -22,6 +22,7 @@ import {
   type McpStatusRequest,
   type McpToggleRequest,
   MessageType,
+  type ReadFileRequest,
   type ReloadPluginsRequest,
   RequestSubtype,
   ResponseSubtype,
@@ -60,7 +61,8 @@ export type OutboundControlRequest =
   | ApplyFlagSettingsRequest
   | ReloadPluginsRequest
   | SeedReadStateRequest
-  | GetContextUsageRequest;
+  | GetContextUsageRequest
+  | ReadFileRequest;
 
 /**
  * Type-safe control request builder functions
@@ -133,6 +135,12 @@ export const ControlRequests = {
 
   getContextUsage: (): GetContextUsageRequest => ({
     subtype: RequestSubtype.GET_CONTEXT_USAGE,
+  }),
+
+  readFile: (path: string, maxBytes?: number): ReadFileRequest => ({
+    subtype: RequestSubtype.READ_FILE,
+    path,
+    ...(maxBytes !== undefined && { max_bytes: maxBytes }),
   }),
 };
 
@@ -208,6 +216,7 @@ export class ControlProtocolHandler {
         case RequestSubtype.RELOAD_PLUGINS:
         case RequestSubtype.SEED_READ_STATE:
         case RequestSubtype.GET_CONTEXT_USAGE:
+        case RequestSubtype.READ_FILE:
           // These are sent FROM SDK TO CLI, not the other way around
           // If we receive them, just acknowledge
           this.sendSuccess(req.request_id, {});

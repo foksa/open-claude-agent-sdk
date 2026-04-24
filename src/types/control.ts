@@ -42,6 +42,7 @@ export const RequestSubtype = {
   SEED_READ_STATE: 'seed_read_state',
   GET_CONTEXT_USAGE: 'get_context_usage',
   ELICITATION: 'elicitation',
+  READ_FILE: 'read_file',
 } as const;
 
 /** Control response subtypes */
@@ -103,7 +104,8 @@ export type ControlRequestInner =
   | ReloadPluginsRequest
   | SeedReadStateRequest
   | GetContextUsageRequest
-  | ElicitationControlRequest;
+  | ElicitationControlRequest
+  | ReadFileRequest;
 
 export type CanUseToolRequest = {
   subtype: typeof RequestSubtype.CAN_USE_TOOL;
@@ -209,6 +211,12 @@ export type SeedReadStateRequest = {
 
 export type GetContextUsageRequest = {
   subtype: typeof RequestSubtype.GET_CONTEXT_USAGE;
+};
+
+export type ReadFileRequest = {
+  subtype: typeof RequestSubtype.READ_FILE;
+  path: string;
+  max_bytes?: number;
 };
 
 export type ElicitationControlRequest = {

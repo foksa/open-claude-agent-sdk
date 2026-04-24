@@ -331,6 +331,20 @@ describe('buildCliArgs', () => {
     expect(args).toContain('auto');
   });
 
+  test('includes --managed-settings when specified', () => {
+    const settings = { permissions: { allow: [], deny: [] } };
+    const args = buildCliArgs({ managedSettings: settings });
+
+    const idx = args.indexOf('--managed-settings');
+    expect(idx).toBeGreaterThan(-1);
+    expect(JSON.parse(args[idx + 1])).toEqual(settings);
+  });
+
+  test('does not include --managed-settings when not specified', () => {
+    const args = buildCliArgs({});
+    expect(args).not.toContain('--managed-settings');
+  });
+
   test('_testCliArgs only works in test environment', () => {
     const originalEnv = process.env.NODE_ENV;
 

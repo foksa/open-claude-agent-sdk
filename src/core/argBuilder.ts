@@ -210,6 +210,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
   }
 
+  // managedSettings — policy-tier settings passed in-memory to CLI
+  if (options.managedSettings !== undefined) {
+    args.push('--managed-settings', JSON.stringify(options.managedSettings));
+  }
+
   // settings + sandbox — both go via --settings flag
   // settings can be a string (path) or an object; sandbox merges into the object form
   if (options.settings !== undefined || options.sandbox) {

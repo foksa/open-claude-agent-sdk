@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-24
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -40,6 +40,7 @@
 | `toggleMcpServer()` | ✅ | Disable and re-enable tested with stdio MCP server |
 | `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs |
 | `supportedAgents()` | ✅ | Returns array of AgentInfo from init response |
+| `readFile()` | 🔌 | Sends control request matching official SDK (v0.2.119); returns null on error |
 | `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
 | `reloadPlugins()` | 🔌 | Sends control request matching official SDK (v0.2.85) |
 | `seedReadState()` | 🔌 | Sends control request matching official SDK (v0.2.83) |
@@ -74,6 +75,7 @@
 | Image uploads (streaming input) | ✅ | Base64 image in content blocks, tested E2E |
 | `abortController` | ✅ | Signal cancellation tested |
 | `settings` | 🔌 | CLI flag passed (string path or JSON object), sandbox merges in |
+| `managedSettings` | 🔌 | CLI flag `--managed-settings` verified to match official SDK (v0.2.118) |
 | `onElicitation` | ⚠️ | Callback for MCP elicitation requests; control protocol handler implemented (v0.2.104) |
 | `plugins` | 🔌 | CLI flag passed, plugin loading not behaviorally tested |
 | `additionalDirectories` | 🔌 | CLI flag passed |
@@ -178,6 +180,7 @@
 | `InMemorySessionStore` class | ✅ | Re-exported from official SDK (v0.2.113); E2E tested in session-utils.test.ts |
 | `importSessionToStore()` function | ✅ | Re-exported from official SDK (v0.2.113); E2E tested in session-utils.test.ts |
 | `deleteSession()` function | ✅ | Re-exported from official SDK (v0.2.113); E2E tested in session-utils.test.ts |
+| `SDKControlReadFileResponse` type | ⚠️ | Re-exported from official SDK (v0.2.119); response for `readFile()` control method |
 | `SDKMirrorErrorMessage` type | ⚠️ | Re-exported from official SDK (v0.2.113); part of SDKMessage union |
 | `SDKMessageOrigin` type | ⚠️ | Re-exported from official SDK (v0.2.113); message origin discriminated union |
 | `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` constant | ⚠️ | Re-exported from official SDK (v0.2.113); cache boundary marker for systemPrompt arrays |

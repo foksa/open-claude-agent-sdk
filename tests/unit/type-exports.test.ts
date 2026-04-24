@@ -1162,3 +1162,23 @@ describe('v0.2.114 type re-exports', () => {
     expect(SYSTEM_PROMPT_DYNAMIC_BOUNDARY).toBe('__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__');
   });
 });
+
+describe('v0.2.119 type re-exports', () => {
+  test('SDKControlReadFileResponse is importable', () => {
+    const resp: import('../../src/types/index.ts').SDKControlReadFileResponse = {
+      contents: 'file content here',
+      absPath: '/home/user/project/file.txt',
+      truncated: false,
+    };
+    expect(resp.contents).toBe('file content here');
+    expect(resp.absPath).toBe('/home/user/project/file.txt');
+    expect(resp.truncated).toBe(false);
+  });
+
+  test('Options.managedSettings is accepted', () => {
+    const opts: import('../../src/types/index.ts').Options = {
+      managedSettings: { permissions: { allow: [], deny: [] } },
+    };
+    expect(opts.managedSettings).toBeDefined();
+  });
+});

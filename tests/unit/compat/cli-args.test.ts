@@ -594,4 +594,26 @@ describe('CLI arguments compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'managedSettings --managed-settings args match official SDK',
+    async () => {
+      const managedSettings = { permissions: { allow: [], deny: [] } };
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { managedSettings }),
+        capture(officialQuery, 'test', { managedSettings }),
+      ]);
+
+      const openIdx = open.args.indexOf('--managed-settings');
+      const officialIdx = official.args.indexOf('--managed-settings');
+
+      expect(openIdx).toBeGreaterThan(-1);
+      expect(officialIdx).toBeGreaterThan(-1);
+      expect(JSON.parse(open.args[openIdx + 1])).toEqual(managedSettings);
+      expect(JSON.parse(official.args[officialIdx + 1])).toEqual(managedSettings);
+
+      console.log('   managedSettings --managed-settings args match');
+    },
+    { timeout: 60000 }
+  );
 });
