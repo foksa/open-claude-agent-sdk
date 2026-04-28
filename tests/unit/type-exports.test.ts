@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
+import { AbortError } from '../../src/index.ts';
 import { InMemorySessionStore, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '../../src/types/index.ts';
 
 describe('v0.2.49 type re-exports', () => {
@@ -1180,5 +1181,85 @@ describe('v0.2.119 type re-exports', () => {
       managedSettings: { permissions: { allow: [], deny: [] } },
     };
     expect(opts.managedSettings).toBeDefined();
+  });
+});
+
+describe('v0.2.121 type re-exports', () => {
+  test('PostToolUseHookSpecificOutput accepts updatedToolOutput', () => {
+    const output: import('../../src/types/index.ts').PostToolUseHookSpecificOutput = {
+      hookEventName: 'PostToolUse',
+      updatedToolOutput: 'replaced output',
+    };
+    expect(output.updatedToolOutput).toBe('replaced output');
+  });
+
+  test('PostToolBatchHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').PostToolBatchHookInput = {
+      hook_event_name: 'PostToolBatch',
+      tool_calls: [{ tool_name: 'Read', tool_input: {}, tool_use_id: 'tu_1' }],
+      session_id: 'sess_1',
+    };
+    expect(input.hook_event_name).toBe('PostToolBatch');
+    expect(input.tool_calls).toHaveLength(1);
+  });
+
+  test('PostToolBatchHookSpecificOutput is importable', () => {
+    const output: import('../../src/types/index.ts').PostToolBatchHookSpecificOutput = {
+      hookEventName: 'PostToolBatch',
+      additionalContext: 'extra context',
+    };
+    expect(output.hookEventName).toBe('PostToolBatch');
+  });
+
+  test('PostToolBatchToolCall is importable', () => {
+    const call: import('../../src/types/index.ts').PostToolBatchToolCall = {
+      tool_name: 'Read',
+      tool_input: { path: '/tmp/file' },
+      tool_use_id: 'tu_1',
+      tool_response: 'file contents',
+    };
+    expect(call.tool_name).toBe('Read');
+  });
+
+  test('UserPromptExpansionHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').UserPromptExpansionHookInput = {
+      hook_event_name: 'UserPromptExpansion',
+      expansion_type: 'slash_command',
+      command_name: 'test',
+      command_args: '',
+      prompt: 'expanded prompt',
+      session_id: 'sess_1',
+    };
+    expect(input.hook_event_name).toBe('UserPromptExpansion');
+  });
+
+  test('UserPromptExpansionHookSpecificOutput is importable', () => {
+    const output: import('../../src/types/index.ts').UserPromptExpansionHookSpecificOutput = {
+      hookEventName: 'UserPromptExpansion',
+      additionalContext: 'more context',
+    };
+    expect(output.hookEventName).toBe('UserPromptExpansion');
+  });
+
+  test('SessionSummaryEntry is importable', () => {
+    const entry: import('../../src/types/index.ts').SessionSummaryEntry = {
+      sessionId: 'sess_1',
+      mtime: Date.now(),
+      data: { key: 'value' },
+    };
+    expect(entry.sessionId).toBe('sess_1');
+  });
+
+  test('AnyZodRawShape and InferShape are importable', () => {
+    // Type-level only — just checks that imports resolve
+    type _Shape = import('../../src/types/index.ts').AnyZodRawShape;
+    type _Inferred = import('../../src/types/index.ts').InferShape<Record<string, never>>;
+    expect(true).toBe(true);
+  });
+
+  test('AbortError is importable and instanceof Error', () => {
+    const err = new AbortError('aborted');
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe('aborted');
   });
 });

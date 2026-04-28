@@ -116,6 +116,9 @@ export type {
   PermissionRequestHookInput,
   PermissionRequestHookSpecificOutput,
   PostCompactHookInput,
+  PostToolBatchHookInput,
+  PostToolBatchHookSpecificOutput,
+  PostToolBatchToolCall,
   PostToolUseFailureHookInput,
   PostToolUseFailureHookSpecificOutput,
   PostToolUseHookInput,
@@ -137,6 +140,8 @@ export type {
   TaskCompletedHookInput,
   TaskCreatedHookInput,
   TeammateIdleHookInput,
+  UserPromptExpansionHookInput,
+  UserPromptExpansionHookSpecificOutput,
   UserPromptSubmitHookInput,
   UserPromptSubmitHookSpecificOutput,
   WorktreeCreateHookInput,
@@ -149,6 +154,8 @@ export type {
 // ============================================================================
 
 export type {
+  AnyZodRawShape,
+  InferShape,
   McpClaudeAIProxyServerConfig,
   McpHttpServerConfig,
   McpSdkServerConfig,
@@ -237,6 +244,7 @@ export type {
   SessionMutationOptions,
   SessionStore,
   SessionStoreEntry,
+  SessionSummaryEntry,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================

@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-04-24
+**Last Updated:** 2026-04-28
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -181,6 +181,17 @@
 | `importSessionToStore()` function | ✅ | Re-exported from official SDK (v0.2.113); E2E tested in session-utils.test.ts |
 | `deleteSession()` function | ✅ | Re-exported from official SDK (v0.2.113); E2E tested in session-utils.test.ts |
 | `SDKControlReadFileResponse` type | ⚠️ | Re-exported from official SDK (v0.2.119); response for `readFile()` control method |
+| `updatedToolOutput` on `PostToolUseHookSpecificOutput` | ⚠️ | New in v0.2.121; replaces tool output for any tool type (deprecates `updatedMCPToolOutput`) |
+| `PostToolBatchHookInput` type | ⚠️ | Re-exported (was missing); input for `PostToolBatch` hook event |
+| `PostToolBatchHookSpecificOutput` type | ⚠️ | Re-exported (was missing); output for `PostToolBatch` hook |
+| `PostToolBatchToolCall` type | ⚠️ | Re-exported (was missing); sub-type used in `PostToolBatchHookInput` |
+| `UserPromptExpansionHookInput` type | ⚠️ | Re-exported (was missing); input for `UserPromptExpansion` hook event |
+| `UserPromptExpansionHookSpecificOutput` type | ⚠️ | Re-exported (was missing); output for `UserPromptExpansion` hook |
+| `SessionSummaryEntry` type | ⚠️ | Re-exported (was missing); used with `foldSessionSummary()` |
+| `AnyZodRawShape` type | ⚠️ | Re-exported (was missing); Zod shape union used in `SdkMcpToolDefinition` |
+| `InferShape` type | ⚠️ | Re-exported (was missing); type helper for tool handler argument inference |
+| `AbortError` class | ⚠️ | Re-exported (was missing); users can now `catch (e) { if (e instanceof AbortError) }` |
+| `foldSessionSummary()` function | ⚠️ | Re-exported (was missing); pure helper for custom `SessionStore` implementations |
 | `SDKMirrorErrorMessage` type | ⚠️ | Re-exported from official SDK (v0.2.113); part of SDKMessage union |
 | `SDKMessageOrigin` type | ⚠️ | Re-exported from official SDK (v0.2.113); message origin discriminated union |
 | `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` constant | ⚠️ | Re-exported from official SDK (v0.2.113); cache boundary marker for systemPrompt arrays |
