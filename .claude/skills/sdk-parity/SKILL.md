@@ -24,31 +24,38 @@ Update `@anthropic-ai/claude-agent-sdk` to the target version (or latest), imple
 
 ## Step 3: Inspect New Types
 
-1. Read `node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts` — search for new `export declare type` entries
-2. Compare against current re-exports in `src/types/index.ts`
-3. Add missing re-exports to the appropriate section
-4. For types referenced in the `SDKMessage` union but NOT individually exported (no `export declare type` statement), define them locally with a comment explaining why — see `SDKRateLimitEvent` and `SDKPromptSuggestionMessage` as examples
-5. `bun run typecheck`
+Use the bundled diff script — don't write your own. It parses `sdk.d.ts` and compares against `src/types/index.ts`:
+
+```bash
+bun .claude/skills/sdk-parity/scripts/diff-exports.ts
+```
+
+Output sections:
+- **MISSING** — exported by the official SDK but not re-exported by us. Each is one of:
+  - A new type → add to the appropriate section in `src/types/index.ts`
+  - A runtime value we deliberately re-implement (e.g. `query`, `tool`, `createSdkMcpServer`) → leave alone
+  - A new runtime function we haven't wired up yet (e.g. session helpers) → implement separately, not via re-export
+- **EXTRA** — we re-export something that no longer exists upstream. Likely renamed or removed; investigate each one.
+
+For types referenced in the `SDKMessage` union but NOT individually `export declare type`'d in `sdk.d.ts`, the diff won't catch them. Define those locally with a comment explaining why — see `SDKRateLimitEvent` and `SDKPromptSuggestionMessage` as examples.
+
+After updating re-exports: `bun run typecheck`.
 
 ## Step 4: Verify Features with Capture CLI
 
-**CRITICAL — do this BEFORE implementing any new option.**
+**Do this BEFORE implementing any new option.** If we guess at how the official SDK encodes a feature, our wrapper silently disagrees with the CLI it's wrapping.
 
-Run the official SDK through capture-cli to see exact CLI args and stdin:
+Use the bundled capture script — pass the option you're investigating as JSON:
 
 ```bash
-rm -f /tmp/capture-*.json && bun -e "
-import { query } from '@anthropic-ai/claude-agent-sdk';
-const q = query({
-  prompt: 'test',
-  options: {
-    pathToClaudeCodeExecutable: './src/tools/capture-cli.cjs',
-    NEW_OPTION: VALUE,
-  }
-});
-for await (const msg of q) { if (msg.type === 'result') break; }
-" 2>/dev/null && cat /tmp/capture-*.json
+bun .claude/skills/sdk-parity/scripts/capture-official.ts '{"newOption":"value"}'
 ```
+
+Useful flags:
+- `--open` — capture our SDK instead of the official one
+- `--both` — capture both and print a diff of CLI args (handy once you've started implementing)
+- `--json` — raw capture JSON for piping/grepping
+- `--prompt <text>` — override the prompt (default: `test`)
 
 Classify each feature by checking the captured output:
 
@@ -212,6 +219,8 @@ env -u CLAUDECODE bun test tests/integration/<relevant-test>.test.ts
 | `src/core/control.ts` | Control request builders + inbound handler |
 | `src/api/QueryImpl.ts` | Query control methods |
 | `src/tools/capture-cli.cjs` | Mock CLI that captures args and stdin |
+| `.claude/skills/sdk-parity/scripts/diff-exports.ts` | Diff official `sdk.d.ts` vs our `src/types/index.ts` |
+| `.claude/skills/sdk-parity/scripts/capture-official.ts` | Capture CLI args + stdin for an option set (supports `--open` / `--both`) |
 | `tests/unit/spawn.test.ts` | Unit tests for `buildCliArgs` |
 | `tests/unit/type-exports.test.ts` | Type importability tests |
 | `tests/unit/compat/cli-args.test.ts` | CLI arg parity tests (open vs official) |

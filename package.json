@@ -46,6 +46,7 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "tsc -p tsconfig.build.json",
+    "bump": "bun scripts/bump-version.ts",
     "test": "bun test",
     "test:unit": "bun test tests/unit/",
     "test:integration": "bun test tests/integration/",
