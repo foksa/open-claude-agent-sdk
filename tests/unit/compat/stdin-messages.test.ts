@@ -1044,4 +1044,48 @@ describe('stdin message compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'skills: string[] in init message matches official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { skills: ['pdf', 'docx'] }),
+        capture(officialQuery, 'test', { skills: ['pdf', 'docx'] }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      expect(openInit?.request?.skills).toEqual(['pdf', 'docx']);
+      expect(officialInit?.request?.skills).toEqual(['pdf', 'docx']);
+
+      console.log('   skills: string[] init message match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'skills: all does NOT add skills field to init message (matches official SDK)',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { skills: 'all' }),
+        capture(officialQuery, 'test', { skills: 'all' }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      expect(openInit?.request?.skills).toBeUndefined();
+      expect(officialInit?.request?.skills).toBeUndefined();
+
+      console.log('   skills: all no init message skills field match');
+    },
+    { timeout: 60000 }
+  );
 });

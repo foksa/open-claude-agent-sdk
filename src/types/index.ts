@@ -244,6 +244,7 @@ export type {
   SessionMutationOptions,
   SessionStore,
   SessionStoreEntry,
+  SessionStoreFlush,
   SessionSummaryEntry,
 } from '@anthropic-ai/claude-agent-sdk';
 

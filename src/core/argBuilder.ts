@@ -69,7 +69,6 @@ const FLAG_MAP: FlagMapping[] = [
   { key: 'persistSession', flag: '--no-session-persistence', type: 'boolean-inverted' },
 
   // Array → comma-separated value
-  { key: 'allowedTools', flag: '--allowedTools', type: 'csv' },
   { key: 'disallowedTools', flag: '--disallowedTools', type: 'csv' },
   { key: 'betas', flag: '--betas', type: 'csv' },
 
@@ -123,6 +122,24 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
 
   // All simple flag mappings
   applyFlagMap(args, options);
+
+  // allowedTools + skills — merged into single --allowedTools CSV
+  // skills: 'all'      → appends 'Skill' to the CSV
+  // skills: string[]   → appends 'Skill(name)' per entry to the CSV
+  {
+    const skillEntries: string[] = [];
+    if (options.skills === 'all') {
+      skillEntries.push('Skill');
+    } else if (Array.isArray(options.skills) && options.skills.length > 0) {
+      for (const skill of options.skills) {
+        skillEntries.push(`Skill(${skill})`);
+      }
+    }
+    const allAllowedTools = [...(options.allowedTools ?? []), ...skillEntries];
+    if (allAllowedTools.length > 0) {
+      args.push('--allowedTools', allAllowedTools.join(','));
+    }
+  }
 
   // taskBudget — extract total from object: { total: number } → --task-budget <total>
   if (options.taskBudget) {

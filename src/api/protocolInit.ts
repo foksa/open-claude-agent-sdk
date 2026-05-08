@@ -68,6 +68,7 @@ export function sendProtocolInit(
     promptSuggestions?: boolean;
     agentProgressSummaries?: boolean;
     title?: string;
+    skills?: string[];
   } = {
     subtype: RequestSubtype.INITIALIZE,
     ...(systemPrompt !== undefined && { systemPrompt }),
@@ -82,6 +83,10 @@ export function sendProtocolInit(
       agentProgressSummaries: options.agentProgressSummaries,
     }),
     ...(options.title !== undefined && { title: options.title }),
+    ...(Array.isArray(options.skills) &&
+      options.skills.length > 0 && {
+        skills: options.skills,
+      }),
   };
 
   if (options.hooks) {

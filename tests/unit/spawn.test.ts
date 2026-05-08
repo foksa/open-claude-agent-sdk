@@ -93,6 +93,40 @@ describe('buildCliArgs', () => {
     expect(args).toContain('Read,Write,Bash');
   });
 
+  test('skills: all adds Skill to --allowedTools', () => {
+    const args = buildCliArgs({ skills: 'all' });
+
+    expect(args).toContain('--allowedTools');
+    expect(args).toContain('Skill');
+  });
+
+  test('skills: string[] adds Skill(name) entries to --allowedTools', () => {
+    const args = buildCliArgs({ skills: ['pdf', 'docx'] });
+
+    expect(args).toContain('--allowedTools');
+    expect(args).toContain('Skill(pdf),Skill(docx)');
+  });
+
+  test('skills: string[] appended after allowedTools in --allowedTools CSV', () => {
+    const args = buildCliArgs({ allowedTools: ['Bash', 'Read'], skills: ['pdf'] });
+
+    expect(args).toContain('--allowedTools');
+    expect(args).toContain('Bash,Read,Skill(pdf)');
+  });
+
+  test('skills: all appended after allowedTools in --allowedTools CSV', () => {
+    const args = buildCliArgs({ allowedTools: ['Bash'], skills: 'all' });
+
+    expect(args).toContain('--allowedTools');
+    expect(args).toContain('Bash,Skill');
+  });
+
+  test('does not include --allowedTools when neither allowedTools nor skills specified', () => {
+    const args = buildCliArgs({});
+
+    expect(args).not.toContain('--allowedTools');
+  });
+
   test('does not include --setting-sources when not specified', () => {
     const args = buildCliArgs({});
 

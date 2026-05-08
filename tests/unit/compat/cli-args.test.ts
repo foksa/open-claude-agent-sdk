@@ -616,4 +616,67 @@ describe('CLI arguments compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'skills: all adds Skill to --allowedTools, matches official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { skills: 'all' }),
+        capture(officialQuery, 'test', { skills: 'all' }),
+      ]);
+
+      const openIdx = open.args.indexOf('--allowedTools');
+      const officialIdx = official.args.indexOf('--allowedTools');
+
+      expect(openIdx).toBeGreaterThan(-1);
+      expect(officialIdx).toBeGreaterThan(-1);
+      expect(open.args[openIdx + 1]).toBe('Skill');
+      expect(official.args[officialIdx + 1]).toBe('Skill');
+
+      console.log('   skills: all --allowedTools Skill match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'skills: string[] adds Skill(name) to --allowedTools, matches official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { skills: ['pdf', 'docx'] }),
+        capture(officialQuery, 'test', { skills: ['pdf', 'docx'] }),
+      ]);
+
+      const openIdx = open.args.indexOf('--allowedTools');
+      const officialIdx = official.args.indexOf('--allowedTools');
+
+      expect(openIdx).toBeGreaterThan(-1);
+      expect(officialIdx).toBeGreaterThan(-1);
+      expect(open.args[openIdx + 1]).toBe('Skill(pdf),Skill(docx)');
+      expect(official.args[officialIdx + 1]).toBe('Skill(pdf),Skill(docx)');
+
+      console.log('   skills: string[] --allowedTools Skill(name) match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'skills: string[] combined with allowedTools matches official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { allowedTools: ['Bash', 'Read'], skills: ['pdf'] }),
+        capture(officialQuery, 'test', { allowedTools: ['Bash', 'Read'], skills: ['pdf'] }),
+      ]);
+
+      const openIdx = open.args.indexOf('--allowedTools');
+      const officialIdx = official.args.indexOf('--allowedTools');
+
+      expect(openIdx).toBeGreaterThan(-1);
+      expect(officialIdx).toBeGreaterThan(-1);
+      expect(open.args[openIdx + 1]).toBe('Bash,Read,Skill(pdf)');
+      expect(official.args[officialIdx + 1]).toBe('Bash,Read,Skill(pdf)');
+
+      console.log('   skills + allowedTools combined --allowedTools match');
+    },
+    { timeout: 60000 }
+  );
 });

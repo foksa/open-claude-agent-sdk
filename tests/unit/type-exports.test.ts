@@ -1263,3 +1263,24 @@ describe('v0.2.121 type re-exports', () => {
     expect(err.message).toBe('aborted');
   });
 });
+
+describe('v0.2.133 type re-exports', () => {
+  test('SessionStoreFlush is importable', () => {
+    const flush: import('../../src/types/index.ts').SessionStoreFlush = 'eager';
+    expect(flush).toBe('eager');
+  });
+
+  test('Options.skills accepts string array', () => {
+    const options: import('../../src/types/index.ts').Options = {
+      skills: ['pdf', 'docx'],
+    };
+    expect(options.skills).toEqual(['pdf', 'docx']);
+  });
+
+  test('Options.skills accepts all', () => {
+    const options: import('../../src/types/index.ts').Options = {
+      skills: 'all',
+    };
+    expect(options.skills).toBe('all');
+  });
+});

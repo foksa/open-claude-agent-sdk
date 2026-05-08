@@ -14,7 +14,7 @@
  * ```
  */
 
-export const version = '0.26.0';
+export const version = '0.27.0';
 
 export { query } from './api/query.ts';
 // Re-export all types (type-only, zero runtime cost)

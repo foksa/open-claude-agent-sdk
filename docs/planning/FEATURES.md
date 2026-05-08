@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-04-28
+**Last Updated:** 2026-05-08
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -61,6 +61,7 @@
 | `settingSources` | ✅ | Skills/commands loaded from fixtures |
 | `systemPrompt` | ✅ | String, preset, preset+append all tested |
 | `allowedTools` | ✅ | Tool restriction verified behaviorally |
+| `skills` | 🔌 | Appends Skill entries to --allowedTools + init message field; parity tested via compat tests |
 | `disallowedTools` | 🔌 | CLI flag verified, no behavioral test |
 | `tools` | 🔌 | CLI flag verified, no behavioral test |
 | `mcpServers` | ✅ | In-process SDK MCP servers tested E2E |
@@ -194,6 +195,7 @@
 | `foldSessionSummary()` function | ⚠️ | Re-exported (was missing); pure helper for custom `SessionStore` implementations |
 | `SDKMirrorErrorMessage` type | ⚠️ | Re-exported from official SDK (v0.2.113); part of SDKMessage union |
 | `SDKMessageOrigin` type | ⚠️ | Re-exported from official SDK (v0.2.113); message origin discriminated union |
+| `origin` on result messages | ⚠️ | `SDKResultSuccess`/`SDKResultError` gain optional `origin?: SDKMessageOrigin` (v0.2.126); type-only, forwarded via re-export |
 | `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` constant | ⚠️ | Re-exported from official SDK (v0.2.113); cache boundary marker for systemPrompt arrays |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
