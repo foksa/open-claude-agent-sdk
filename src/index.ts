@@ -3,13 +3,13 @@
  * A lightweight alternative to Claude Agent SDK - uses local CLI
  */
 
-export const version = '0.27.0';
+export const version = '0.28.0';
 
 // Session utilities — re-exported from official SDK (read/write JSONL files directly)
-// V2 Session API (unstable) — re-exported from official SDK
 export {
   AbortError,
   deleteSession,
+  filterEscalatingDefaultMode,
   foldSessionSummary,
   forkSession,
   getSessionInfo,
@@ -18,12 +18,10 @@ export {
   importSessionToStore,
   listSubagents,
   renameSession,
+  resolveSettings,
   SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
   startup,
   tagSession,
-  unstable_v2_createSession,
-  unstable_v2_prompt,
-  unstable_v2_resumeSession,
 } from '@anthropic-ai/claude-agent-sdk';
 export { query } from './api/query.ts';
 // MCP utilities — our own open source implementations

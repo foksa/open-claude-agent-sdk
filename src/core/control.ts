@@ -12,6 +12,7 @@
 import type { Writable } from 'node:stream';
 import {
   type ApplyFlagSettingsRequest,
+  type BackgroundTasksRequest,
   type ControlRequest,
   type ControlResponse,
   type GetContextUsageRequest,
@@ -62,7 +63,8 @@ export type OutboundControlRequest =
   | ReloadPluginsRequest
   | SeedReadStateRequest
   | GetContextUsageRequest
-  | ReadFileRequest;
+  | ReadFileRequest
+  | BackgroundTasksRequest;
 
 /**
  * Type-safe control request builder functions
@@ -142,6 +144,11 @@ export const ControlRequests = {
     path,
     ...(maxBytes !== undefined && { max_bytes: maxBytes }),
   }),
+
+  backgroundTasks: (toolUseId?: string): BackgroundTasksRequest => ({
+    subtype: RequestSubtype.BACKGROUND_TASKS,
+    ...(toolUseId !== undefined && { tool_use_id: toolUseId }),
+  }),
 };
 
 // ============================================================================
@@ -217,6 +224,7 @@ export class ControlProtocolHandler {
         case RequestSubtype.SEED_READ_STATE:
         case RequestSubtype.GET_CONTEXT_USAGE:
         case RequestSubtype.READ_FILE:
+        case RequestSubtype.BACKGROUND_TASKS:
           // These are sent FROM SDK TO CLI, not the other way around
           // If we receive them, just acknowledge
           this.sendSuccess(req.request_id, {});

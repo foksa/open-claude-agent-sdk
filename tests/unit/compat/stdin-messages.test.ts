@@ -1088,4 +1088,64 @@ describe('stdin message compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'backgroundTasks sends background_tasks control request matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.backgroundTasks();
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.backgroundTasks();
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'background_tasks');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'background_tasks');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   backgroundTasks stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'backgroundTasks with toolUseId sends tool_use_id matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.backgroundTasks('tu_abc123');
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.backgroundTasks('tu_abc123');
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'background_tasks');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'background_tasks');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        expect(openReq.request.tool_use_id).toBe('tu_abc123');
+        expect(officialReq.request.tool_use_id).toBe('tu_abc123');
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   backgroundTasks with toolUseId stdin messages match');
+    },
+    { timeout: 60000 }
+  );
 });

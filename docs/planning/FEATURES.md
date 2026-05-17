@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-05-08
+**Last Updated:** 2026-05-17
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -46,6 +46,7 @@
 | `seedReadState()` | 🔌 | Sends control request matching official SDK (v0.2.83) |
 | `applyFlagSettings()` | 🔌 | Sends control request matching official SDK; no behavioral test |
 | `getContextUsage()` | ✅ | Returns context usage breakdown; E2E tested (v0.2.86) |
+| `backgroundTasks()` | 🔌 | Sends background_tasks control request; protocol parity tested (v0.3.142) |
 | **Query Options** |
 | `prompt` | ✅ | String and AsyncIterable |
 | `permissionMode` | ✅ | Multiple modes tested behaviorally |
@@ -193,6 +194,11 @@
 | `InferShape` type | ⚠️ | Re-exported (was missing); type helper for tool handler argument inference |
 | `AbortError` class | ⚠️ | Re-exported (was missing); users can now `catch (e) { if (e instanceof AbortError) }` |
 | `foldSessionSummary()` function | ⚠️ | Re-exported (was missing); pure helper for custom `SessionStore` implementations |
+| `SDKPermissionDeniedMessage` type | ⚠️ | Re-exported from official SDK (v0.3.142); permission_denied system message |
+| `resolveSettings()` function | ⚠️ | Re-exported from official SDK (v0.2.136); reads MDM/plist/file settings without spawning CLI |
+| `filterEscalatingDefaultMode()` function | ⚠️ | Re-exported from official SDK (v0.2.136); utility to remove managed-only settings |
+| `ResolvedSettings` / `ResolvedSettingSource` / `ResolveSettingsOptions` types | ⚠️ | Re-exported from official SDK (v0.2.136); types for `resolveSettings()` |
+| `PolicySettingsOrigin` / `ProvenanceEntry` types | ⚠️ | Re-exported from official SDK (v0.2.136); provenance tracking in ResolvedSettings |
 | `SDKMirrorErrorMessage` type | ⚠️ | Re-exported from official SDK (v0.2.113); part of SDKMessage union |
 | `SDKMessageOrigin` type | ⚠️ | Re-exported from official SDK (v0.2.113); message origin discriminated union |
 | `origin` on result messages | ⚠️ | `SDKResultSuccess`/`SDKResultError` gain optional `origin?: SDKMessageOrigin` (v0.2.126); type-only, forwarded via re-export |
@@ -212,7 +218,6 @@
 | Feature | Priority | Notes |
 |---------|----------|-------|
 | `rewindFiles()` | LOW | Stub throws; CLI has no protocol for this |
-| V2 API (`unstable_v2_*`) | LOW | Experimental preview in official SDK |
 | Context compaction trigger | LOW | CLI compacts automatically |
 | Agent teams | LOW | Experimental (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) |
 

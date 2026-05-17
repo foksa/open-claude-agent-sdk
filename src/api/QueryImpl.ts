@@ -224,6 +224,13 @@ export class QueryImpl implements Query {
     await this.controlManager.sendControlRequestWithResponse(ControlRequests.interrupt());
   }
 
+  async backgroundTasks(toolUseId?: string): Promise<boolean> {
+    const response = await this.controlManager.sendControlRequestWithResponse<{
+      backgrounded?: boolean;
+    }>(ControlRequests.backgroundTasks(toolUseId));
+    return response.backgrounded ?? true;
+  }
+
   async stopTask(taskId: string): Promise<void> {
     await this.controlManager.sendControlRequestWithResponse(ControlRequests.stopTask(taskId));
   }

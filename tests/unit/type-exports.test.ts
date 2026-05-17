@@ -1284,3 +1284,60 @@ describe('v0.2.133 type re-exports', () => {
     expect(options.skills).toBe('all');
   });
 });
+
+describe('v0.3.142 type re-exports', () => {
+  test('SDKPermissionDeniedMessage is importable and part of SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKPermissionDeniedMessage = {
+      type: 'system',
+      subtype: 'permission_denied',
+      tool_name: 'Write',
+      tool_use_id: 'tu_123',
+      message: 'Permission denied: Write not allowed',
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKPermissionDeniedMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.subtype).toBe('permission_denied');
+    expect(msg.tool_name).toBe('Write');
+    // Verify it's assignable to SDKMessage
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('ResolvedSettings is importable', () => {
+    const resolved: import('../../src/types/index.ts').ResolvedSettings = {
+      effective: {} as import('../../src/types/index.ts').Settings,
+      provenance: {},
+      sources: [{ source: 'user', settings: {} as import('../../src/types/index.ts').Settings }],
+    };
+    expect(resolved.sources).toHaveLength(1);
+    expect(resolved.sources[0].source).toBe('user');
+  });
+
+  test('ResolvedSettingSource accepts managed and flag', () => {
+    const managed: import('../../src/types/index.ts').ResolvedSettingSource = 'managed';
+    const flag: import('../../src/types/index.ts').ResolvedSettingSource = 'flag';
+    const user: import('../../src/types/index.ts').ResolvedSettingSource = 'user';
+    expect(managed).toBe('managed');
+    expect(flag).toBe('flag');
+    expect(user).toBe('user');
+  });
+
+  test('PolicySettingsOrigin accepts valid origins', () => {
+    const plist: import('../../src/types/index.ts').PolicySettingsOrigin = 'plist';
+    const hklm: import('../../src/types/index.ts').PolicySettingsOrigin = 'hklm';
+    const remote: import('../../src/types/index.ts').PolicySettingsOrigin = 'remote';
+    expect(plist).toBe('plist');
+    expect(hklm).toBe('hklm');
+    expect(remote).toBe('remote');
+  });
+
+  test('filterEscalatingDefaultMode is importable from main entry', () => {
+    const { filterEscalatingDefaultMode } = require('../../src/index.ts');
+    expect(typeof filterEscalatingDefaultMode).toBe('function');
+  });
+
+  test('resolveSettings is importable from main entry', () => {
+    const { resolveSettings } = require('../../src/index.ts');
+    expect(typeof resolveSettings).toBe('function');
+  });
+});

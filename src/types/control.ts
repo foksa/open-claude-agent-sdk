@@ -43,6 +43,7 @@ export const RequestSubtype = {
   GET_CONTEXT_USAGE: 'get_context_usage',
   ELICITATION: 'elicitation',
   READ_FILE: 'read_file',
+  BACKGROUND_TASKS: 'background_tasks',
 } as const;
 
 /** Control response subtypes */
@@ -105,7 +106,8 @@ export type ControlRequestInner =
   | SeedReadStateRequest
   | GetContextUsageRequest
   | ElicitationControlRequest
-  | ReadFileRequest;
+  | ReadFileRequest
+  | BackgroundTasksRequest;
 
 export type CanUseToolRequest = {
   subtype: typeof RequestSubtype.CAN_USE_TOOL;
@@ -230,6 +232,11 @@ export type ElicitationControlRequest = {
   title?: string;
   display_name?: string;
   description?: string;
+};
+
+export type BackgroundTasksRequest = {
+  subtype: typeof RequestSubtype.BACKGROUND_TASKS;
+  tool_use_id?: string;
 };
 
 /**
