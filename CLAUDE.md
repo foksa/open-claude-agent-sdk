@@ -78,8 +78,9 @@ Releases are automated. Do **not** run `npm publish` manually.
 
 1. `bun run bump X.Y.Z` — updates the version in `package.json`, `src/index.ts`, and `src/query.ts` (these must stay in sync; `tests/unit/index.test.ts` enforces it).
 2. Commit.
-3. `gh release create vX.Y.Z --generate-notes` (or via the GitHub UI).
-4. `.github/workflows/publish.yml` runs CI, builds, and publishes to npm with provenance.
+3. `git push` — **MUST push before creating the release.** The release tag is created on whatever GitHub's `main` points to; if the version bump commit isn't pushed, the tag targets the wrong commit and npm publish will fail.
+4. `gh release create vX.Y.Z --generate-notes` (or via the GitHub UI).
+5. `.github/workflows/publish.yml` runs CI, builds, and publishes to npm with provenance.
 
 ## Feature Status
 
