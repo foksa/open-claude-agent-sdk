@@ -93,6 +93,7 @@ export type {
 
 export type {
   AsyncHookJSONOutput,
+  BackgroundTaskSummary,
   BaseHookInput,
   ConfigChangeHookInput,
   CwdChangedHookInput,
@@ -127,6 +128,7 @@ export type {
   PreCompactHookInput,
   PreToolUseHookInput,
   PreToolUseHookSpecificOutput,
+  SessionCronSummary,
   SessionEndHookInput,
   SessionStartHookInput,
   SessionStartHookSpecificOutput,
@@ -337,6 +339,7 @@ export type {
 } from '@anthropic-ai/claude-agent-sdk';
 
 export {
+  AbortError,
   InMemorySessionStore,
   SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
 } from '@anthropic-ai/claude-agent-sdk';

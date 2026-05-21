@@ -1341,3 +1341,75 @@ describe('v0.3.142 type re-exports', () => {
     expect(typeof resolveSettings).toBe('function');
   });
 });
+
+describe('v0.3.144 type re-exports', () => {
+  test('BackgroundTaskSummary is importable', () => {
+    const summary: import('../../src/types/index.ts').BackgroundTaskSummary = {
+      id: 'task-1',
+      type: 'shell',
+      status: 'running',
+      description: 'Running tests',
+      command: 'bun test',
+    };
+    expect(summary.id).toBe('task-1');
+    expect(summary.type).toBe('shell');
+    expect(summary.command).toBe('bun test');
+  });
+
+  test('SessionCronSummary is importable', () => {
+    const cron: import('../../src/types/index.ts').SessionCronSummary = {
+      id: 'cron-1',
+      schedule: '0 9 * * 1-5',
+      recurring: true,
+      prompt: 'Run daily standup',
+    };
+    expect(cron.id).toBe('cron-1');
+    expect(cron.schedule).toBe('0 9 * * 1-5');
+    expect(cron.recurring).toBe(true);
+  });
+
+  test('SDKResultSuccess includes api_error_status field', () => {
+    const result: import('../../src/types/index.ts').SDKResultSuccess = {
+      type: 'result',
+      subtype: 'success',
+      duration_ms: 1000,
+      duration_api_ms: 800,
+      is_error: false,
+      api_error_status: 429,
+      num_turns: 1,
+      result: 'done',
+      stop_reason: 'end_turn',
+      total_cost_usd: 0.001,
+      usage: {
+        input_tokens: 10,
+        output_tokens: 5,
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: 0,
+      },
+      modelUsage: {},
+      permission_denials: [],
+      uuid: 'uuid-1' as import('../../src/types/index.ts').SDKResultSuccess['uuid'],
+      session_id: 'session-1',
+    };
+    expect(result.api_error_status).toBe(429);
+  });
+
+  test('SDKAssistantMessageError accepts model_not_found', () => {
+    const error: import('../../src/types/index.ts').SDKAssistantMessageError = 'model_not_found';
+    expect(error).toBe('model_not_found');
+  });
+
+  test('StopHookInput accepts background_tasks and session_crons', () => {
+    const input: import('../../src/types/index.ts').StopHookInput = {
+      session_id: 'session-1',
+      transcript_path: '/tmp/t.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'Stop',
+      stop_hook_active: false,
+      background_tasks: [{ id: 'task-1', type: 'shell', status: 'done', description: 'ran' }],
+      session_crons: [{ id: 'cron-1', schedule: '0 9 * * *', recurring: false, prompt: 'wake' }],
+    };
+    expect(input.background_tasks).toHaveLength(1);
+    expect(input.session_crons).toHaveLength(1);
+  });
+});

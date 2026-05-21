@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-05-17
+**Last Updated:** 2026-05-21
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -195,6 +195,10 @@
 | `AbortError` class | ⚠️ | Re-exported (was missing); users can now `catch (e) { if (e instanceof AbortError) }` |
 | `foldSessionSummary()` function | ⚠️ | Re-exported (was missing); pure helper for custom `SessionStore` implementations |
 | `SDKPermissionDeniedMessage` type | ⚠️ | Re-exported from official SDK (v0.3.142); permission_denied system message |
+| `BackgroundTaskSummary` type | ⚠️ | Re-exported from official SDK (v0.3.144); shape of in-flight tasks in `StopHookInput`/`SubagentStopHookInput` |
+| `SessionCronSummary` type | ⚠️ | Re-exported from official SDK (v0.3.144); shape of session-scoped cron tasks in `StopHookInput`/`SubagentStopHookInput` |
+| `api_error_status` on result messages | ⚠️ | `SDKResultSuccess` gains optional `api_error_status?: number \| null` (v0.3.144); type-only, forwarded via re-export |
+| `model_not_found` error string | ⚠️ | `SDKAssistantMessageError` union gains `'model_not_found'` value (v0.3.144); type-only, forwarded via re-export |
 | `resolveSettings()` function | ⚠️ | Re-exported from official SDK (v0.2.136); reads MDM/plist/file settings without spawning CLI |
 | `filterEscalatingDefaultMode()` function | ⚠️ | Re-exported from official SDK (v0.2.136); utility to remove managed-only settings |
 | `ResolvedSettings` / `ResolvedSettingSource` / `ResolveSettingsOptions` types | ⚠️ | Re-exported from official SDK (v0.2.136); types for `resolveSettings()` |
