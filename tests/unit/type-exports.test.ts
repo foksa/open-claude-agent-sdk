@@ -1413,3 +1413,74 @@ describe('v0.3.144 type re-exports', () => {
     expect(input.session_crons).toHaveLength(1);
   });
 });
+
+describe('v0.3.152 type re-exports', () => {
+  test('MessageDisplayHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').MessageDisplayHookInput = {
+      session_id: 'session-1',
+      transcript_path: '/tmp/t.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'MessageDisplay',
+      turn_id: 'turn-abc',
+      message_id: 'msg-xyz',
+      index: 0,
+      final: false,
+      delta: 'Hello, world!\n',
+    };
+    expect(input.hook_event_name).toBe('MessageDisplay');
+    expect(input.delta).toBe('Hello, world!\n');
+    expect(input.final).toBe(false);
+    expect(input.index).toBe(0);
+  });
+
+  test('MessageDisplayHookSpecificOutput is importable', () => {
+    const output: import('../../src/types/index.ts').MessageDisplayHookSpecificOutput = {
+      hookEventName: 'MessageDisplay',
+      displayContent: 'Transformed text',
+    };
+    expect(output.hookEventName).toBe('MessageDisplay');
+    expect(output.displayContent).toBe('Transformed text');
+  });
+
+  test('MessageDisplayHookSpecificOutput displayContent is optional', () => {
+    const output: import('../../src/types/index.ts').MessageDisplayHookSpecificOutput = {
+      hookEventName: 'MessageDisplay',
+    };
+    expect(output.displayContent).toBeUndefined();
+  });
+
+  test('SessionStartHookSpecificOutput has reloadSkills and sessionTitle fields', () => {
+    const output: import('../../src/types/index.ts').SessionStartHookSpecificOutput = {
+      hookEventName: 'SessionStart',
+      sessionTitle: 'My Session',
+      reloadSkills: true,
+    };
+    expect(output.sessionTitle).toBe('My Session');
+    expect(output.reloadSkills).toBe(true);
+  });
+
+  test('HOOK_EVENTS includes MessageDisplay', () => {
+    const { HOOK_EVENTS } = require('../../src/types/index.ts');
+    expect(HOOK_EVENTS).toContain('MessageDisplay');
+  });
+
+  test('HookEvent type accepts MessageDisplay', () => {
+    const event: import('../../src/types/index.ts').HookEvent = 'MessageDisplay';
+    expect(event).toBe('MessageDisplay');
+  });
+
+  test('HookInput union includes MessageDisplayHookInput', () => {
+    const input: import('../../src/types/index.ts').HookInput = {
+      session_id: 'session-1',
+      transcript_path: '/tmp/t.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'MessageDisplay',
+      turn_id: 'turn-abc',
+      message_id: 'msg-xyz',
+      index: 0,
+      final: true,
+      delta: '',
+    };
+    expect(input.hook_event_name).toBe('MessageDisplay');
+  });
+});

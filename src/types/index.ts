@@ -111,6 +111,8 @@ export type {
   HookJSONOutput,
   HookPermissionDecision,
   InstructionsLoadedHookInput,
+  MessageDisplayHookInput,
+  MessageDisplayHookSpecificOutput,
   NotificationHookInput,
   NotificationHookSpecificOutput,
   PermissionDeniedHookInput,

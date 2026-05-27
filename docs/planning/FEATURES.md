@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-05-21
+**Last Updated:** 2026-05-27
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -199,6 +199,10 @@
 | `SessionCronSummary` type | ⚠️ | Re-exported from official SDK (v0.3.144); shape of session-scoped cron tasks in `StopHookInput`/`SubagentStopHookInput` |
 | `api_error_status` on result messages | ⚠️ | `SDKResultSuccess` gains optional `api_error_status?: number \| null` (v0.3.144); type-only, forwarded via re-export |
 | `model_not_found` error string | ⚠️ | `SDKAssistantMessageError` union gains `'model_not_found'` value (v0.3.144); type-only, forwarded via re-export |
+| `MessageDisplayHookInput` type | ⚠️ | Re-exported from official SDK (v0.3.152); hook input for new `MessageDisplay` event — fired per-flush as assistant message streams, carries `turn_id`, `message_id`, `index`, `final`, `delta` |
+| `MessageDisplayHookSpecificOutput` type | ⚠️ | Re-exported from official SDK (v0.3.152); hook output for `MessageDisplay` event — optional `displayContent` replaces on-screen delta without changing the stored message |
+| `SessionStartHookSpecificOutput.reloadSkills` | ⚠️ | Added in v0.3.152; `reloadSkills?: boolean` re-scans skill directories after SessionStart hooks so hook-installed skills are available immediately |
+| `SessionStartHookSpecificOutput.sessionTitle` | ⚠️ | Added in v0.3.152; `sessionTitle?: string` lets hooks set the session title programmatically |
 | `resolveSettings()` function | ⚠️ | Re-exported from official SDK (v0.2.136); reads MDM/plist/file settings without spawning CLI |
 | `filterEscalatingDefaultMode()` function | ⚠️ | Re-exported from official SDK (v0.2.136); utility to remove managed-only settings |
 | `ResolvedSettings` / `ResolvedSettingSource` / `ResolveSettingsOptions` types | ⚠️ | Re-exported from official SDK (v0.2.136); types for `resolveSettings()` |
