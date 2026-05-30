@@ -67,6 +67,7 @@ export type {
   SDKTaskProgressMessage,
   SDKTaskStartedMessage,
   SDKTaskUpdatedMessage,
+  SDKThinkingTokensMessage,
   SDKToolProgressMessage,
   SDKToolUseSummaryMessage,
   SDKUserMessage,

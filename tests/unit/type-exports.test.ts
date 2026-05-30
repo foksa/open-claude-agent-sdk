@@ -1484,3 +1484,33 @@ describe('v0.3.152 type re-exports', () => {
     expect(input.hook_event_name).toBe('MessageDisplay');
   });
 });
+
+describe('v0.3.158 type re-exports', () => {
+  test('SDKThinkingTokensMessage is importable', () => {
+    const msg: import('../../src/types/index.ts').SDKThinkingTokensMessage = {
+      type: 'system',
+      subtype: 'thinking_tokens',
+      estimated_tokens: 150,
+      estimated_tokens_delta: 10,
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKThinkingTokensMessage['uuid'],
+      session_id: 'session-abc',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('thinking_tokens');
+    expect(msg.estimated_tokens).toBe(150);
+    expect(msg.estimated_tokens_delta).toBe(10);
+  });
+
+  test('SDKThinkingTokensMessage is assignable to SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKThinkingTokensMessage = {
+      type: 'system',
+      subtype: 'thinking_tokens',
+      estimated_tokens: 200,
+      estimated_tokens_delta: 5,
+      uuid: 'uuid-456' as import('../../src/types/index.ts').SDKThinkingTokensMessage['uuid'],
+      session_id: 'session-def',
+    };
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+});
