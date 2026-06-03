@@ -253,6 +253,7 @@ export type ControlResponseSuccess = {
   subtype: typeof ResponseSubtype.SUCCESS;
   request_id: string;
   response?: Record<string, unknown>;
+  pending_permission_requests?: ControlRequest[];
 };
 
 export type ControlResponseError = {

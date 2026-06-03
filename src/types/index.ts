@@ -35,6 +35,7 @@ export type {
   SDKAssistantMessage,
   SDKAssistantMessageError,
   SDKAuthStatusMessage,
+  SDKCommandsChangedMessage,
   SDKCompactBoundaryMessage,
   SDKControlInitializeResponse,
   SDKControlRequest,

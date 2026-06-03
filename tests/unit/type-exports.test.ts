@@ -1514,3 +1514,41 @@ describe('v0.3.158 type re-exports', () => {
     expect(sdkMsg.type).toBe('system');
   });
 });
+
+describe('v0.3.161 type re-exports', () => {
+  test('SDKCommandsChangedMessage is importable', () => {
+    const msg: import('../../src/types/index.ts').SDKCommandsChangedMessage = {
+      type: 'system',
+      subtype: 'commands_changed',
+      commands: [{ name: 'review', description: 'Review code', argumentHint: '' }],
+      uuid: 'uuid-789' as import('../../src/types/index.ts').SDKCommandsChangedMessage['uuid'],
+      session_id: 'session-ghi',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('commands_changed');
+    expect(msg.commands).toHaveLength(1);
+  });
+
+  test('SDKCommandsChangedMessage is assignable to SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKCommandsChangedMessage = {
+      type: 'system',
+      subtype: 'commands_changed',
+      commands: [],
+      uuid: 'uuid-101' as import('../../src/types/index.ts').SDKCommandsChangedMessage['uuid'],
+      session_id: 'session-jkl',
+    };
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('ControlResponseSuccess accepts pending_permission_requests', () => {
+    const success: import('../../src/types/control.ts').ControlResponseSuccess = {
+      subtype: 'success',
+      request_id: 'req-001',
+      response: {},
+      pending_permission_requests: [],
+    };
+    expect(success.subtype).toBe('success');
+    expect(success.pending_permission_requests).toEqual([]);
+  });
+});

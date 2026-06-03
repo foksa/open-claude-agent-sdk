@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-05-30
+**Last Updated:** 2026-06-03
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -204,6 +204,9 @@
 | `SessionStartHookSpecificOutput.reloadSkills` | ⚠️ | Added in v0.3.152; `reloadSkills?: boolean` re-scans skill directories after SessionStart hooks so hook-installed skills are available immediately |
 | `SessionStartHookSpecificOutput.sessionTitle` | ⚠️ | Added in v0.3.152; `sessionTitle?: string` lets hooks set the session title programmatically |
 | `SDKThinkingTokensMessage` type | ⚠️ | Re-exported from official SDK (v0.3.158); live thinking-token estimate streamed during redacted-thinking phase; carries `estimated_tokens` and `estimated_tokens_delta` |
+| `SDKCommandsChangedMessage` type | ⚠️ | Re-exported from official SDK (v0.3.161); fire-and-forget push of the full slash-command list after a mid-session change; clients should replace their cached command list with this payload |
+| `pending_permission_requests` on `ControlResponseSuccess` | ⚠️ | Added in v0.3.161; mirrors the field on `ControlResponseError`; sent on `initialize` response so a client joining an already-initialized session learns about in-flight permission prompts |
+| Idempotent `initialize` | ✅ | Added in v0.3.161; second `initialize` returns same success payload instead of error; handled by CLI, no SDK changes needed |
 | `resolveSettings()` function | ⚠️ | Re-exported from official SDK (v0.2.136); reads MDM/plist/file settings without spawning CLI |
 | `filterEscalatingDefaultMode()` function | ⚠️ | Re-exported from official SDK (v0.2.136); utility to remove managed-only settings |
 | `ResolvedSettings` / `ResolvedSettingSource` / `ResolveSettingsOptions` types | ⚠️ | Re-exported from official SDK (v0.2.136); types for `resolveSettings()` |

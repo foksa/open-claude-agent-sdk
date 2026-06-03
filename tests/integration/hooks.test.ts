@@ -3,8 +3,15 @@
  * Same tests run with both open and official SDKs
  */
 
-import { expect } from 'bun:test';
-import type { HookCallbackMatcher, HookInput, PreToolUseHookInput } from '../../src/types/index.ts';
+import { expect, test } from 'bun:test';
+import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
+import { query as openQuery } from '../../src/api/query.ts';
+import type {
+  HookCallbackMatcher,
+  HookInput,
+  PreToolUseHookInput,
+  SDKMessage,
+} from '../../src/types/index.ts';
 import { createSdkMcpServer, tool } from '../../src/types/index.ts';
 import { runWithSDK, testWithBothSDKs } from './comparison-utils.ts';
 
@@ -469,3 +476,134 @@ testWithBothSDKs(
   },
   120000
 );
+
+// =============================================================================
+// Abort signal inside PostToolUse hook (regression for v0.3.160 fix)
+// =============================================================================
+
+testWithBothSDKs(
+  'aborting abortController inside PostToolUse hook does not hang (v0.3.160 regression)',
+  async (sdk) => {
+    const abortController = new AbortController();
+    let hookFireCount = 0;
+    const messages: SDKMessage[] = [];
+    const queryFn = sdk === 'open' ? openQuery : officialQuery;
+
+    const hooks: Record<string, HookCallbackMatcher[]> = {
+      PostToolUse: [
+        {
+          hooks: [
+            async (_input, _toolUseId, _context) => {
+              hookFireCount++;
+              // Abort from inside the hook — this is the scenario fixed in v0.3.160.
+              // Before the fix, the process would hang here indefinitely.
+              abortController.abort();
+              return {};
+            },
+          ],
+        },
+      ],
+    };
+
+    const queryPromise = (async () => {
+      try {
+        for await (const msg of queryFn({
+          prompt: 'Read the package.json file',
+          options: {
+            model: 'haiku',
+            settingSources: [],
+            maxTurns: 5,
+            permissionMode: 'default',
+            canUseTool: async (_toolName: string, input: Record<string, unknown>) => ({
+              behavior: 'allow' as const,
+              updatedInput: input,
+            }),
+            abortController,
+            hooks,
+          },
+        })) {
+          messages.push(msg);
+          if (msg.type === 'result') break;
+        }
+      } catch {
+        // Abort may surface as an error — acceptable, as long as it doesn't hang
+      }
+    })();
+
+    // 20s inner timeout — tighter than the outer 60s test timeout so we get a clear
+    // "hung" error message rather than a generic test timeout.
+    const hangGuard = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`[${sdk}] query hung for 20s after PostToolUse abort`)),
+        20000
+      )
+    );
+
+    await Promise.race([queryPromise, hangGuard]);
+
+    console.log(
+      `   [${sdk}] hook fires: ${hookFireCount}, messages: ${messages.length}, has result: ${messages.some((m) => m.type === 'result')}`
+    );
+  },
+  60000
+);
+
+// Our SDK translates abortController.abort() into an interrupt() control request,
+// which lets the CLI finish gracefully and emit a result message. The official SDK
+// closes the stream immediately on abort, racing past the CLI's final message.
+test('[open] aborting abortController inside PostToolUse hook still delivers result message', async () => {
+  const abortController = new AbortController();
+  let hookFireCount = 0;
+  const messages: SDKMessage[] = [];
+
+  const hooks: Record<string, HookCallbackMatcher[]> = {
+    PostToolUse: [
+      {
+        hooks: [
+          async (_input, _toolUseId, _context) => {
+            hookFireCount++;
+            abortController.abort();
+            return {};
+          },
+        ],
+      },
+    ],
+  };
+
+  const queryPromise = (async () => {
+    try {
+      for await (const msg of openQuery({
+        prompt: 'Read the package.json file',
+        options: {
+          model: 'haiku',
+          settingSources: [],
+          maxTurns: 5,
+          permissionMode: 'default',
+          canUseTool: async (_toolName: string, input: Record<string, unknown>) => ({
+            behavior: 'allow' as const,
+            updatedInput: input,
+          }),
+          abortController,
+          hooks,
+        },
+      })) {
+        messages.push(msg);
+        if (msg.type === 'result') break;
+      }
+    } catch {}
+  })();
+
+  const hangGuard = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('query hung for 20s after PostToolUse abort')), 20000)
+  );
+
+  await Promise.race([queryPromise, hangGuard]);
+
+  console.log(
+    `   [open] hook fires: ${hookFireCount}, messages: ${messages.length}, has result: ${messages.some((m) => m.type === 'result')}`
+  );
+
+  if (hookFireCount > 0) {
+    expect(messages.some((m) => m.type === 'result')).toBe(true);
+  }
+}, 60000);
