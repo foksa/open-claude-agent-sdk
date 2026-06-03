@@ -25,7 +25,7 @@ for await (const message of result) {
 
 ### `systemPrompt`
 
-**Type:** `string | { type: 'preset'; preset: 'claude_code'; append?: string }`
+**Type:** `string | string[] | { type: 'preset'; preset: 'claude_code'; append?: string; excludeDynamicSections?: boolean }`
 
 **Default:** `undefined` (uses CLI default)
 
@@ -37,12 +37,27 @@ options: {
   systemPrompt: 'You are a helpful coding assistant that only writes Python.'
 }
 
+// Array form with cache boundaries (use SYSTEM_PROMPT_DYNAMIC_BOUNDARY to split static/dynamic sections)
+import { SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from 'open-claude-agent-sdk';
+options: {
+  systemPrompt: ['Static context that gets cached.', SYSTEM_PROMPT_DYNAMIC_BOUNDARY, 'Dynamic per-request context.']
+}
+
 // Default Claude Code prompt with additions
 options: {
   systemPrompt: {
     type: 'preset',
     preset: 'claude_code',
     append: 'Always explain your reasoning step by step.'
+  }
+}
+
+// Preset without dynamic sections (omits date, cwd, etc.)
+options: {
+  systemPrompt: {
+    type: 'preset',
+    preset: 'claude_code',
+    excludeDynamicSections: true
   }
 }
 ```
@@ -123,7 +138,7 @@ options: {
 
 ### `permissionMode`
 
-**Type:** `'default' | 'acceptEdits' | 'bypassPermissions' | 'plan'`
+**Type:** `'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' | 'dontAsk' | 'auto'`
 
 **Default:** `'default'`
 
@@ -135,6 +150,8 @@ Permission mode for the session.
 | `'acceptEdits'` | Auto-accept file edit operations |
 | `'bypassPermissions'` | Bypass all permission checks (requires `allowDangerouslySkipPermissions`) |
 | `'plan'` | Planning mode only (no tool execution) |
+| `'dontAsk'` | Never prompt the user for permissions |
+| `'auto'` | Automatic permission handling |
 
 ```typescript
 options: {
@@ -419,8 +436,130 @@ options: {
 
 ---
 
-## Not Supported
+## Additional Options
 
-| Option | Reason |
-|--------|--------|
-| `enableFileCheckpointing` | No CLI protocol support |
+Less commonly used options. All are pass-through — the SDK forwards them to the CLI via flags or the init message.
+
+### `agent`
+
+**Type:** `string` — Agent name to use for the main thread.
+
+### `continue`
+
+**Type:** `boolean` — Continue the most recent conversation (equivalent to `resume` with the last session ID).
+
+### `effort`
+
+**Type:** `'low' | 'medium' | 'high' | 'xhigh' | 'max'` — Model effort level. Lower effort reduces cost; higher effort increases reasoning depth.
+
+```typescript
+options: { effort: 'low' }
+```
+
+### `enableFileCheckpointing`
+
+**Type:** `boolean` — Track file checkpoints for use with `rewindFiles()`.
+
+### `env`
+
+**Type:** `Record<string, string>` — Environment variables for the CLI subprocess. **Replaces** `process.env` (does not merge).
+
+```typescript
+options: { env: { ANTHROPIC_API_KEY: 'sk-...' } }
+```
+
+### `executable`
+
+**Type:** `'bun' | 'node' | 'deno'` — JavaScript runtime to invoke the CLI with. Defaults to `node`.
+
+### `executableArgs`
+
+**Type:** `string[]` — Additional arguments passed to the runtime executable before the CLI script.
+
+### `extraArgs`
+
+**Type:** `string[]` — Raw CLI flag pass-through. Appended verbatim to the CLI command.
+
+```typescript
+options: { extraArgs: ['--some-undocumented-flag', 'value'] }
+```
+
+### `fallbackModel`
+
+**Type:** `string` — Model to use when the primary model is overloaded.
+
+### `forwardSubagentText`
+
+**Type:** `boolean` — Forward subagent text and thinking blocks to the parent stream.
+
+### `forkSession`
+
+**Type:** `string` — Resume the given session ID as a new fork (new session ID, same history).
+
+### `loadTimeoutMs`
+
+**Type:** `number` — Timeout in milliseconds for `sessionStore` load operations.
+
+### `managedSettings`
+
+**Type:** `object` — Policy-tier settings from a parent process (MDM/enterprise). Merged at the policy layer, not the user layer.
+
+### `onElicitation`
+
+**Type:** `function` — Callback invoked when an MCP server sends an elicitation request.
+
+### `permissionPromptToolName`
+
+**Type:** `string` — MCP tool name to use for handling permission prompts instead of the default CLI dialog.
+
+### `planModeInstructions`
+
+**Type:** `string` — Custom workflow instructions injected when the session is in plan mode.
+
+### `plugins`
+
+**Type:** `string[]` — Local plugin directory paths to load.
+
+### `resumeSessionAt`
+
+**Type:** `string` — Resume the session starting from a specific message UUID.
+
+### `sessionStore`
+
+**Type:** `SessionStore` — External store that receives transcript mirrors as messages arrive. See `InMemorySessionStore` for a reference implementation.
+
+### `sessionStoreFlush`
+
+**Type:** `boolean` — When `true`, flushes the `sessionStore` synchronously after each message.
+
+### `skills`
+
+**Type:** `'all' | string[]` — Skills to enable. `'all'` enables every discovered skill; an array enables specific skills by name.
+
+### `spawnClaudeCodeProcess`
+
+**Type:** `function` — Custom spawn function for use in VMs, containers, or sandboxes where the default `child_process.spawn` is unavailable.
+
+### `stderr`
+
+**Type:** `function` — Callback receiving CLI stderr output as a string. Useful for capturing CLI warnings and diagnostics.
+
+### `taskBudget`
+
+**Type:** `number` — API-side task budget in tokens. The CLI stops issuing API calls once this budget is reached.
+
+### `thinking`
+
+**Type:** `{ type: 'adaptive' } | { type: 'enabled'; budgetTokens: number } | { type: 'disabled' }` — Extended thinking configuration.
+
+```typescript
+options: { thinking: { type: 'enabled', budgetTokens: 10000 } }
+```
+
+### `toolAliases`
+
+**Type:** `Record<string, string>` — Map tool names to custom implementations.
+
+### `toolConfig`
+
+**Type:** `object` — Per-tool configuration. See the official SDK for the full shape.

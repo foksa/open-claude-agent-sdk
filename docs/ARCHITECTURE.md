@@ -22,13 +22,18 @@ This SDK is a thin, API-compatible wrapper around the local Claude CLI. It focus
 ## Core Components
 - `src/api/query.ts`: public `query()` API.
 - `src/api/QueryImpl.ts`: orchestration, lifecycle, and control methods.
+- `src/api/ControlRequestManager.ts`: correlates outbound control request IDs with pending promises; also holds the init handshake promise that all `supportedX()` methods await.
+- `src/api/protocolInit.ts`: builds and sends the `initialize` control request with all options (hooks, MCP server names, system prompt, etc.).
 - `src/api/MessageRouter.ts`: NDJSON parsing and message routing.
 - `src/api/MessageQueue.ts`: AsyncIterator queue.
-- `src/core/control.ts`: control protocol handler + request builders.
+- `src/core/control.ts`: control protocol handler + inbound request dispatch (hooks, permissions, MCP calls).
 - `src/core/argBuilder.ts`: CLI argument construction from options.
+- `src/core/hookConfig.ts`: transforms user hook callback objects into the wire format sent in the init message.
 - `src/core/spawn.ts`: CLI detection and process spawning.
 - `src/core/mcpBridge.ts`: in-process MCP server bridge.
 - `src/mcp.ts`: SDK-level MCP utilities (`createSdkMcpServer`, `tool`).
+- `src/mcp-entry.ts`: `./mcp` subpath export (MCP utilities without query overhead).
+- `src/storage-entry.ts`: `./storage` subpath export — re-exports session utility functions from `src/sessions/`.
 
 ## Control Protocol
 The SDK uses a bidirectional control protocol over stdio:

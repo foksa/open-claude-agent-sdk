@@ -56,7 +56,7 @@
 | `includePartialMessages` | ✅ | Streaming test verifies partial messages appear |
 | `cwd` | ✅ | Verified working directory is used |
 | `canUseTool` | ✅ | 7 behavioral tests (allow/deny/selective/async) |
-| `hooks` | ⚠️ | See Hooks section — 10 of 15 events tested |
+| `hooks` | ⚠️ | See Hooks section — 7 of 26 events tested |
 | `allowDangerouslySkipPermissions` | ✅ | Verified in permission-modes.test.ts |
 | `outputFormat` | ✅ | JSON schema validation tested E2E |
 | `settingSources` | ✅ | Skills/commands loaded from fixtures |
@@ -102,7 +102,7 @@
 | `env` | ⚠️ | Unit tested, needs integration test |
 | `stderr` | ⚠️ | Unit tested, needs integration test |
 | `spawnClaudeCodeProcess` | ⚠️ | Unit tested, needs integration test |
-| **Hooks (10 of 15 E2E tested)** |
+| **Hooks (7 of 26 E2E tested)** |
 | `PreToolUse` | ✅ | 4 behavioral tests (intercept, modify, cancel) |
 | `PostToolUse` | ✅ | 1 behavioral test |
 | `UserPromptSubmit` | ✅ | 1 behavioral test |
@@ -114,6 +114,9 @@
 | `Notification` | 📝 | Does not fire when canUseTool handles permissions |
 | `SubagentStart` | ✅ | Tested in subagents.test.ts |
 | `SubagentStop` | ✅ | Tested in subagents.test.ts |
+| `MessageDisplay` | 📝 | Types exported (v0.3.152); fires per-flush as assistant message streams |
+| `PostToolBatch` | 📝 | Types exported; batch tool execution event |
+| `UserPromptExpansion` | 📝 | Types exported; fires when user prompt is expanded |
 | `PreCompact` | 📝 | TODO — placeholder test |
 | `PostCompact` | 📝 | Types exported (v0.2.76), fires via hook_callback protocol |
 | `PermissionRequest` | 📝 | Does not fire when canUseTool handles permissions |
@@ -273,7 +276,7 @@ Handled by the CLI subprocess:
 | JS bundle | ~564KB | ~856KB |
 | Bundled binary | none (uses installed CLI) | ~208MB per platform |
 | Source code | ~2,500 LOC | ~50,000+ LOC (minified) |
-| Test files | 46 (24 integration + 22 unit) | — |
+| Test files | 48 (26 integration + 22 unit) | — |
 | Dependencies | Claude CLI (external) | Self-contained |
 
 ---

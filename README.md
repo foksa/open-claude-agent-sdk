@@ -76,7 +76,7 @@ Drop-in replacement — just change the import:
 ### Subagents & Hooks
 
 - **Programmatic subagents** — `agents` option, Task tool invocation, `parent_tool_use_id`
-- **Hooks** — 10 of 15 events tested E2E (PreToolUse, PostToolUse, PostToolUseFailure, UserPromptSubmit, Stop, SubagentStart, SubagentStop, plus matchers)
+- **Hooks** — 7 of 26 events tested E2E (PreToolUse, PostToolUse, PostToolUseFailure, UserPromptSubmit, Stop, SubagentStart, SubagentStop, plus matchers)
 - **Skills & commands** — via `settingSources` + `.claude/` directories
 - **Output styles** — custom styles via `.claude/output-styles/`
 - **Sandbox** — sandbox configuration pass-through
@@ -92,6 +92,16 @@ const q = query({ prompt: '...' }) as ExtendedQuery;
 
 await q.availableOutputStyles(); // string[]
 await q.currentOutputStyle();    // string
+```
+
+### Subpath Exports
+
+Lightweight entry points to avoid loading unused dependencies:
+
+```typescript
+import { query } from 'open-claude-agent-sdk/query';           // query() only, no MCP
+import { createSdkMcpServer, tool } from 'open-claude-agent-sdk/mcp'; // MCP utilities
+import { listSessions } from 'open-claude-agent-sdk/storage';  // session storage API
 ```
 
 ### Not Yet Implemented

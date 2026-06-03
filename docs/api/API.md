@@ -333,7 +333,7 @@ The SDK yields various message types during query execution:
 
 | Type | Description |
 |------|-------------|
-| `system` | Session info (model, session_id, permissionMode) |
+| `system` | Session info (model, session_id, permissionMode) — and many system subtypes |
 | `assistant` | Claude's text response |
 | `user` | User message echo |
 | `tool_use_summary` | Tool execution summary |
@@ -342,9 +342,11 @@ The SDK yields various message types during query execution:
 | `result` | Final result (`success` or `error` subtype) |
 | `status` | Status updates |
 
+> **Note:** The full `SDKMessage` union includes 28 variants. Less common types cover tasks (`SDKTaskStartedMessage`, `SDKTaskUpdatedMessage`, `SDKTaskProgressMessage`), hooks (`SDKHookStartedMessage`, `SDKHookProgressMessage`, `SDKHookResponseMessage`), auth (`SDKAuthStatusMessage`), rate limiting (`SDKRateLimitEvent`), thinking tokens (`SDKThinkingTokensMessage`), memory (`SDKMemoryRecallMessage`), and more. Hover over `SDKMessage` in your editor to see the complete union.
+
 ## Exported Types
 
-All types are re-exported from `@anthropic-ai/claude-agent-sdk` for 100% compatibility:
+All types are re-exported from `@anthropic-ai/claude-agent-sdk` for 100% compatibility. A selection of commonly used types:
 
 ```typescript
 // Core types
@@ -368,6 +370,7 @@ export type { CanUseTool, PermissionBehavior, PermissionResult };
 
 // Hook types
 export type { HookCallback, HookCallbackMatcher, HookEvent, HookInput };
+export type { PreToolUseHookInput, PostToolUseHookInput, PostToolUseHookSpecificOutput };
 
 // MCP types
 export type { McpServerConfig, McpServerStatus };
@@ -377,7 +380,18 @@ export type { ModelInfo, ModelUsage, AccountInfo };
 
 // Output format types
 export type { OutputFormat, JsonSchemaOutputFormat };
+
+// Session types
+export type { SessionKey, SessionStore, InMemorySessionStore };
+
+// Sandbox types
+export type { SandboxSettings, SandboxFilesystemConfig, SandboxNetworkConfig };
+
+// Agent/subagent types
+export type { AgentDefinition, AgentInfo, BackgroundTaskSummary };
 ```
+
+> **Note:** The SDK exports 130+ types in total. The above is a curated selection — see `src/types/index.ts` for the complete list.
 
 ## Environment Variables
 

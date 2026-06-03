@@ -69,8 +69,11 @@ async setPermissionMode(mode: PermissionMode): Promise<void>
 
 **PermissionMode Values:**
 - `'default'` - Normal permission checking
-- `'bypassPermissions'` - Skip all permission checks
-- `'plan'` - Planning mode only
+- `'acceptEdits'` - Auto-accept file edit operations
+- `'bypassPermissions'` - Skip all permission checks (requires `allowDangerouslySkipPermissions`)
+- `'plan'` - Planning mode only (no tool execution)
+- `'dontAsk'` - Never prompt the user
+- `'auto'` - Automatic permission handling
 
 **Usage Example:**
 ```typescript
@@ -283,6 +286,81 @@ async accountInfo(): Promise<AccountInfo>
 ```
 
 Returns account information.
+
+### `initializationResult()`
+
+```typescript
+async initializationResult(): Promise<SDKControlInitializeResponse>
+```
+
+Returns the full initialization payload including supported commands, models, account info, and output style configuration.
+
+### `supportedAgents()`
+
+```typescript
+async supportedAgents(): Promise<AgentInfo[]>
+```
+
+Returns available subagents for the current session.
+
+### `getContextUsage()`
+
+```typescript
+async getContextUsage(): Promise<SDKControlGetContextUsageResponse>
+```
+
+Returns a breakdown of token usage for the current context window.
+
+### `readFile(path, options?)`
+
+```typescript
+async readFile(
+  path: string,
+  options?: { maxBytes?: number }
+): Promise<SDKControlReadFileResponse | null>
+```
+
+Reads a file via the control protocol. Returns `null` on error (e.g. file not found). Useful for reading files in the CLI's working directory without spawning a separate process.
+
+### `applyFlagSettings(settings)`
+
+```typescript
+async applyFlagSettings(settings: { [K in keyof Settings]?: Settings[K] | null }): Promise<void>
+```
+
+Merges a partial settings object into the flag-tier settings for the current session. Any key can be set to `null` to clear it from the flag layer. Takes effect on the next turn.
+
+### `backgroundTasks(toolUseId?)`
+
+```typescript
+async backgroundTasks(toolUseId?: string): Promise<boolean>
+```
+
+Signals that the current tool use should be backgrounded. Returns whether the tasks were successfully backgrounded.
+
+### `stopTask(taskId)`
+
+```typescript
+async stopTask(taskId: string): Promise<void>
+```
+
+Stops a specific background task by ID.
+
+### `reloadPlugins()`
+
+```typescript
+async reloadPlugins(): Promise<SDKControlReloadPluginsResponse>
+```
+
+Reloads plugins mid-session without restarting the CLI.
+
+### `seedReadState(path, mtime)`
+
+```typescript
+async seedReadState(path: string, mtime: number): Promise<void>
+```
+
+Marks a file as already read at the given modification time, suppressing the "file changed" notice on next access.
 
 ---
 
