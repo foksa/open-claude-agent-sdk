@@ -2,7 +2,7 @@
 
 ## Overview
 
-Open Claude Agent SDK is a lightweight alternative to `@anthropic-ai/claude-agent-sdk`. It provides the same API surface while being ~27x smaller (~488KB vs ~13MB) by spawning the locally-installed Claude CLI as a subprocess instead of embedding it.
+Open Claude Agent SDK is a lightweight alternative to `@anthropic-ai/claude-agent-sdk`. It provides the same API surface without bundling a platform binary (~208MB) into node_modules — it spawns the locally-installed Claude CLI as a subprocess instead.
 
 **Key Features:**
 - 100% type-compatible with the official SDK
@@ -391,12 +391,11 @@ export type { OutputFormat, JsonSchemaOutputFormat };
 
 | Feature | Official SDK | Open SDK |
 |---------|--------------|----------|
-| Bundle size | ~13MB | ~488KB |
-| CLI embedded | Yes | No (uses installed CLI) |
+| JS bundle | ~856KB | ~564KB |
+| Platform binary | ~208MB (optional peer package) | none (uses installed CLI) |
 | Type compatibility | Native | Re-exported (100% compatible) |
 | Control methods | Full | All except `rewindFiles()` |
 
 **Not supported:**
 - `rewindFiles()` — no CLI protocol support
 - Agent Teams — experimental
-- V2 API (`unstable_v2_*`) — experimental preview

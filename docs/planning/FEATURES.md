@@ -270,10 +270,11 @@ Handled by the CLI subprocess:
 
 | Metric | Open SDK | Official SDK |
 |--------|----------|--------------|
-| Bundle size | ~488KB | ~13MB |
-| Source code | ~2,500 LOC | ~50,000+ LOC |
+| JS bundle | ~564KB | ~856KB |
+| Bundled binary | none (uses installed CLI) | ~208MB per platform |
+| Source code | ~2,500 LOC | ~50,000+ LOC (minified) |
 | Test files | 46 (24 integration + 22 unit) | — |
-| Dependencies | CLI (external) | Self-contained |
+| Dependencies | Claude CLI (external) | Self-contained |
 
 ---
 

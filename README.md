@@ -7,7 +7,8 @@ A compatible open-source replacement for `@anthropic-ai/claude-agent-sdk` — th
 | | Open SDK | Official SDK |
 |---|---|---|
 | **Source** | Open, readable TypeScript | Closed, minified |
-| **How it works** | Spawns local CLI | Bundles CLI |
+| **How it works** | Uses installed CLI | Ships CLI binary in node_modules |
+| **node_modules footprint** | ~564KB | ~856KB JS + 208MB binary per platform |
 | **Debuggable** | Breakpoints, source maps | Minified blob |
 | **AI-friendly** | Agents can read source | Agents can't parse minified code |
 | **Type compatible** | Yes (re-exports) | - |
@@ -97,7 +98,6 @@ await q.currentOutputStyle();    // string
 
 - `rewindFiles()` — no CLI protocol support
 - Agent teams — experimental, no env var support
-- V2 API (`unstable_v2_*`) — experimental preview
 
 See [FEATURES.md](./docs/planning/FEATURES.md) for full status matrix.
 

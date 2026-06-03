@@ -6,7 +6,8 @@ Migrate from `@anthropic-ai/claude-agent-sdk` to `open-claude-agent-sdk`.
 
 ## Why Migrate?
 
-- **~27x smaller bundle** (~488KB vs ~13MB)
+- **No binary in node_modules** — official SDK copies ~208MB into node_modules via optional peer packages; we use the CLI you already have installed
+- **Smaller package footprint** — ~564KB vs ~856KB JS + 208MB binary
 - **100% type compatible** with official SDK
 - **Uses local Claude CLI** (you control the version)
 - **Same API** (drop-in replacement for most use cases)
@@ -16,7 +17,6 @@ Migrate from `@anthropic-ai/claude-agent-sdk` to `open-claude-agent-sdk`.
 - You need self-contained deployment (no CLI dependency)
 - You need `rewindFiles()` (no CLI protocol support)
 - You need Agent Teams (experimental, not yet supported)
-- You need V2 API (`unstable_v2_*`) (experimental preview)
 
 ---
 
@@ -178,9 +178,8 @@ for await (const msg of q) {
 |---------|--------|
 | `rewindFiles()` | No CLI protocol support |
 | Agent Teams | Experimental, no env var support |
-| V2 API (`unstable_v2_*`) | Experimental preview |
 | File checkpointing | No CLI protocol support |
-| Context compaction | No CLI protocol support |
+| Context compaction control | CLI compacts automatically; `PreCompact`/`PostCompact` hooks not yet tested |
 
 See [FEATURES.md](../planning/FEATURES.md) for the full feature matrix.
 
