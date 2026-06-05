@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-06-03
+**Last Updated:** 2026-06-05
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -43,6 +43,7 @@
 | `readFile()` | 🔌 | Sends control request matching official SDK (v0.2.119); returns null on error |
 | `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
 | `reloadPlugins()` | 🔌 | Sends control request matching official SDK (v0.2.85) |
+| `reloadSkills()` | 🔌 | Sends reload_skills control request; protocol parity tested (v0.3.165) |
 | `seedReadState()` | 🔌 | Sends control request matching official SDK (v0.2.83) |
 | `applyFlagSettings()` | 🔌 | Sends control request matching official SDK; no behavioral test |
 | `getContextUsage()` | ✅ | Returns context usage breakdown; E2E tested (v0.2.86) |
@@ -210,6 +211,11 @@
 | `SDKCommandsChangedMessage` type | ⚠️ | Re-exported from official SDK (v0.3.161); fire-and-forget push of the full slash-command list after a mid-session change; clients should replace their cached command list with this payload |
 | `pending_permission_requests` on `ControlResponseSuccess` | ⚠️ | Added in v0.3.161; mirrors the field on `ControlResponseError`; sent on `initialize` response so a client joining an already-initialized session learns about in-flight permission prompts |
 | Idempotent `initialize` | ✅ | Added in v0.3.161; second `initialize` returns same success payload instead of error; handled by CLI, no SDK changes needed |
+| `StopHookSpecificOutput` type | ⚠️ | Re-exported from official SDK (v0.3.163); hook output for Stop event; `additionalContext` delivers non-error feedback to the model so the conversation continues |
+| `SubagentStopHookSpecificOutput` type | ⚠️ | Re-exported from official SDK (v0.3.163); hook output for SubagentStop event; `additionalContext` delivers non-error feedback so the subagent continues |
+| `UserDialogRequest` / `UserDialogResult` types | ⚠️ | Re-exported from official SDK (v0.3.165); shape of `request_user_dialog` control requests and host responses |
+| `OnUserDialog` callback | ⚠️ | Re-exported from official SDK (v0.3.165); passed in `options.onUserDialog`; inbound `request_user_dialog` control requests are routed to this callback or answered `{behavior:'cancelled'}` |
+| `SDKControlReloadSkillsResponse` type | ⚠️ | Re-exported from official SDK (v0.3.165); response shape for `reloadSkills()` — carries refreshed `skills: SlashCommand[]` |
 | `resolveSettings()` function | ⚠️ | Re-exported from official SDK (v0.2.136); reads MDM/plist/file settings without spawning CLI |
 | `filterEscalatingDefaultMode()` function | ⚠️ | Re-exported from official SDK (v0.2.136); utility to remove managed-only settings |
 | `ResolvedSettings` / `ResolvedSettingSource` / `ResolveSettingsOptions` types | ⚠️ | Re-exported from official SDK (v0.2.136); types for `resolveSettings()` |

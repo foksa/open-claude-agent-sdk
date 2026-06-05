@@ -39,11 +39,13 @@ export const RequestSubtype = {
   MCP_TOGGLE: 'mcp_toggle',
   APPLY_FLAG_SETTINGS: 'apply_flag_settings',
   RELOAD_PLUGINS: 'reload_plugins',
+  RELOAD_SKILLS: 'reload_skills',
   SEED_READ_STATE: 'seed_read_state',
   GET_CONTEXT_USAGE: 'get_context_usage',
   ELICITATION: 'elicitation',
   READ_FILE: 'read_file',
   BACKGROUND_TASKS: 'background_tasks',
+  REQUEST_USER_DIALOG: 'request_user_dialog',
 } as const;
 
 /** Control response subtypes */
@@ -107,7 +109,9 @@ export type ControlRequestInner =
   | GetContextUsageRequest
   | ElicitationControlRequest
   | ReadFileRequest
-  | BackgroundTasksRequest;
+  | BackgroundTasksRequest
+  | ReloadSkillsRequest
+  | RequestUserDialogRequest;
 
 export type CanUseToolRequest = {
   subtype: typeof RequestSubtype.CAN_USE_TOOL;
@@ -203,6 +207,17 @@ export type ApplyFlagSettingsRequest = {
 
 export type ReloadPluginsRequest = {
   subtype: typeof RequestSubtype.RELOAD_PLUGINS;
+};
+
+export type ReloadSkillsRequest = {
+  subtype: typeof RequestSubtype.RELOAD_SKILLS;
+};
+
+export type RequestUserDialogRequest = {
+  subtype: typeof RequestSubtype.REQUEST_USER_DIALOG;
+  dialog_kind: string;
+  payload: Record<string, unknown>;
+  tool_use_id?: string;
 };
 
 export type SeedReadStateRequest = {

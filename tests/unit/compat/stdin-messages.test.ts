@@ -840,6 +840,35 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'reloadSkills sends reload_skills control request matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.reloadSkills();
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.reloadSkills();
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'reload_skills');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'reload_skills');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   reloadSkills stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'seedReadState sends seed_read_state control request matching official SDK',
     async () => {
       const [open, official] = await Promise.all([

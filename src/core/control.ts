@@ -25,6 +25,7 @@ import {
   MessageType,
   type ReadFileRequest,
   type ReloadPluginsRequest,
+  type ReloadSkillsRequest,
   RequestSubtype,
   ResponseSubtype,
   type SeedReadStateRequest,
@@ -39,6 +40,7 @@ import type {
   Options,
   PermissionMode,
   PermissionResult,
+  UserDialogResult,
 } from '../types/index.ts';
 import type { McpServerBridge } from './mcpBridge.ts';
 
@@ -61,6 +63,7 @@ export type OutboundControlRequest =
   | StopTaskRequest
   | ApplyFlagSettingsRequest
   | ReloadPluginsRequest
+  | ReloadSkillsRequest
   | SeedReadStateRequest
   | GetContextUsageRequest
   | ReadFileRequest
@@ -127,6 +130,10 @@ export const ControlRequests = {
 
   reloadPlugins: (): ReloadPluginsRequest => ({
     subtype: RequestSubtype.RELOAD_PLUGINS,
+  }),
+
+  reloadSkills: (): ReloadSkillsRequest => ({
+    subtype: RequestSubtype.RELOAD_SKILLS,
   }),
 
   seedReadState: (path: string, mtime: number): SeedReadStateRequest => ({
@@ -210,6 +217,9 @@ export class ControlProtocolHandler {
         case RequestSubtype.ELICITATION:
           await this.handleElicitation(req);
           break;
+        case RequestSubtype.REQUEST_USER_DIALOG:
+          await this.handleUserDialog(req);
+          break;
         case RequestSubtype.SET_PERMISSION_MODE:
         case RequestSubtype.SET_MODEL:
         case RequestSubtype.SET_MAX_THINKING_TOKENS:
@@ -221,6 +231,7 @@ export class ControlProtocolHandler {
         case RequestSubtype.MCP_TOGGLE:
         case RequestSubtype.APPLY_FLAG_SETTINGS:
         case RequestSubtype.RELOAD_PLUGINS:
+        case RequestSubtype.RELOAD_SKILLS:
         case RequestSubtype.SEED_READ_STATE:
         case RequestSubtype.GET_CONTEXT_USAGE:
         case RequestSubtype.READ_FILE:
@@ -340,6 +351,24 @@ export class ControlProtocolHandler {
         displayName: r.display_name,
         description: r.description,
       },
+      { signal: new AbortController().signal }
+    );
+
+    this.sendSuccess(req.request_id, result as unknown as Record<string, unknown>);
+  }
+
+  private async handleUserDialog(req: ControlRequest) {
+    if (req.request.subtype !== RequestSubtype.REQUEST_USER_DIALOG) return;
+
+    const { dialog_kind, payload, tool_use_id } = req.request;
+
+    if (!this.options.onUserDialog) {
+      this.sendSuccess(req.request_id, { behavior: 'cancelled' } as Record<string, unknown>);
+      return;
+    }
+
+    const result: UserDialogResult = await this.options.onUserDialog(
+      { dialogKind: dialog_kind, payload, toolUseID: tool_use_id },
       { signal: new AbortController().signal }
     );
 

@@ -140,9 +140,11 @@ export type {
   SetupHookSpecificOutput,
   StopFailureHookInput,
   StopHookInput,
+  StopHookSpecificOutput,
   SubagentStartHookInput,
   SubagentStartHookSpecificOutput,
   SubagentStopHookInput,
+  SubagentStopHookSpecificOutput,
   SyncHookJSONOutput,
   TaskCompletedHookInput,
   TaskCreatedHookInput,
@@ -270,10 +272,12 @@ export type {
   ExitReason,
   FastModeState,
   OnElicitation,
+  OnUserDialog,
   RewindFilesResult,
   SDKControlGetContextUsageResponse,
   SDKControlReadFileResponse,
   SDKControlReloadPluginsResponse,
+  SDKControlReloadSkillsResponse,
   SDKPermissionDenial,
   SDKSettingsParseError,
   SdkBeta,
@@ -284,6 +288,8 @@ export type {
   ThinkingDisabled,
   ThinkingEnabled,
   ToolConfig,
+  UserDialogRequest,
+  UserDialogResult,
 } from '@anthropic-ai/claude-agent-sdk';
 
 export { EXIT_REASONS, HOOK_EVENTS } from '@anthropic-ai/claude-agent-sdk';

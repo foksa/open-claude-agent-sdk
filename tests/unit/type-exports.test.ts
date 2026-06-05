@@ -1515,6 +1515,52 @@ describe('v0.3.158 type re-exports', () => {
   });
 });
 
+describe('v0.3.165 type re-exports', () => {
+  test('StopHookSpecificOutput is importable', () => {
+    const out: import('../../src/types/index.ts').StopHookSpecificOutput = {
+      hookEventName: 'Stop',
+      additionalContext: 'some context',
+    };
+    expect(out.hookEventName).toBe('Stop');
+  });
+
+  test('SubagentStopHookSpecificOutput is importable', () => {
+    const out: import('../../src/types/index.ts').SubagentStopHookSpecificOutput = {
+      hookEventName: 'SubagentStop',
+    };
+    expect(out.hookEventName).toBe('SubagentStop');
+  });
+
+  test('UserDialogRequest is importable', () => {
+    const req: import('../../src/types/index.ts').UserDialogRequest = {
+      dialogKind: 'confirm',
+      payload: { message: 'Are you sure?' },
+    };
+    expect(req.dialogKind).toBe('confirm');
+  });
+
+  test('UserDialogResult is importable', () => {
+    const result: import('../../src/types/index.ts').UserDialogResult = {
+      behavior: 'cancelled',
+    };
+    expect(result.behavior).toBe('cancelled');
+  });
+
+  test('OnUserDialog is a valid callback type', () => {
+    const cb: import('../../src/types/index.ts').OnUserDialog = async (_req, _opts) => ({
+      behavior: 'cancelled',
+    });
+    expect(typeof cb).toBe('function');
+  });
+
+  test('SDKControlReloadSkillsResponse is importable', () => {
+    const resp: import('../../src/types/index.ts').SDKControlReloadSkillsResponse = {
+      skills: [],
+    };
+    expect(resp.skills).toHaveLength(0);
+  });
+});
+
 describe('v0.3.161 type re-exports', () => {
   test('SDKCommandsChangedMessage is importable', () => {
     const msg: import('../../src/types/index.ts').SDKCommandsChangedMessage = {
