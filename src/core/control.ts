@@ -16,6 +16,7 @@ import {
   type ControlRequest,
   type ControlResponse,
   type GetContextUsageRequest,
+  type GetUsageRequest,
   type InternalHookCallback,
   type InterruptRequest,
   type McpReconnectRequest,
@@ -66,6 +67,7 @@ export type OutboundControlRequest =
   | ReloadSkillsRequest
   | SeedReadStateRequest
   | GetContextUsageRequest
+  | GetUsageRequest
   | ReadFileRequest
   | BackgroundTasksRequest;
 
@@ -144,6 +146,10 @@ export const ControlRequests = {
 
   getContextUsage: (): GetContextUsageRequest => ({
     subtype: RequestSubtype.GET_CONTEXT_USAGE,
+  }),
+
+  getUsage: (): GetUsageRequest => ({
+    subtype: RequestSubtype.GET_USAGE,
   }),
 
   readFile: (path: string, maxBytes?: number): ReadFileRequest => ({
@@ -234,6 +240,7 @@ export class ControlProtocolHandler {
         case RequestSubtype.RELOAD_SKILLS:
         case RequestSubtype.SEED_READ_STATE:
         case RequestSubtype.GET_CONTEXT_USAGE:
+        case RequestSubtype.GET_USAGE:
         case RequestSubtype.READ_FILE:
         case RequestSubtype.BACKGROUND_TASKS:
           // These are sent FROM SDK TO CLI, not the other way around

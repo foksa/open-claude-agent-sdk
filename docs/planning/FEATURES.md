@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-06-05
+**Last Updated:** 2026-06-10
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -48,6 +48,7 @@
 | `applyFlagSettings()` | 🔌 | Sends control request matching official SDK; no behavioral test |
 | `getContextUsage()` | ✅ | Returns context usage breakdown; E2E tested (v0.2.86) |
 | `backgroundTasks()` | 🔌 | Sends background_tasks control request; protocol parity tested (v0.3.142) |
+| `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()` | 🔌 | Sends get_usage control request; protocol parity tested (v0.3.169) |
 | **Query Options** |
 | `prompt` | ✅ | String and AsyncIterable |
 | `permissionMode` | ✅ | Multiple modes tested behaviorally |
@@ -221,6 +222,8 @@
 | `ResolvedSettings` / `ResolvedSettingSource` / `ResolveSettingsOptions` types | ⚠️ | Re-exported from official SDK (v0.2.136); types for `resolveSettings()` |
 | `PolicySettingsOrigin` / `ProvenanceEntry` types | ⚠️ | Re-exported from official SDK (v0.2.136); provenance tracking in ResolvedSettings |
 | `SDKMirrorErrorMessage` type | ⚠️ | Re-exported from official SDK (v0.2.113); part of SDKMessage union |
+| `SDKModelRefusalFallbackMessage` type | ⚠️ | Re-exported from official SDK (v0.3.170); emitted when model refusal triggers fallback retry |
+| `SDKControlGetUsageResponse` type | ⚠️ | Re-exported from official SDK (v0.3.169); return type for usage_EXPERIMENTAL method |
 | `SDKMessageOrigin` type | ⚠️ | Re-exported from official SDK (v0.2.113); message origin discriminated union |
 | `origin` on result messages | ⚠️ | `SDKResultSuccess`/`SDKResultError` gain optional `origin?: SDKMessageOrigin` (v0.2.126); type-only, forwarded via re-export |
 | `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` constant | ⚠️ | Re-exported from official SDK (v0.2.113); cache boundary marker for systemPrompt arrays |

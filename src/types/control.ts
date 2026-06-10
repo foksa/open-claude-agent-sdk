@@ -42,6 +42,7 @@ export const RequestSubtype = {
   RELOAD_SKILLS: 'reload_skills',
   SEED_READ_STATE: 'seed_read_state',
   GET_CONTEXT_USAGE: 'get_context_usage',
+  GET_USAGE: 'get_usage',
   ELICITATION: 'elicitation',
   READ_FILE: 'read_file',
   BACKGROUND_TASKS: 'background_tasks',
@@ -111,7 +112,8 @@ export type ControlRequestInner =
   | ReadFileRequest
   | BackgroundTasksRequest
   | ReloadSkillsRequest
-  | RequestUserDialogRequest;
+  | RequestUserDialogRequest
+  | GetUsageRequest;
 
 export type CanUseToolRequest = {
   subtype: typeof RequestSubtype.CAN_USE_TOOL;
@@ -228,6 +230,10 @@ export type SeedReadStateRequest = {
 
 export type GetContextUsageRequest = {
   subtype: typeof RequestSubtype.GET_CONTEXT_USAGE;
+};
+
+export type GetUsageRequest = {
+  subtype: typeof RequestSubtype.GET_USAGE;
 };
 
 export type ReadFileRequest = {

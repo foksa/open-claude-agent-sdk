@@ -1598,3 +1598,60 @@ describe('v0.3.161 type re-exports', () => {
     expect(success.pending_permission_requests).toEqual([]);
   });
 });
+
+describe('v0.3.169-170 type re-exports', () => {
+  test('SDKControlGetUsageResponse is importable', () => {
+    const resp: import('../../src/types/index.ts').SDKControlGetUsageResponse = {
+      session: {
+        total_cost_usd: 0.5,
+        total_api_duration_ms: 1000,
+        total_duration_ms: 2000,
+        total_lines_added: 10,
+        total_lines_removed: 5,
+        model_usage: {},
+      },
+      subscription_type: 'pro',
+      rate_limits_available: true,
+      rate_limits: null,
+      behaviors: null,
+    };
+    expect(resp.subscription_type).toBe('pro');
+    expect(resp.rate_limits_available).toBe(true);
+    expect(resp.session.total_cost_usd).toBe(0.5);
+  });
+
+  test('SDKModelRefusalFallbackMessage is importable', () => {
+    const msg: import('../../src/types/index.ts').SDKModelRefusalFallbackMessage = {
+      type: 'system',
+      subtype: 'model_refusal_fallback',
+      trigger: 'refusal',
+      direction: 'retry',
+      original_model: 'claude-opus-4-8',
+      fallback_model: 'claude-sonnet-4-6',
+      request_id: 'req-123',
+      content: 'Retrying with fallback model',
+      uuid: 'uuid-abc' as import('../../src/types/index.ts').SDKModelRefusalFallbackMessage['uuid'],
+      session_id: 'session-xyz',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('model_refusal_fallback');
+    expect(msg.direction).toBe('retry');
+  });
+
+  test('SDKModelRefusalFallbackMessage is assignable to SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKModelRefusalFallbackMessage = {
+      type: 'system',
+      subtype: 'model_refusal_fallback',
+      trigger: 'refusal',
+      direction: 'retry',
+      original_model: 'claude-opus-4-8',
+      fallback_model: 'claude-sonnet-4-6',
+      request_id: null,
+      content: '',
+      uuid: 'uuid-def' as import('../../src/types/index.ts').SDKModelRefusalFallbackMessage['uuid'],
+      session_id: 'session-xyz',
+    };
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+});

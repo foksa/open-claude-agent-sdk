@@ -24,6 +24,7 @@ import type {
   Query,
   RewindFilesResult,
   SDKControlGetContextUsageResponse,
+  SDKControlGetUsageResponse,
   SDKControlInitializeResponse,
   SDKControlReadFileResponse,
   SDKControlReloadPluginsResponse,
@@ -376,6 +377,12 @@ export class QueryImpl implements Query {
   async getContextUsage(): Promise<SDKControlGetContextUsageResponse> {
     return this.controlManager.sendControlRequestWithResponse<SDKControlGetContextUsageResponse>(
       ControlRequests.getContextUsage()
+    );
+  }
+
+  async usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET(): Promise<SDKControlGetUsageResponse> {
+    return this.controlManager.sendControlRequestWithResponse<SDKControlGetUsageResponse>(
+      ControlRequests.getUsage()
     );
   }
 

@@ -1177,4 +1177,33 @@ describe('stdin message compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'usage_EXPERIMENTAL sends get_usage control request matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET();
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'get_usage');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'get_usage');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   usage_EXPERIMENTAL stdin messages match');
+    },
+    { timeout: 60000 }
+  );
 });
