@@ -281,11 +281,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
   }
 
-  // Plugins → --plugin-dir (one per plugin)
+  // Plugins → --plugin-dir (one per plugin), or --plugin-dir-no-mcp with skipMcpDiscovery
   if (options.plugins && options.plugins.length > 0) {
     for (const plugin of options.plugins) {
       if (plugin.type === 'local') {
-        args.push('--plugin-dir', plugin.path);
+        args.push(plugin.skipMcpDiscovery ? '--plugin-dir-no-mcp' : '--plugin-dir', plugin.path);
       } else {
         throw new Error(`Unsupported plugin type: ${(plugin as { type: string }).type}`);
       }

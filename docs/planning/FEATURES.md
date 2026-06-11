@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-06-10
+**Last Updated:** 2026-06-11
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -82,6 +82,7 @@
 | `managedSettings` | 🔌 | CLI flag `--managed-settings` verified to match official SDK (v0.2.118) |
 | `onElicitation` | ⚠️ | Callback for MCP elicitation requests; control protocol handler implemented (v0.2.104) |
 | `plugins` | 🔌 | CLI flag passed, plugin loading not behaviorally tested |
+| `plugins[].skipMcpDiscovery` | 🔌 | Emits `--plugin-dir-no-mcp` instead of `--plugin-dir` (v0.3.172); args verified to match official SDK |
 | `additionalDirectories` | 🔌 | CLI flag passed |
 | `agent` | 🔌 | CLI flag passed |
 | `betas` | 🔌 | CLI flag passed |

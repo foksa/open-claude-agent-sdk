@@ -3,7 +3,7 @@
  * A lightweight alternative to Claude Agent SDK - uses local CLI
  */
 
-export const version = '0.34.0';
+export const version = '0.35.0';
 
 // Session utilities — re-exported from official SDK (read/write JSONL files directly)
 export {

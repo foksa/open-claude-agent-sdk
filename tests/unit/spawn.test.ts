@@ -127,6 +127,33 @@ describe('buildCliArgs', () => {
     expect(args).not.toContain('--allowedTools');
   });
 
+  test('plugins emit --plugin-dir per local plugin', () => {
+    const args = buildCliArgs({
+      plugins: [
+        { type: 'local', path: './plugin1' },
+        { type: 'local', path: '/abs/plugin2' },
+      ],
+    });
+
+    expect(args).toContain('--plugin-dir');
+    expect(args[args.indexOf('--plugin-dir') + 1]).toBe('./plugin1');
+    expect(args.filter((a) => a === '--plugin-dir')).toHaveLength(2);
+  });
+
+  test('plugins with skipMcpDiscovery emit --plugin-dir-no-mcp', () => {
+    const args = buildCliArgs({
+      plugins: [
+        { type: 'local', path: './plugin1', skipMcpDiscovery: true },
+        { type: 'local', path: '/abs/plugin2' },
+      ],
+    });
+
+    expect(args).toContain('--plugin-dir-no-mcp');
+    expect(args[args.indexOf('--plugin-dir-no-mcp') + 1]).toBe('./plugin1');
+    expect(args).toContain('--plugin-dir');
+    expect(args[args.indexOf('--plugin-dir') + 1]).toBe('/abs/plugin2');
+  });
+
   test('does not include --setting-sources when not specified', () => {
     const args = buildCliArgs({});
 

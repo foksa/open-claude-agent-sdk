@@ -1655,3 +1655,22 @@ describe('v0.3.169-170 type re-exports', () => {
     expect(sdkMsg.type).toBe('system');
   });
 });
+
+describe('v0.3.172-173 type re-exports', () => {
+  test('SdkPluginConfig accepts skipMcpDiscovery', () => {
+    const plugin: import('../../src/types/index.ts').SdkPluginConfig = {
+      type: 'local',
+      path: '/tmp/plugin',
+      skipMcpDiscovery: true,
+    };
+    expect(plugin.skipMcpDiscovery).toBe(true);
+  });
+
+  test('SdkPluginConfig skipMcpDiscovery is optional', () => {
+    const plugin: import('../../src/types/index.ts').SdkPluginConfig = {
+      type: 'local',
+      path: '/tmp/plugin',
+    };
+    expect(plugin.skipMcpDiscovery).toBeUndefined();
+  });
+});

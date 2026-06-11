@@ -596,6 +596,36 @@ describe('CLI arguments compatibility', () => {
   );
 
   test.concurrent(
+    'plugins skipMcpDiscovery --plugin-dir-no-mcp args match official SDK',
+    async () => {
+      const plugins = [
+        { type: 'local' as const, path: './path/to/plugin1', skipMcpDiscovery: true },
+        { type: 'local' as const, path: '/absolute/path/to/plugin2' },
+      ];
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { plugins }),
+        capture(officialQuery, 'test', { plugins }),
+      ]);
+
+      const collectFlag = (args: string[], flag: string) => {
+        const values: string[] = [];
+        for (let i = 0; i < args.length; i++) {
+          if (args[i] === flag) values.push(args[i + 1]);
+        }
+        return values;
+      };
+
+      expect(collectFlag(open.args, '--plugin-dir-no-mcp')).toEqual(['./path/to/plugin1']);
+      expect(collectFlag(official.args, '--plugin-dir-no-mcp')).toEqual(['./path/to/plugin1']);
+      expect(collectFlag(open.args, '--plugin-dir')).toEqual(['/absolute/path/to/plugin2']);
+      expect(collectFlag(official.args, '--plugin-dir')).toEqual(['/absolute/path/to/plugin2']);
+
+      console.log('   plugins --plugin-dir-no-mcp args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'managedSettings --managed-settings args match official SDK',
     async () => {
       const managedSettings = { permissions: { allow: [], deny: [] } };
