@@ -914,22 +914,6 @@ describe('v0.2.104 type re-exports', () => {
     expect(err.message).toBe('Invalid pattern');
   });
 
-  test('ConnectRemoteControlError is importable', () => {
-    const err: import('../../src/types/index.ts').ConnectRemoteControlError = {
-      kind: 'conflict',
-      detail: 'Another session is already connected',
-    };
-    expect(err.kind).toBe('conflict');
-  });
-
-  test('InboundPrompt is importable', () => {
-    const prompt: import('../../src/types/index.ts').InboundPrompt = {
-      content: 'Hello from the UI',
-      uuid: 'uuid-123',
-    };
-    expect(prompt.content).toBe('Hello from the UI');
-  });
-
   test('AgentDefinition model is now string (not union)', () => {
     const agent: import('../../src/types/index.ts').AgentDefinition = {
       type: 'custom-agent',
@@ -1074,6 +1058,55 @@ describe('v0.2.110 type re-exports', () => {
     if (Array.isArray(opts.systemPrompt)) {
       expect(opts.systemPrompt).toHaveLength(2);
     }
+  });
+});
+
+describe('v0.3.181 type re-exports', () => {
+  test('SDKWorkerShuttingDownMessage is importable and part of SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKWorkerShuttingDownMessage = {
+      type: 'system',
+      subtype: 'worker_shutting_down',
+      reason: 'host_exit',
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKWorkerShuttingDownMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('worker_shutting_down');
+    expect(msg.reason).toBe('host_exit');
+
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('SDKInformationalMessage is importable and part of SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKInformationalMessage = {
+      type: 'system',
+      subtype: 'informational',
+      content: 'Stop hook blocked continuation',
+      level: 'warning',
+      prevent_continuation: true,
+      uuid: 'uuid-123' as import('../../src/types/index.ts').SDKInformationalMessage['uuid'],
+      session_id: 'session-123',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('informational');
+    expect(msg.level).toBe('warning');
+    expect(msg.prevent_continuation).toBe(true);
+
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+
+  test('SDKRateLimitInfo has credits-required fields', () => {
+    const info: import('../../src/types/index.ts').SDKRateLimitInfo = {
+      status: 'rejected',
+      errorCode: 'credits_required',
+      canUserPurchaseCredits: true,
+      hasChargeableSavedPaymentMethod: false,
+    };
+    expect(info.errorCode).toBe('credits_required');
+    expect(info.canUserPurchaseCredits).toBe(true);
+    expect(info.hasChargeableSavedPaymentMethod).toBe(false);
   });
 });
 

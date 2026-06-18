@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-06-11
+**Last Updated:** 2026-06-18
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -169,8 +169,8 @@
 | `excludeDynamicSections` | 🔌 | Init message field verified to match official SDK (v0.2.104) |
 | `SDKTaskUpdatedMessage` type | ⚠️ | Re-exported from official SDK (v0.2.104); part of SDKMessage union |
 | `SDKSettingsParseError` type | ⚠️ | Re-exported from official SDK (v0.2.104) |
-| `ConnectRemoteControl*` types | ⚠️ | Re-exported from official SDK (v0.2.104); alpha API |
-| `InboundPrompt` type | ⚠️ | Re-exported from official SDK (v0.2.104); alpha API |
+| `ConnectRemoteControl*` types | ❌ | Removed from official SDK in v0.3.181; no longer re-exported |
+| `InboundPrompt` type | ❌ | Removed from official SDK in v0.3.181; no longer re-exported |
 | `AgentDefinition` new fields | ⚠️ | `initialPrompt`, `background`, `memory`, `effort`, `permissionMode` (v0.2.104) |
 | `SDKMemoryRecallMessage` type | ⚠️ | Re-exported from official SDK (v0.2.105); system/memory_recall event |
 | `SDKStatus` includes `'requesting'` | ⚠️ | Re-exported from official SDK (v0.2.108); status before API requests |
@@ -228,6 +228,11 @@
 | `SDKMessageOrigin` type | ⚠️ | Re-exported from official SDK (v0.2.113); message origin discriminated union |
 | `origin` on result messages | ⚠️ | `SDKResultSuccess`/`SDKResultError` gain optional `origin?: SDKMessageOrigin` (v0.2.126); type-only, forwarded via re-export |
 | `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` constant | ⚠️ | Re-exported from official SDK (v0.2.113); cache boundary marker for systemPrompt arrays |
+| `SDKWorkerShuttingDownMessage` type | ⚠️ | Re-exported from official SDK (v0.3.178); system/worker_shutting_down event; emitted on graceful Remote Control worker teardown with `reason` string |
+| `SDKInformationalMessage` type | ⚠️ | Re-exported from official SDK (v0.3.178); system/informational event; carries `level` (info/notice/suggestion/warning), optional `prevent_continuation` to halt execution |
+| `SDKRateLimitInfo` credits-required fields | ⚠️ | `errorCode`, `canUserPurchaseCredits`, `hasChargeableSavedPaymentMethod` added (v0.3.181); type-only, forwarded via re-export |
+| `tool_use_meta` on `SDKAssistantMessage` | ⚠️ | Optional sidecar with display-friendly tool call names and `icon_url` (v0.3.179/v0.3.181); type-only, forwarded via re-export |
+| `system/model_fallback` new trigger values | ⚠️ | `SDKModelRefusalFallbackMessage.trigger` gains `server_error` and `last_resort` (v0.3.174); type-only, forwarded via re-export |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

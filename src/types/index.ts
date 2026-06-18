@@ -46,6 +46,7 @@ export type {
   SDKHookProgressMessage,
   SDKHookResponseMessage,
   SDKHookStartedMessage,
+  SDKInformationalMessage,
   SDKLocalCommandOutputMessage,
   SDKMemoryRecallMessage,
   SDKMessageOrigin,
@@ -74,6 +75,7 @@ export type {
   SDKToolUseSummaryMessage,
   SDKUserMessage,
   SDKUserMessageReplay,
+  SDKWorkerShuttingDownMessage,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================
@@ -340,10 +342,6 @@ export interface SessionMetadata extends SessionInfo {
 // ============================================================================
 
 export type {
-  ConnectRemoteControlError,
-  ConnectRemoteControlOptions,
-  ConnectRemoteControlResult,
-  InboundPrompt,
   SpawnedProcess,
   SpawnOptions,
   Transport,
