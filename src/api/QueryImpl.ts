@@ -442,6 +442,15 @@ export class QueryImpl implements Query {
     );
   }
 
+  async setMcpPermissionModeOverride(
+    serverName: string,
+    mode: 'default' | 'auto' | null
+  ): Promise<{ warning?: string }> {
+    return this.controlManager.sendControlRequestWithResponse(
+      ControlRequests.setMcpPermissionModeOverride(serverName, mode)
+    );
+  }
+
   // ============================================================================
   // Private helpers
   // ============================================================================

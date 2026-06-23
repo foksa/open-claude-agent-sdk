@@ -668,6 +668,39 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'setMcpPermissionModeOverride sends set_mcp_permission_mode_override control request matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.setMcpPermissionModeOverride('test-server', 'auto');
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.setMcpPermissionModeOverride('test-server', 'auto');
+        }),
+      ]);
+
+      const openReq = open.stdin.find(
+        (m) => m.request?.subtype === 'set_mcp_permission_mode_override'
+      );
+      const officialReq = official.stdin.find(
+        (m) => m.request?.subtype === 'set_mcp_permission_mode_override'
+      );
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   setMcpPermissionModeOverride stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'outputFormat json_schema args match official SDK',
     async () => {
       const schema = {

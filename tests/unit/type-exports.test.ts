@@ -1707,3 +1707,14 @@ describe('v0.3.172-173 type re-exports', () => {
     expect(plugin.skipMcpDiscovery).toBeUndefined();
   });
 });
+
+describe('v0.3.187 type re-exports', () => {
+  test('SandboxCredentialsConfig is importable', () => {
+    const config: import('../../src/types/index.ts').SandboxCredentialsConfig = {
+      files: [{ path: '/etc/secrets', mode: 'deny' }],
+      envVars: [{ name: 'AWS_SECRET_ACCESS_KEY', mode: 'deny' }],
+    };
+    expect(config.files?.[0].mode).toBe('deny');
+    expect(config.envVars?.[0].name).toBe('AWS_SECRET_ACCESS_KEY');
+  });
+});

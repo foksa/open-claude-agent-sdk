@@ -221,6 +221,7 @@ export type {
   ResolvedSettingSource,
   ResolvedSettings,
   ResolveSettingsOptions,
+  SandboxCredentialsConfig,
   SandboxFilesystemConfig,
   SandboxIgnoreViolations,
   SandboxNetworkConfig,

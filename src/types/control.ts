@@ -37,6 +37,7 @@ export const RequestSubtype = {
   MCP_SET_SERVERS: 'mcp_set_servers',
   MCP_RECONNECT: 'mcp_reconnect',
   MCP_TOGGLE: 'mcp_toggle',
+  SET_MCP_PERMISSION_MODE_OVERRIDE: 'set_mcp_permission_mode_override',
   APPLY_FLAG_SETTINGS: 'apply_flag_settings',
   RELOAD_PLUGINS: 'reload_plugins',
   RELOAD_SKILLS: 'reload_skills',
@@ -104,6 +105,7 @@ export type ControlRequestInner =
   | McpSetServersRequest
   | McpReconnectRequest
   | McpToggleRequest
+  | SetMcpPermissionModeOverrideRequest
   | ApplyFlagSettingsRequest
   | ReloadPluginsRequest
   | SeedReadStateRequest
@@ -200,6 +202,12 @@ export type McpToggleRequest = {
   subtype: typeof RequestSubtype.MCP_TOGGLE;
   serverName: string;
   enabled: boolean;
+};
+
+export type SetMcpPermissionModeOverrideRequest = {
+  subtype: typeof RequestSubtype.SET_MCP_PERMISSION_MODE_OVERRIDE;
+  serverName: string;
+  mode: 'default' | 'auto' | null;
 };
 
 export type ApplyFlagSettingsRequest = {

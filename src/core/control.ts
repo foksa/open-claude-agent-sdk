@@ -31,6 +31,7 @@ import {
   ResponseSubtype,
   type SeedReadStateRequest,
   type SetMaxThinkingTokensRequest,
+  type SetMcpPermissionModeOverrideRequest,
   type SetModelRequest,
   type SetPermissionModeRequest,
   type StopTaskRequest,
@@ -60,6 +61,7 @@ export type OutboundControlRequest =
   | McpStatusRequest
   | McpReconnectRequest
   | McpToggleRequest
+  | SetMcpPermissionModeOverrideRequest
   | McpSetServersRequest
   | StopTaskRequest
   | ApplyFlagSettingsRequest
@@ -113,6 +115,15 @@ export const ControlRequests = {
     subtype: RequestSubtype.MCP_TOGGLE,
     serverName,
     enabled,
+  }),
+
+  setMcpPermissionModeOverride: (
+    serverName: string,
+    mode: 'default' | 'auto' | null
+  ): SetMcpPermissionModeOverrideRequest => ({
+    subtype: RequestSubtype.SET_MCP_PERMISSION_MODE_OVERRIDE,
+    serverName,
+    mode,
   }),
 
   mcpSetServers: (servers: Record<string, McpServerConfig>): McpSetServersRequest => ({

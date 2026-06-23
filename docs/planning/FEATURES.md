@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-06-18
+**Last Updated:** 2026-06-23
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -39,6 +39,7 @@
 | `reconnectMcpServer()` | ✅ | Tested with minimal stdio MCP server |
 | `toggleMcpServer()` | ✅ | Disable and re-enable tested with stdio MCP server |
 | `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs |
+| `setMcpPermissionModeOverride()` | 🔌 | Sends set_mcp_permission_mode_override control request; protocol parity tested (v0.3.187) |
 | `supportedAgents()` | ✅ | Returns array of AgentInfo from init response |
 | `readFile()` | 🔌 | Sends control request matching official SDK (v0.2.119); returns null on error |
 | `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
