@@ -902,6 +902,34 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'reinitialize resends an initialize control request matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.reinitialize();
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.reinitialize();
+        }),
+      ]);
+
+      const openInits = open.stdin.filter((m) => m.request?.subtype === 'initialize');
+      const officialInits = official.stdin.filter((m) => m.request?.subtype === 'initialize');
+
+      // One from the initial handshake, one from reinitialize()
+      expect(openInits.length).toBe(2);
+      expect(officialInits.length).toBe(2);
+
+      const openNorm = normalizeMessage(openInits[1]);
+      const officialNorm = normalizeMessage(officialInits[1]);
+      expect(openNorm).toEqual(officialNorm);
+
+      console.log('   reinitialize stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'seedReadState sends seed_read_state control request matching official SDK',
     async () => {
       const [open, official] = await Promise.all([

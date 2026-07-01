@@ -17,6 +17,7 @@ import {
   type ControlResponse,
   type GetContextUsageRequest,
   type GetUsageRequest,
+  type InitializeRequest,
   type InternalHookCallback,
   type InterruptRequest,
   type McpReconnectRequest,
@@ -54,6 +55,7 @@ import type { McpServerBridge } from './mcpBridge.ts';
  * Union of all outbound control request types (sent from SDK to CLI)
  */
 export type OutboundControlRequest =
+  | InitializeRequest
   | InterruptRequest
   | SetPermissionModeRequest
   | SetModelRequest

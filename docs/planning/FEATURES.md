@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-06-23
+**Last Updated:** 2026-07-01
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -45,6 +45,7 @@
 | `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
 | `reloadPlugins()` | 🔌 | Sends control request matching official SDK (v0.2.85) |
 | `reloadSkills()` | 🔌 | Sends reload_skills control request; protocol parity tested (v0.3.165) |
+| `reinitialize()` | ✅ | Resends the `initialize` control request with a fresh request_id, reusing the same request shape as the initial handshake (v0.3.195); E2E tested in control-methods.test.ts, stdin parity tested |
 | `seedReadState()` | 🔌 | Sends control request matching official SDK (v0.2.83) |
 | `applyFlagSettings()` | 🔌 | Sends control request matching official SDK; no behavioral test |
 | `getContextUsage()` | ✅ | Returns context usage breakdown; E2E tested (v0.2.86) |
@@ -234,6 +235,8 @@
 | `SDKRateLimitInfo` credits-required fields | ⚠️ | `errorCode`, `canUserPurchaseCredits`, `hasChargeableSavedPaymentMethod` added (v0.3.181); type-only, forwarded via re-export |
 | `tool_use_meta` on `SDKAssistantMessage` | ⚠️ | Optional sidecar with display-friendly tool call names and `icon_url` (v0.3.179/v0.3.181); type-only, forwarded via re-export |
 | `system/model_fallback` new trigger values | ⚠️ | `SDKModelRefusalFallbackMessage.trigger` gains `server_error` and `last_resort` (v0.3.174); type-only, forwarded via re-export |
+| `SDKModelRefusalNoFallbackMessage` type | ⚠️ | Re-exported from official SDK (v0.3.191); emitted when model refusal has no fallback configured, so the turn ends as an error; part of SDKMessage union |
+| `prompt_id` on `BaseHookInput` | ⚠️ | Correlates hook events with OpenTelemetry prompt-level events (v0.3.196); type-only, forwarded via re-export |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

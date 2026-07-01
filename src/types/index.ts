@@ -52,6 +52,7 @@ export type {
   SDKMessageOrigin,
   SDKMirrorErrorMessage,
   SDKModelRefusalFallbackMessage,
+  SDKModelRefusalNoFallbackMessage,
   SDKNotificationMessage,
   SDKPartialAssistantMessage,
   SDKPermissionDeniedMessage,

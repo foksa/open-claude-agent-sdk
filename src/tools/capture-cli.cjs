@@ -56,9 +56,6 @@ const cliArgs = process.argv.slice(2);
 // Capture stdin messages
 const stdinMessages = [];
 
-// Track if we've sent init response
-let initResponseSent = false;
-
 const rl = readline.createInterface({
   input: process.stdin,
   crlfDelay: Infinity,
@@ -73,8 +70,7 @@ rl.on('line', (line) => {
 
     // Respond to control_requests so the SDK doesn't hang
     if (msg.type === 'control_request') {
-      if (msg.request?.subtype === 'initialize' && !initResponseSent) {
-        initResponseSent = true;
+      if (msg.request?.subtype === 'initialize') {
         console.log(
           JSON.stringify({
             type: 'control_response',

@@ -38,7 +38,7 @@ import { ControlRequestManager } from './ControlRequestManager.ts';
 import { MessageQueue } from './MessageQueue.ts';
 import { MessageRouter } from './MessageRouter.ts';
 import { DefaultProcessFactory, type ProcessFactory } from './ProcessFactory.ts';
-import { sendInitialPrompt, sendProtocolInit } from './protocolInit.ts';
+import { buildInitRequest, sendInitialPrompt, sendProtocolInit } from './protocolInit.ts';
 
 export class QueryImpl implements Query {
   private closed = false;
@@ -50,7 +50,10 @@ export class QueryImpl implements Query {
     private controlManager: ControlRequestManager,
     private router: MessageRouter,
     private isSingleUserTurn: boolean,
-    private abortController?: AbortController
+    private abortController?: AbortController,
+    private options: Options = {},
+    private sdkMcpServerNames: string[] = [],
+    private controlHandler?: ControlProtocolHandler
   ) {}
 
   /**
@@ -94,7 +97,10 @@ export class QueryImpl implements Query {
       // router placeholder — set below after constructing with callbacks
       null as unknown as MessageRouter,
       isSingleUserTurn,
-      options.abortController
+      options.abortController,
+      options,
+      sdkMcpServerNames,
+      controlHandler
     );
 
     // 5. Initialize message router with callbacks
@@ -335,6 +341,16 @@ export class QueryImpl implements Query {
 
   async initializationResult(): Promise<SDKControlInitializeResponse> {
     return this.controlManager.waitForInit();
+  }
+
+  async reinitialize(): Promise<SDKControlInitializeResponse> {
+    if (this.closed || !this.controlHandler) {
+      return Promise.reject(new Error('Cannot send control request: query is closed'));
+    }
+    const request = buildInitRequest(this.options, this.sdkMcpServerNames, this.controlHandler);
+    return this.controlManager.sendControlRequestWithResponse<SDKControlInitializeResponse>(
+      request
+    );
   }
 
   async supportedCommands(): Promise<SlashCommand[]> {

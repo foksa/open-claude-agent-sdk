@@ -140,12 +140,16 @@ export type HookCallbackRequest = {
 
 export type InitializeRequest = {
   subtype: typeof RequestSubtype.INITIALIZE;
-  hooks?: Record<string, unknown>;
-  sdkMcpServers?: string[];
-  jsonSchema?: Record<string, unknown>;
-  systemPrompt?: string;
+  systemPrompt?: string[];
   appendSystemPrompt?: string;
+  sdkMcpServers?: string[];
   agents?: Record<string, unknown>;
+  hooks?: Record<string, unknown>;
+  excludeDynamicSections?: boolean;
+  promptSuggestions?: boolean;
+  agentProgressSummaries?: boolean;
+  title?: string;
+  skills?: string[];
 };
 
 export type InterruptRequest = {

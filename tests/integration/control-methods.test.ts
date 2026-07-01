@@ -95,6 +95,27 @@ testWithBothSDKs(
 );
 
 testWithBothSDKs(
+  'reinitialize() returns a fresh initialize response',
+  async (sdk) => {
+    const initial = await queryWithControlMethod(sdk, async (q) => {
+      const initResult = await q.initializationResult();
+      const reinitResult = await q.reinitialize();
+      return { initResult, reinitResult };
+    });
+
+    expect(initial.reinitResult).toBeDefined();
+    expect(typeof initial.reinitResult).toBe('object');
+    expect(Array.isArray(initial.reinitResult.commands)).toBe(true);
+    expect(Array.isArray(initial.reinitResult.models)).toBe(true);
+
+    console.log(
+      `   [${sdk}] reinitialize() returned: ${initial.reinitResult.commands.length} commands, ${initial.reinitResult.models.length} models`
+    );
+  },
+  120000
+);
+
+testWithBothSDKs(
   'reloadPlugins() returns response with expected shape',
   async (sdk) => {
     const response = await queryWithControlMethod(sdk, (q) => q.reloadPlugins());

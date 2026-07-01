@@ -9,12 +9,13 @@
 
 import type { ControlProtocolHandler } from '../core/control.ts';
 import { buildHookConfig } from '../core/hookConfig.ts';
+import type { InitializeRequest } from '../types/control.ts';
 import { MessageType, RequestSubtype } from '../types/control.ts';
 import type { Options, SDKUserMessage } from '../types/index.ts';
 import type { ControlRequestManager } from './ControlRequestManager.ts';
 
 /**
- * Send the control protocol init message to CLI.
+ * Build the `initialize` control request body.
  *
  * Resolves systemPrompt according to official SDK behavior (v0.2.110+):
  * - undefined → systemPrompt: [""] (minimal prompt wrapped in array)
@@ -23,17 +24,14 @@ import type { ControlRequestManager } from './ControlRequestManager.ts';
  * - { type: 'preset', preset: 'claude_code' } → neither field (use preset)
  * - { type: 'preset', preset: 'claude_code', append: '...' } → appendSystemPrompt: "..."
  *
- * @returns The request ID used for the init message
+ * Shared by the initial handshake and `Query.reinitialize()`, which resends
+ * this same request shape with a fresh request_id.
  */
-export function sendProtocolInit(
-  manager: ControlRequestManager,
+export function buildInitRequest(
   options: Options,
   sdkMcpServerNames: string[],
   controlHandler: ControlProtocolHandler
-): string {
-  const requestId = `init_${Date.now()}`;
-  manager.initRequestId = requestId;
-
+): InitializeRequest {
   let systemPrompt: string[] | undefined;
   let appendSystemPrompt: string | undefined;
 
@@ -57,19 +55,7 @@ export function sendProtocolInit(
     }
   }
 
-  const request: {
-    subtype: typeof RequestSubtype.INITIALIZE;
-    systemPrompt?: string[];
-    appendSystemPrompt?: string;
-    sdkMcpServers?: string[];
-    agents?: Record<string, unknown>;
-    hooks?: ReturnType<typeof buildHookConfig>;
-    excludeDynamicSections?: boolean;
-    promptSuggestions?: boolean;
-    agentProgressSummaries?: boolean;
-    title?: string;
-    skills?: string[];
-  } = {
+  const request: InitializeRequest = {
     subtype: RequestSubtype.INITIALIZE,
     ...(systemPrompt !== undefined && { systemPrompt }),
     ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
@@ -92,6 +78,25 @@ export function sendProtocolInit(
   if (options.hooks) {
     request.hooks = buildHookConfig(options.hooks, controlHandler);
   }
+
+  return request;
+}
+
+/**
+ * Send the control protocol init message to CLI.
+ *
+ * @returns The request ID used for the init message
+ */
+export function sendProtocolInit(
+  manager: ControlRequestManager,
+  options: Options,
+  sdkMcpServerNames: string[],
+  controlHandler: ControlProtocolHandler
+): string {
+  const requestId = `init_${Date.now()}`;
+  manager.initRequestId = requestId;
+
+  const request = buildInitRequest(options, sdkMcpServerNames, controlHandler);
 
   const init = {
     type: MessageType.CONTROL_REQUEST,

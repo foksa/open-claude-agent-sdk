@@ -1718,3 +1718,34 @@ describe('v0.3.187 type re-exports', () => {
     expect(config.envVars?.[0].name).toBe('AWS_SECRET_ACCESS_KEY');
   });
 });
+
+describe('v0.3.197 type re-exports', () => {
+  test('SDKModelRefusalNoFallbackMessage is importable', () => {
+    const msg: import('../../src/types/index.ts').SDKModelRefusalNoFallbackMessage = {
+      type: 'system',
+      subtype: 'model_refusal_no_fallback',
+      original_model: 'claude-opus-4-8',
+      request_id: 'req-123',
+      content: 'Refused with no fallback configured',
+      uuid: 'uuid-abc' as import('../../src/types/index.ts').SDKModelRefusalNoFallbackMessage['uuid'],
+      session_id: 'session-xyz',
+    };
+    expect(msg.type).toBe('system');
+    expect(msg.subtype).toBe('model_refusal_no_fallback');
+    expect(msg.original_model).toBe('claude-opus-4-8');
+  });
+
+  test('SDKModelRefusalNoFallbackMessage is assignable to SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKModelRefusalNoFallbackMessage = {
+      type: 'system',
+      subtype: 'model_refusal_no_fallback',
+      original_model: 'claude-opus-4-8',
+      request_id: null,
+      content: '',
+      uuid: 'uuid-def' as import('../../src/types/index.ts').SDKModelRefusalNoFallbackMessage['uuid'],
+      session_id: 'session-xyz',
+    };
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+  });
+});
