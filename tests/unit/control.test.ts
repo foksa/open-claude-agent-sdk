@@ -105,6 +105,57 @@ describe('ControlProtocolHandler', () => {
       expect(response.response.response.message).toBe('Not allowed');
     });
 
+    test('passes requestId matching the control envelope request_id', async () => {
+      const { stream } = createMockStdin();
+      const canUseTool = mock(
+        async (
+          _toolName: string,
+          _input: Record<string, unknown>,
+          _context: Record<string, unknown>
+        ) => {
+          return { behavior: 'allow' as const };
+        }
+      );
+      const handler = new ControlProtocolHandler(stream, { canUseTool });
+
+      const req: ControlRequest = {
+        type: 'control_request',
+        request_id: 'req-999',
+        request: {
+          subtype: 'can_use_tool',
+          tool_name: 'Read',
+          input: { file_path: '/test' },
+          tool_use_id: 'tu-999',
+        },
+      };
+
+      await handler.handleControlRequest(req);
+
+      expect(canUseTool.mock.calls[0][2]).toMatchObject({ requestId: 'req-999' });
+    });
+
+    test('suppresses the control response when callback returns null', async () => {
+      const { stream, writes } = createMockStdin();
+      const handler = new ControlProtocolHandler(stream, {
+        canUseTool: async () => null,
+      });
+
+      const req: ControlRequest = {
+        type: 'control_request',
+        request_id: 'req-000',
+        request: {
+          subtype: 'can_use_tool',
+          tool_name: 'Read',
+          input: { file_path: '/test' },
+          tool_use_id: 'tu-000',
+        },
+      };
+
+      await handler.handleControlRequest(req);
+
+      expect(writes.length).toBe(0);
+    });
+
     test('sends error when canUseTool callback throws', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {

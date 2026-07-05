@@ -290,14 +290,19 @@ export class ControlProtocolHandler {
       return;
     }
 
-    const result: PermissionResult = await this.options.canUseTool(tool_name, input, {
+    const result: PermissionResult | null = await this.options.canUseTool(tool_name, input, {
       signal: new AbortController().signal,
       suggestions: permission_suggestions,
       blockedPath: blocked_path,
       decisionReason: decision_reason,
       toolUseID: tool_use_id,
       agentID: agent_id,
+      requestId: req.request_id,
     });
+
+    // A `null` result means the consumer already sent a control_response
+    // out-of-band (e.g. a signed HTTP POST echoing `requestId`); skip ours.
+    if (result === null) return;
 
     this.sendSuccess(req.request_id, result);
   }

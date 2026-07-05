@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-07-01
+**Last Updated:** 2026-07-05
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -59,7 +59,7 @@
 | `maxBudgetUsd` | 🔌 | CLI flag passed, no budget-exceeded test |
 | `includePartialMessages` | ✅ | Streaming test verifies partial messages appear |
 | `cwd` | ✅ | Verified working directory is used |
-| `canUseTool` | ✅ | 7 behavioral tests (allow/deny/selective/async) |
+| `canUseTool` | ✅ | 8 behavioral tests (allow/deny/selective/async); `requestId` field (v0.3.199) + `null` return to suppress response unit tested |
 | `hooks` | ⚠️ | See Hooks section — 7 of 26 events tested |
 | `allowDangerouslySkipPermissions` | ✅ | Verified in permission-modes.test.ts |
 | `outputFormat` | ✅ | JSON schema validation tested E2E |
