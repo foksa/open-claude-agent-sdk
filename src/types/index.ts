@@ -31,15 +31,20 @@ export type {
 // ============================================================================
 
 export type {
+  SDKActiveGoalMessage,
   SDKAPIRetryMessage,
   SDKAssistantMessage,
   SDKAssistantMessageError,
   SDKAuthStatusMessage,
+  SDKBackgroundTasksChangedMessage,
   SDKCommandsChangedMessage,
   SDKCompactBoundaryMessage,
   SDKControlInitializeResponse,
+  SDKControlInterruptResponse,
   SDKControlRequest,
+  SDKControlRequestProgressMessage,
   SDKControlResponse,
+  SDKConversationResetMessage,
   SDKDeferredToolUse,
   SDKElicitationCompleteMessage,
   SDKFilesPersistedEvent,

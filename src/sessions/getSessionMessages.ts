@@ -156,6 +156,7 @@ function toSessionMessage(entry: TranscriptEntry): SessionMessage {
     session_id: entry.sessionId ?? '',
     message: entry.message,
     parent_tool_use_id: null,
+    parent_agent_id: null,
   };
 }
 

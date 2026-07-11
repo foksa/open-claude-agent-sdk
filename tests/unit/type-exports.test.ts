@@ -1749,3 +1749,74 @@ describe('v0.3.197 type re-exports', () => {
     expect(sdkMsg.type).toBe('system');
   });
 });
+
+describe('v0.3.202-207 type re-exports', () => {
+  test('SDKConversationResetMessage is importable and assignable to SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKConversationResetMessage = {
+      type: 'conversation_reset',
+      new_conversation_id:
+        'conv-123' as import('../../src/types/index.ts').SDKConversationResetMessage['new_conversation_id'],
+      uuid: 'uuid-abc' as import('../../src/types/index.ts').SDKConversationResetMessage['uuid'],
+      session_id: 'session-xyz',
+    };
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('conversation_reset');
+  });
+
+  test('SDKBackgroundTasksChangedMessage is importable and assignable to SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKBackgroundTasksChangedMessage = {
+      type: 'system',
+      subtype: 'background_tasks_changed',
+      tasks: [{ task_id: 'task-1', task_type: 'bash', description: 'run tests' }],
+      uuid: 'uuid-abc' as import('../../src/types/index.ts').SDKBackgroundTasksChangedMessage['uuid'],
+      session_id: 'session-xyz',
+    };
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+    expect(msg.tasks[0].task_id).toBe('task-1');
+  });
+
+  test('SDKControlRequestProgressMessage is importable and assignable to SDKMessage', () => {
+    const msg: import('../../src/types/index.ts').SDKControlRequestProgressMessage = {
+      type: 'system',
+      subtype: 'control_request_progress',
+      request_id: 'req-123',
+      status: 'started',
+      uuid: 'uuid-abc' as import('../../src/types/index.ts').SDKControlRequestProgressMessage['uuid'],
+      session_id: 'session-xyz',
+    };
+    const sdkMsg: import('../../src/types/index.ts').SDKMessage = msg;
+    expect(sdkMsg.type).toBe('system');
+    expect(msg.status).toBe('started');
+  });
+
+  test('SDKActiveGoalMessage is importable', () => {
+    const msg: import('../../src/types/index.ts').SDKActiveGoalMessage = {
+      type: 'active_goal',
+      value: { condition: 'tests pass', iterations: 1, set_at: Date.now(), tokens_at_start: 0 },
+      uuid: 'uuid-abc' as import('../../src/types/index.ts').SDKActiveGoalMessage['uuid'],
+      session_id: 'session-xyz',
+    };
+    expect(msg.type).toBe('active_goal');
+    expect(msg.value?.condition).toBe('tests pass');
+  });
+
+  test('SDKControlInterruptResponse is importable', () => {
+    const response: import('../../src/types/index.ts').SDKControlInterruptResponse = {
+      still_queued: ['uuid-1', 'uuid-2'],
+    };
+    expect(response.still_queued).toEqual(['uuid-1', 'uuid-2']);
+  });
+
+  test('SessionMessage requires parent_agent_id', () => {
+    const msg: import('../../src/types/index.ts').SessionMessage = {
+      type: 'user',
+      uuid: 'uuid-abc',
+      session_id: 'session-xyz',
+      message: {},
+      parent_tool_use_id: null,
+      parent_agent_id: null,
+    };
+    expect(msg.parent_agent_id).toBeNull();
+  });
+});

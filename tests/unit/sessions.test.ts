@@ -78,6 +78,7 @@ describe('getSessionMessages', () => {
     expect(messages[1].type).toBe('assistant');
     expect(messages[1].uuid).toBe('asst-1');
     expect(messages[0].parent_tool_use_id).toBeNull();
+    expect(messages[0].parent_agent_id).toBeNull();
     expect(messages[0].session_id).toBe(SESSION_ID);
   });
 

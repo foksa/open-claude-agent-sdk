@@ -261,3 +261,20 @@ testWithBothSDKs(
   },
   120000
 );
+
+testWithBothSDKs(
+  'interrupt() returns undefined or a typed receipt with still_queued',
+  async (sdk) => {
+    const result = await queryWithControlMethod(sdk, (q) => q.interrupt());
+
+    if (result !== undefined) {
+      expect(Array.isArray(result.still_queued)).toBe(true);
+      for (const id of result.still_queued) {
+        expect(typeof id).toBe('string');
+      }
+    }
+
+    console.log(`   [${sdk}] interrupt() returned:`, JSON.stringify(result));
+  },
+  120000
+);

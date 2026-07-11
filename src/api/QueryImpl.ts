@@ -26,6 +26,7 @@ import type {
   SDKControlGetContextUsageResponse,
   SDKControlGetUsageResponse,
   SDKControlInitializeResponse,
+  SDKControlInterruptResponse,
   SDKControlReadFileResponse,
   SDKControlReloadPluginsResponse,
   SDKControlReloadSkillsResponse,
@@ -228,8 +229,14 @@ export class QueryImpl implements Query {
   // Control methods (Query interface)
   // ============================================================================
 
-  async interrupt(): Promise<void> {
-    await this.controlManager.sendControlRequestWithResponse(ControlRequests.interrupt());
+  async interrupt(): Promise<SDKControlInterruptResponse | undefined> {
+    const response = await this.controlManager.sendControlRequestWithResponse<{
+      still_queued?: string[];
+    }>(ControlRequests.interrupt());
+    const stillQueued = response?.still_queued;
+    return Array.isArray(stillQueued)
+      ? { still_queued: stillQueued.filter((id): id is string => typeof id === 'string') }
+      : undefined;
   }
 
   async backgroundTasks(toolUseId?: string): Promise<boolean> {

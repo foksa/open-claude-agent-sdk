@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-07-05
+**Last Updated:** 2026-07-11
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -26,7 +26,7 @@
 | AsyncGenerator pattern | ✅ | `for await (const msg of query(...))` |
 | Control protocol (stdin/stdout) | ✅ | Init, control requests, responses |
 | **Query Control Methods** |
-| `interrupt()` | ✅ | Tested in abort.test.ts |
+| `interrupt()` | ✅ | Tested in abort.test.ts; returns typed `{still_queued}` receipt on CLIs advertising `interrupt_receipt_v1`, `undefined` otherwise (v0.3.205); E2E tested in control-methods.test.ts |
 | `close()` | ✅ | Tested in abort.test.ts |
 | `setPermissionMode()` | 🔌 | Sends control request, no behavioral verification |
 | `setModel()` | 🔌 | Sends control request, no behavioral verification |
@@ -142,7 +142,7 @@
 | Session management | ✅ | Resume, fork, continue, sessionId all E2E tested |
 | Session storage API | ✅ | listSessions, getSessionMetadata, renameSession, deleteSession, getProjectStoragePath — via `./storage` subpath |
 | `listSessions()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
-| `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; `includeSystemMessages` supported (v0.2.89); compared with official SDK |
+| `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; `includeSystemMessages` supported (v0.2.89); `parent_agent_id` field added (v0.3.202, always `null` — main-transcript reads only); compared with official SDK |
 | `forkSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.76); E2E tested in session-utils.test.ts |
 | `renameSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.74); E2E tested in session-utils.test.ts |
 | `tagSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.76); E2E tested in session-utils.test.ts |
