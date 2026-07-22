@@ -34,6 +34,7 @@ const REQUIRED_CLI_FLAGS = [
 
 type FlagMapping =
   | { key: keyof Options; flag: string; type: 'string' }
+  | { key: keyof Options; flag: string; type: 'equals-string' }
   | { key: keyof Options; flag: string; type: 'number' }
   | { key: keyof Options; flag: string; type: 'boolean' }
   | { key: keyof Options; flag: string; type: 'boolean-inverted' }
@@ -43,11 +44,13 @@ type FlagMapping =
 const FLAG_MAP: FlagMapping[] = [
   // String pass-through
   { key: 'model', flag: '--model', type: 'string' },
-  { key: 'resume', flag: '--resume', type: 'string' },
   { key: 'agent', flag: '--agent', type: 'string' },
-  { key: 'sessionId', flag: '--session-id', type: 'string' },
-  { key: 'resumeSessionAt', flag: '--resume-session-at', type: 'string' },
   { key: 'debugFile', flag: '--debug-file', type: 'string' },
+
+  // String pass-through, bound with equals-form (--flag=value) — matches official SDK
+  { key: 'resume', flag: '--resume', type: 'equals-string' },
+  { key: 'sessionId', flag: '--session-id', type: 'equals-string' },
+  { key: 'resumeSessionAt', flag: '--resume-session-at', type: 'equals-string' },
 
   // Number → string
   { key: 'maxTurns', flag: '--max-turns', type: 'number' },
@@ -84,6 +87,9 @@ function applyFlagMap(args: string[], options: Options): void {
     switch (mapping.type) {
       case 'string':
         if (value) args.push(mapping.flag, value as string);
+        break;
+      case 'equals-string':
+        if (value) args.push(`${mapping.flag}=${value as string}`);
         break;
       case 'number':
         if (value !== undefined) args.push(mapping.flag, String(value));

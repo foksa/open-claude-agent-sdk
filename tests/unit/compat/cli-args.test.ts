@@ -154,10 +154,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { resume: sessionId }),
       ]);
 
-      expect(open.args).toContain('--resume');
-      expect(open.args).toContain(sessionId);
-      expect(official.args).toContain('--resume');
-      expect(official.args).toContain(sessionId);
+      expect(open.args).toContain(`--resume=${sessionId}`);
+      expect(official.args).toContain(`--resume=${sessionId}`);
 
       console.log('   resume args match');
     },

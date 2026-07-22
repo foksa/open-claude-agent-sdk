@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-07-11
+**Last Updated:** 2026-07-22
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -72,10 +72,10 @@
 | `mcpServers` | ✅ | In-process SDK MCP servers tested E2E |
 | `strictMcpConfig` | 🔌 | CLI flag passed |
 | `agents` | ✅ | Subagent invocation, parent_tool_use_id, abort tested E2E |
-| `resume` | ✅ | Session resumed with context retained |
+| `resume` | ✅ | Session resumed with context retained; emits `--resume=<value>` equals-form (matches official SDK behavior since v0.3.208/v0.3.212) |
 | `continue` | ✅ | Tested in sessions.test.ts |
 | `forkSession` | ✅ | New session ID + retained context verified |
-| `sessionId` | ✅ | Custom ID used and returned |
+| `sessionId` | ✅ | Custom ID used and returned; emits `--session-id=<value>` equals-form (matches official SDK behavior since v0.3.212) |
 | `persistSession` | 🔌 | CLI flag passed |
 | `sandbox` | ✅ | Config passed via --settings, tested |
 | Image uploads (streaming input) | ✅ | Base64 image in content blocks, tested E2E |
@@ -99,7 +99,7 @@
 | `agentProgressSummaries` | 🔌 | Init message verified to match official SDK (v0.2.72) |
 | `debug` | 🔌 | CLI flag passed |
 | `debugFile` | 🔌 | CLI flag passed |
-| `resumeSessionAt` | ⚠️ | Unit tested, needs integration test |
+| `resumeSessionAt` | ⚠️ | Unit tested, needs integration test; emits `--resume-session-at=<value>` equals-form (matches official SDK behavior since v0.3.212) |
 | `enableFileCheckpointing` | ⚠️ | Unit tested (env var), needs integration test |
 | `toolConfig` | 🔌 | Env var `CLAUDE_CODE_QUESTION_PREVIEW_FORMAT` verified to match official SDK |
 | `executable` | ⚠️ | Unit tested, needs integration test |
@@ -237,6 +237,8 @@
 | `system/model_fallback` new trigger values | ⚠️ | `SDKModelRefusalFallbackMessage.trigger` gains `server_error` and `last_resort` (v0.3.174); type-only, forwarded via re-export |
 | `SDKModelRefusalNoFallbackMessage` type | ⚠️ | Re-exported from official SDK (v0.3.191); emitted when model refusal has no fallback configured, so the turn ends as an error; part of SDKMessage union |
 | `prompt_id` on `BaseHookInput` | ⚠️ | Correlates hook events with OpenTelemetry prompt-level events (v0.3.196); type-only, forwarded via re-export |
+| `USAGE_LIMIT_ERROR_PREFIXES` / `USAGE_TRANSITION_PREFIXES` / `USAGE_WARNING_PREFIXES` / `ORG_POLICY_LIMIT_PREFIXES` constants | ⚠️ | Re-exported from official SDK (v0.3.211); `@alpha` string-prefix buckets for classifying rate-limit/usage messages without hand-mirrored lists |
+| Output-field additions (v0.3.210–v0.3.217) | ⚠️ | `SDKAssistantMessage.timestamp`/`aborted`, `SDKMessageOrigin` `subkind:'scheduled-trigger'`, `tool_progress` `subagent_type`/`subagent_retry`, `system/init` plugin `version`, `RewindFilesResult.skippedLinks`, result-message `user_message_uuid`/`request_sent_wall_ms` — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

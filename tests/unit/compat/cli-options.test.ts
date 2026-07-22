@@ -139,10 +139,8 @@ describe('new CLI options compatibility', () => {
         capture(officialQuery, 'test', { sessionId }),
       ]);
 
-      expect(open.args).toContain('--session-id');
-      expect(open.args).toContain(sessionId);
-      expect(official.args).toContain('--session-id');
-      expect(official.args).toContain(sessionId);
+      expect(open.args).toContain(`--session-id=${sessionId}`);
+      expect(official.args).toContain(`--session-id=${sessionId}`);
 
       console.log('   sessionId args match');
     },
@@ -158,10 +156,8 @@ describe('new CLI options compatibility', () => {
         capture(officialQuery, 'test', { resumeSessionAt }),
       ]);
 
-      expect(open.args).toContain('--resume-session-at');
-      expect(open.args).toContain(resumeSessionAt);
-      expect(official.args).toContain('--resume-session-at');
-      expect(official.args).toContain(resumeSessionAt);
+      expect(open.args).toContain(`--resume-session-at=${resumeSessionAt}`);
+      expect(official.args).toContain(`--resume-session-at=${resumeSessionAt}`);
 
       console.log('   resumeSessionAt args match');
     },

@@ -1820,3 +1820,27 @@ describe('v0.3.202-207 type re-exports', () => {
     expect(msg.parent_agent_id).toBeNull();
   });
 });
+
+describe('v0.3.211 type re-exports', () => {
+  test('USAGE_LIMIT_ERROR_PREFIXES is importable from main entry', () => {
+    const { USAGE_LIMIT_ERROR_PREFIXES } = require('../../src/index.ts');
+    expect(Array.isArray(USAGE_LIMIT_ERROR_PREFIXES)).toBe(true);
+    expect(USAGE_LIMIT_ERROR_PREFIXES).toContain("You've hit your");
+  });
+
+  test('USAGE_TRANSITION_PREFIXES is importable from main entry', () => {
+    const { USAGE_TRANSITION_PREFIXES } = require('../../src/index.ts');
+    expect(Array.isArray(USAGE_TRANSITION_PREFIXES)).toBe(true);
+  });
+
+  test('USAGE_WARNING_PREFIXES is importable from main entry', () => {
+    const { USAGE_WARNING_PREFIXES } = require('../../src/index.ts');
+    expect(Array.isArray(USAGE_WARNING_PREFIXES)).toBe(true);
+  });
+
+  test('ORG_POLICY_LIMIT_PREFIXES is importable from main entry', () => {
+    const { ORG_POLICY_LIMIT_PREFIXES } = require('../../src/index.ts');
+    expect(Array.isArray(ORG_POLICY_LIMIT_PREFIXES)).toBe(true);
+    expect(ORG_POLICY_LIMIT_PREFIXES).toContain('This service is disabled for your org');
+  });
+});
