@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-07-22
+**Last Updated:** 2026-07-30
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -239,6 +239,10 @@
 | `prompt_id` on `BaseHookInput` | ⚠️ | Correlates hook events with OpenTelemetry prompt-level events (v0.3.196); type-only, forwarded via re-export |
 | `USAGE_LIMIT_ERROR_PREFIXES` / `USAGE_TRANSITION_PREFIXES` / `USAGE_WARNING_PREFIXES` / `ORG_POLICY_LIMIT_PREFIXES` constants | ⚠️ | Re-exported from official SDK (v0.3.211); `@alpha` string-prefix buckets for classifying rate-limit/usage messages without hand-mirrored lists |
 | Output-field additions (v0.3.210–v0.3.217) | ⚠️ | `SDKAssistantMessage.timestamp`/`aborted`, `SDKMessageOrigin` `subkind:'scheduled-trigger'`, `tool_progress` `subagent_type`/`subagent_retry`, `system/init` plugin `version`, `RewindFilesResult.skippedLinks`, result-message `user_message_uuid`/`request_sent_wall_ms` — all type-only, forwarded via existing re-exports; no SDK changes needed |
+| `DirectoryAddedHookInput` type | ⚠️ | Re-exported from official SDK (v0.3.219); `HookInput` union member for the `DirectoryAdded` lifecycle event, fired when a new working directory is registered mid-session |
+| `FastModeDisabledReason` type | ⚠️ | Re-exported from official SDK (v0.3.219); powers `fast_mode_disabled_reason` on result/init messages, forwarded via existing re-exports |
+| Output-field additions (v0.3.218–v0.3.220) | ⚠️ | `ModelUsage.canonicalModel`/`provider`, result-message `api_error_status` (now reports 429/529 instead of null mid-stream), `sandbox.network.strictAllowlist` and `workflowSizeGuideline` on `Settings`/`SandboxNetworkConfig` — all type-only, forwarded via existing re-exports; no SDK changes needed |
+| `cancel_queued` on interrupt control request | ❌ | Type-only (`SDKControlInterruptRequest.cancel_queued`, capability `interrupt_cancel_queued_v1`, v0.3.219); official SDK's own public `interrupt()` doesn't accept it yet, so left unwired to match upstream behavior |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

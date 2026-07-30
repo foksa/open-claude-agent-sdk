@@ -1844,3 +1844,23 @@ describe('v0.3.211 type re-exports', () => {
     expect(ORG_POLICY_LIMIT_PREFIXES).toContain('This service is disabled for your org');
   });
 });
+
+describe('v0.3.218-v0.3.220 type re-exports', () => {
+  test('DirectoryAddedHookInput is importable', () => {
+    const input: import('../../src/types/index.ts').DirectoryAddedHookInput = {
+      session_id: 'session-123',
+      transcript_path: '/tmp/transcript.jsonl',
+      cwd: '/home/user',
+      hook_event_name: 'DirectoryAdded',
+      directory: '/home/user/new-project',
+      source: 'slash_command',
+    };
+    expect(input.hook_event_name).toBe('DirectoryAdded');
+    expect(input.source).toBe('slash_command');
+  });
+
+  test('FastModeDisabledReason is importable', () => {
+    const reason: import('../../src/types/index.ts').FastModeDisabledReason = 'sdk_opt_in_required';
+    expect(reason).toBe('sdk_opt_in_required');
+  });
+});
