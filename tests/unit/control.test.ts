@@ -312,6 +312,136 @@ describe('ControlProtocolHandler', () => {
     });
   });
 
+  describe('elicitation handling', () => {
+    test('declines by default when no onElicitation callback', async () => {
+      const { stream, writes } = createMockStdin();
+      const handler = new ControlProtocolHandler(stream, {});
+
+      const req: ControlRequest = {
+        type: 'control_request',
+        request_id: 'req-elicit-1',
+        request: {
+          subtype: 'elicitation',
+          mcp_server_name: 'my-server',
+          message: 'Please provide input',
+        },
+      };
+
+      await handler.handleControlRequest(req);
+
+      expect(writes.length).toBe(1);
+      const response = JSON.parse(writes[0]);
+      expect(response.response.subtype).toBe('success');
+      expect(response.response.response.action).toBe('decline');
+    });
+
+    test('passes requestId matching the control envelope request_id', async () => {
+      const { stream } = createMockStdin();
+      const onElicitation = mock(async () => ({ action: 'accept' as const }));
+      const handler = new ControlProtocolHandler(stream, { onElicitation });
+
+      const req: ControlRequest = {
+        type: 'control_request',
+        request_id: 'req-elicit-2',
+        request: {
+          subtype: 'elicitation',
+          mcp_server_name: 'my-server',
+          message: 'Please provide input',
+        },
+      };
+
+      await handler.handleControlRequest(req);
+
+      expect(onElicitation.mock.calls[0][1]).toMatchObject({ requestId: 'req-elicit-2' });
+    });
+
+    test('suppresses the control response when callback returns null', async () => {
+      const { stream, writes } = createMockStdin();
+      const handler = new ControlProtocolHandler(stream, {
+        onElicitation: async () => null,
+      });
+
+      const req: ControlRequest = {
+        type: 'control_request',
+        request_id: 'req-elicit-3',
+        request: {
+          subtype: 'elicitation',
+          mcp_server_name: 'my-server',
+          message: 'Please provide input',
+        },
+      };
+
+      await handler.handleControlRequest(req);
+
+      expect(writes.length).toBe(0);
+    });
+  });
+
+  describe('request_user_dialog handling', () => {
+    test('cancels by default when no onUserDialog callback', async () => {
+      const { stream, writes } = createMockStdin();
+      const handler = new ControlProtocolHandler(stream, {});
+
+      const req: ControlRequest = {
+        type: 'control_request',
+        request_id: 'req-dialog-1',
+        request: {
+          subtype: 'request_user_dialog',
+          dialog_kind: 'refusal_fallback_prompt',
+          payload: {},
+        },
+      };
+
+      await handler.handleControlRequest(req);
+
+      expect(writes.length).toBe(1);
+      const response = JSON.parse(writes[0]);
+      expect(response.response.subtype).toBe('success');
+      expect(response.response.response.behavior).toBe('cancelled');
+    });
+
+    test('passes requestId matching the control envelope request_id', async () => {
+      const { stream } = createMockStdin();
+      const onUserDialog = mock(async () => ({ behavior: 'cancelled' as const }));
+      const handler = new ControlProtocolHandler(stream, { onUserDialog });
+
+      const req: ControlRequest = {
+        type: 'control_request',
+        request_id: 'req-dialog-2',
+        request: {
+          subtype: 'request_user_dialog',
+          dialog_kind: 'refusal_fallback_prompt',
+          payload: {},
+        },
+      };
+
+      await handler.handleControlRequest(req);
+
+      expect(onUserDialog.mock.calls[0][1]).toMatchObject({ requestId: 'req-dialog-2' });
+    });
+
+    test('suppresses the control response when callback returns null', async () => {
+      const { stream, writes } = createMockStdin();
+      const handler = new ControlProtocolHandler(stream, {
+        onUserDialog: async () => null,
+      });
+
+      const req: ControlRequest = {
+        type: 'control_request',
+        request_id: 'req-dialog-3',
+        request: {
+          subtype: 'request_user_dialog',
+          dialog_kind: 'refusal_fallback_prompt',
+          payload: {},
+        },
+      };
+
+      await handler.handleControlRequest(req);
+
+      expect(writes.length).toBe(0);
+    });
+  });
+
   describe('SDK-to-CLI request types (passthrough)', () => {
     test('acknowledges set_permission_mode request', async () => {
       const { stream, writes } = createMockStdin();

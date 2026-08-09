@@ -364,7 +364,7 @@ export class ControlProtocolHandler {
       return;
     }
 
-    const result: ElicitationResult = await this.options.onElicitation(
+    const result: ElicitationResult | null = await this.options.onElicitation(
       {
         serverName: r.mcp_server_name,
         message: r.message,
@@ -376,8 +376,12 @@ export class ControlProtocolHandler {
         displayName: r.display_name,
         description: r.description,
       },
-      { signal: new AbortController().signal }
+      { signal: new AbortController().signal, requestId: req.request_id }
     );
+
+    // A `null` result means the consumer already sent a control_response
+    // out-of-band (e.g. a signed HTTP POST echoing `requestId`); skip ours.
+    if (result === null) return;
 
     this.sendSuccess(req.request_id, result as unknown as Record<string, unknown>);
   }
@@ -392,10 +396,14 @@ export class ControlProtocolHandler {
       return;
     }
 
-    const result: UserDialogResult = await this.options.onUserDialog(
+    const result: UserDialogResult | null = await this.options.onUserDialog(
       { dialogKind: dialog_kind, payload, toolUseID: tool_use_id },
-      { signal: new AbortController().signal }
+      { signal: new AbortController().signal, requestId: req.request_id }
     );
+
+    // A `null` result means the consumer already sent a control_response
+    // out-of-band (e.g. a signed HTTP POST echoing `requestId`); skip ours.
+    if (result === null) return;
 
     this.sendSuccess(req.request_id, result as unknown as Record<string, unknown>);
   }

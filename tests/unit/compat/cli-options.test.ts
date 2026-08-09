@@ -165,6 +165,23 @@ describe('new CLI options compatibility', () => {
   );
 
   test.concurrent(
+    'resumeDropsTurn option args match official SDK',
+    async () => {
+      const resumeDropsTurn = 'prompt-uuid-321';
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { resumeDropsTurn }),
+        capture(officialQuery, 'test', { resumeDropsTurn }),
+      ]);
+
+      expect(open.args).toContain(`--resume-drops-turn=${resumeDropsTurn}`);
+      expect(official.args).toContain(`--resume-drops-turn=${resumeDropsTurn}`);
+
+      console.log('   resumeDropsTurn args match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'persistSession false args match official SDK',
     async () => {
       const [open, official] = await Promise.all([

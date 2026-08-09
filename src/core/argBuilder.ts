@@ -51,6 +51,7 @@ const FLAG_MAP: FlagMapping[] = [
   { key: 'resume', flag: '--resume', type: 'equals-string' },
   { key: 'sessionId', flag: '--session-id', type: 'equals-string' },
   { key: 'resumeSessionAt', flag: '--resume-session-at', type: 'equals-string' },
+  { key: 'resumeDropsTurn', flag: '--resume-drops-turn', type: 'equals-string' },
 
   // Number → string
   { key: 'maxTurns', flag: '--max-turns', type: 'number' },

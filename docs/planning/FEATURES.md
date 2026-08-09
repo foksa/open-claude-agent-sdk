@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-07-30
+**Last Updated:** 2026-08-09
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -100,6 +100,7 @@
 | `debug` | 🔌 | CLI flag passed |
 | `debugFile` | 🔌 | CLI flag passed |
 | `resumeSessionAt` | ⚠️ | Unit tested, needs integration test; emits `--resume-session-at=<value>` equals-form (matches official SDK behavior since v0.3.212) |
+| `resumeDropsTurn` | 🔌 | CLI flag `--resume-drops-turn=<value>` verified to match official SDK (v0.3.223); used with `resumeSessionAt` to guard truncating resumes |
 | `enableFileCheckpointing` | ⚠️ | Unit tested (env var), needs integration test |
 | `toolConfig` | 🔌 | Env var `CLAUDE_CODE_QUESTION_PREVIEW_FORMAT` verified to match official SDK |
 | `executable` | ⚠️ | Unit tested, needs integration test |
