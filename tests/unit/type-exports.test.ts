@@ -1864,3 +1864,57 @@ describe('v0.3.218-v0.3.220 type re-exports', () => {
     expect(reason).toBe('sdk_opt_in_required');
   });
 });
+
+describe('v0.3.232 type re-exports', () => {
+  test('SDKContextUsageCategory is importable', () => {
+    const category: import('../../src/types/index.ts').SDKContextUsageCategory = {
+      name: 'Messages',
+      tokens: 1234,
+      kind: 'used',
+    };
+    expect(category.kind).toBe('used');
+  });
+
+  test('SDKContextUsage is importable', () => {
+    const usage: import('../../src/types/index.ts').SDKContextUsage = {
+      model: 'claude-sonnet-5',
+      total_tokens: 1234,
+      raw_max_tokens: 200000,
+      percentage: 1,
+      categories: [{ name: 'Messages', tokens: 1234, kind: 'used' }],
+      mcp_tools: [],
+      memory_files: [],
+      agents: [],
+    };
+    expect(usage.model).toBe('claude-sonnet-5');
+    expect(usage.categories[0]?.kind).toBe('used');
+  });
+
+  test('SDKAssistantMessage carries optional context_usage', () => {
+    const usage: import('../../src/types/index.ts').SDKContextUsage = {
+      model: 'claude-sonnet-5',
+      total_tokens: 1234,
+      raw_max_tokens: 200000,
+      percentage: 1,
+      categories: [],
+      mcp_tools: [],
+      memory_files: [],
+      agents: [],
+    };
+    const msg = { context_usage: usage } satisfies Pick<
+      import('../../src/types/index.ts').SDKAssistantMessage,
+      'context_usage'
+    >;
+    expect(msg.context_usage?.model).toBe('claude-sonnet-5');
+  });
+});
+
+describe('v0.3.229 type re-exports', () => {
+  test('SDKSystemMessage carries optional terminal_slash_commands', () => {
+    const msg = { terminal_slash_commands: ['exit', 'statusline'] } satisfies Pick<
+      import('../../src/types/index.ts').SDKSystemMessage,
+      'terminal_slash_commands'
+    >;
+    expect(msg.terminal_slash_commands).toEqual(['exit', 'statusline']);
+  });
+});

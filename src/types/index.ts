@@ -39,6 +39,8 @@ export type {
   SDKBackgroundTasksChangedMessage,
   SDKCommandsChangedMessage,
   SDKCompactBoundaryMessage,
+  SDKContextUsage,
+  SDKContextUsageCategory,
   SDKControlInitializeResponse,
   SDKControlInterruptResponse,
   SDKControlRequest,

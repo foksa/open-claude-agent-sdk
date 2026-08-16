@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-08-09
+**Last Updated:** 2026-08-16
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -244,6 +244,8 @@
 | `FastModeDisabledReason` type | ⚠️ | Re-exported from official SDK (v0.3.219); powers `fast_mode_disabled_reason` on result/init messages, forwarded via existing re-exports |
 | Output-field additions (v0.3.218–v0.3.220) | ⚠️ | `ModelUsage.canonicalModel`/`provider`, result-message `api_error_status` (now reports 429/529 instead of null mid-stream), `sandbox.network.strictAllowlist` and `workflowSizeGuideline` on `Settings`/`SandboxNetworkConfig` — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | `cancel_queued` on interrupt control request | ❌ | Type-only (`SDKControlInterruptRequest.cancel_queued`, capability `interrupt_cancel_queued_v1`, v0.3.219); official SDK's own public `interrupt()` doesn't accept it yet, so left unwired to match upstream behavior |
+| `SDKContextUsage` / `SDKContextUsageCategory` types | ⚠️ | Re-exported from official SDK (v0.3.232); structured twin of the `/context` report, carried as optional `context_usage` on `SDKAssistantMessage`; type-only, forwarded via existing re-export |
+| Output-field additions (v0.3.227–v0.3.233) | ⚠️ | `terminal_slash_commands` on `system/init` (v0.3.229), `AgentOutput.usage.output_tokens_details`, `vcs_state_changed.branch` for pushes (v0.3.232) — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |
