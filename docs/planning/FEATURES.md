@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-08-16
+**Last Updated:** 2026-08-21
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -246,6 +246,7 @@
 | `cancel_queued` on interrupt control request | ❌ | Type-only (`SDKControlInterruptRequest.cancel_queued`, capability `interrupt_cancel_queued_v1`, v0.3.219); official SDK's own public `interrupt()` doesn't accept it yet, so left unwired to match upstream behavior |
 | `SDKContextUsage` / `SDKContextUsageCategory` types | ⚠️ | Re-exported from official SDK (v0.3.232); structured twin of the `/context` report, carried as optional `context_usage` on `SDKAssistantMessage`; type-only, forwarded via existing re-export |
 | Output-field additions (v0.3.227–v0.3.233) | ⚠️ | `terminal_slash_commands` on `system/init` (v0.3.229), `AgentOutput.usage.output_tokens_details`, `vcs_state_changed.branch` for pushes (v0.3.232) — all type-only, forwarded via existing re-exports; no SDK changes needed |
+| Output-field additions (v0.3.234–v0.3.238) | ⚠️ | `SDKSystemMessage.effort` (applied effort level, v0.3.234), `ApiKeySource` value set corrected, `ExitReason` dropped unused `bypass_permissions_disabled`, `SDKMessageOrigin` peer `fromMode` (v0.3.234), `PostToolUseHookSpecificOutput.classifierContext` (v0.3.236), `SDKTaskStartedMessage.is_backgrounded`/`spawn_depth` (v0.3.238), `UserPromptExpansionHookSpecificOutput.suppressOriginalPrompt` (v0.3.238) — all type-only, forwarded via existing re-exports (hook outputs pass through unmodified, inbound NDJSON is cast, not reshaped); no SDK changes needed |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |
