@@ -1267,4 +1267,29 @@ describe('stdin message compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'perTaskStopAffordance in init message matches official SDK (v0.3.246)',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { perTaskStopAffordance: true }),
+        capture(officialQuery, 'test', { perTaskStopAffordance: true }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit?.request?.perTaskStopAffordance).toBe(true);
+      expect(officialInit?.request?.perTaskStopAffordance).toBe(true);
+
+      if (openInit && officialInit) {
+        const openNorm = normalizeMessage(openInit);
+        const officialNorm = normalizeMessage(officialInit);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   perTaskStopAffordance stdin messages match');
+    },
+    { timeout: 60000 }
+  );
 });

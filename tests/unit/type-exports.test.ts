@@ -7,6 +7,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { AbortError } from '../../src/index.ts';
+import { createSdkMcpServer } from '../../src/mcp.ts';
 import { InMemorySessionStore, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '../../src/types/index.ts';
 
 describe('v0.2.49 type re-exports', () => {
@@ -1916,5 +1917,64 @@ describe('v0.3.229 type re-exports', () => {
       'terminal_slash_commands'
     >;
     expect(msg.terminal_slash_commands).toEqual(['exit', 'statusline']);
+  });
+});
+
+describe('v0.3.246 type re-exports', () => {
+  test('Options carries optional perTaskStopAffordance', () => {
+    const opts = { perTaskStopAffordance: true } satisfies Pick<
+      import('../../src/types/index.ts').Options,
+      'perTaskStopAffordance'
+    >;
+    expect(opts.perTaskStopAffordance).toBe(true);
+  });
+
+  test('ModelUsage carries optional costBasis', () => {
+    const usage = { costBasis: 'managed' } satisfies Pick<
+      import('../../src/types/index.ts').ModelUsage,
+      'costBasis'
+    >;
+    expect(usage.costBasis).toBe('managed');
+  });
+
+  test('Settings.managedSettings carries optional modelPricing', () => {
+    const settings = {
+      modelPricing: {
+        multiplier: 0.85,
+        overrides: {
+          'claude-sonnet-4-6': { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
+        },
+      },
+    } satisfies Pick<import('../../src/types/index.ts').Settings, 'modelPricing'>;
+    expect(settings.modelPricing?.multiplier).toBe(0.85);
+  });
+
+  test('SDKAssistantMessage carries optional user_message_uuid', () => {
+    const msg = { user_message_uuid: 'abc-123' } satisfies Pick<
+      import('../../src/types/index.ts').SDKAssistantMessage,
+      'user_message_uuid'
+    >;
+    expect(msg.user_message_uuid).toBe('abc-123');
+  });
+});
+
+describe('v0.3.247 type re-exports', () => {
+  test('SDKBackgroundTasksChangedMessage task entries carry optional ambient flag', () => {
+    const msg = {
+      tasks: [{ task_id: 't1', task_type: 'bash', description: 'watch', ambient: true }],
+    } satisfies Pick<import('../../src/types/index.ts').SDKBackgroundTasksChangedMessage, 'tasks'>;
+    expect(msg.tasks[0]?.ambient).toBe(true);
+  });
+});
+
+describe('v0.3.248 type re-exports', () => {
+  test('createSdkMcpServer accepts and returns a per-server timeout', () => {
+    const server = createSdkMcpServer({ name: 'timed-tools', timeout: 5000 });
+    expect(server.timeout).toBe(5000);
+  });
+
+  test('createSdkMcpServer omits an invalid timeout, matching official SDK', () => {
+    const server = createSdkMcpServer({ name: 'timed-tools', timeout: -1 });
+    expect(server.timeout).toBeUndefined();
   });
 });

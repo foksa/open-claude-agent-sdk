@@ -15,6 +15,23 @@ import type { Options, SDKUserMessage } from '../types/index.ts';
 import type { ControlRequestManager } from './ControlRequestManager.ts';
 
 /**
+ * Build `sdkMcpServerConfigs` — per-server `{ timeout }` entries for SDK
+ * (in-process) MCP servers that declared a timeout via `createSdkMcpServer`.
+ * Only servers with a defined timeout are included (matches official SDK).
+ */
+function buildSdkMcpServerConfigs(
+  options: Options
+): Record<string, { timeout?: number }> | undefined {
+  if (!options.mcpServers) return undefined;
+  const entries = Object.entries(options.mcpServers).flatMap(([name, config]) =>
+    'instance' in config && config.timeout !== undefined
+      ? [[name, { timeout: config.timeout }] as const]
+      : []
+  );
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+/**
  * Build the `initialize` control request body.
  *
  * Resolves systemPrompt according to official SDK behavior (v0.2.110+):
@@ -55,12 +72,15 @@ export function buildInitRequest(
     }
   }
 
+  const sdkMcpServerConfigs = buildSdkMcpServerConfigs(options);
+
   const request: InitializeRequest = {
     subtype: RequestSubtype.INITIALIZE,
     ...(systemPrompt !== undefined && { systemPrompt }),
     ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
     ...(excludeDynamicSections !== undefined && { excludeDynamicSections }),
     ...(sdkMcpServerNames.length > 0 && { sdkMcpServers: sdkMcpServerNames }),
+    ...(sdkMcpServerConfigs && { sdkMcpServerConfigs }),
     ...(options.agents && { agents: options.agents }),
     ...(options.promptSuggestions !== undefined && {
       promptSuggestions: options.promptSuggestions,
@@ -73,6 +93,9 @@ export function buildInitRequest(
       options.skills.length > 0 && {
         skills: options.skills,
       }),
+    ...(options.perTaskStopAffordance !== undefined && {
+      perTaskStopAffordance: options.perTaskStopAffordance,
+    }),
   };
 
   if (options.hooks) {

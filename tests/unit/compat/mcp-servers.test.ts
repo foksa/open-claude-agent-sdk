@@ -125,4 +125,49 @@ describe('mcpServers init message compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'sdkMcpServers timeout produces matching sdkMcpServerConfigs (v0.3.248)',
+    async () => {
+      // Each SDK needs its own McpServer instance (McpServer only allows one connection)
+      const makeServer = () => createSdkMcpServer({ name: 'timed-tools', timeout: 5000 });
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { mcpServers: { 'timed-tools': makeServer() } }),
+        capture(officialQuery, 'test', { mcpServers: { 'timed-tools': makeServer() } }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit?.request?.sdkMcpServerConfigs).toEqual({ 'timed-tools': { timeout: 5000 } });
+      expect(officialInit?.request?.sdkMcpServerConfigs).toEqual({
+        'timed-tools': { timeout: 5000 },
+      });
+
+      console.log('   sdkMcpServerConfigs timeout matches');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'sdkMcpServers invalid timeout is omitted, matching official SDK (v0.3.248)',
+    async () => {
+      const makeServer = () => createSdkMcpServer({ name: 'bad-timeout-tools', timeout: -5 });
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { mcpServers: { 'bad-timeout-tools': makeServer() } }),
+        capture(officialQuery, 'test', { mcpServers: { 'bad-timeout-tools': makeServer() } }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit?.request?.sdkMcpServerConfigs).toBeUndefined();
+      expect(officialInit?.request?.sdkMcpServerConfigs).toBeUndefined();
+
+      console.log('   invalid timeout omitted on both SDKs');
+    },
+    { timeout: 60000 }
+  );
 });

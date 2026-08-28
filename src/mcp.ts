@@ -46,6 +46,12 @@ type McpSdkServerConfigWithInstance = {
   type: 'sdk';
   name: string;
   instance: McpServer;
+  /**
+   * Per-server tool-call timeout in milliseconds. Overrides the
+   * MCP_TOOL_TIMEOUT environment variable for this server. Only sent to the
+   * CLI when it's a positive integer (matches official SDK's validation).
+   */
+  timeout?: number;
 };
 
 /**
@@ -56,7 +62,24 @@ type CreateSdkMcpServerOptions = {
   version?: string;
   // biome-ignore lint/suspicious/noExplicitAny: must match official SDK signature
   tools?: Array<SdkMcpToolDefinition<any>>;
+  /**
+   * Per-server tool-call timeout in milliseconds. Overrides the
+   * MCP_TOOL_TIMEOUT environment variable for this server. Hard wall-clock
+   * limit per call. Values below 1000ms are ignored (falls through to
+   * MCP_TOOL_TIMEOUT or the default). Applies when the server is first
+   * registered; changing it for an already-registered server has no effect
+   * until it is removed and re-added.
+   */
+  timeout?: number;
 };
+
+/**
+ * Matches official SDK's validation: only a positive integer is sent to the
+ * CLI, anything else falls through to MCP_TOOL_TIMEOUT or the default.
+ */
+function validTimeout(value: number | undefined): number | undefined {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined;
+}
 
 // ============================================================================
 // Functions
@@ -110,7 +133,13 @@ export function createSdkMcpServer(
     }
   }
 
-  return { type: 'sdk', name: options.name, instance: server };
+  const timeout = validTimeout(options.timeout);
+  return {
+    type: 'sdk',
+    name: options.name,
+    instance: server,
+    ...(timeout !== undefined && { timeout }),
+  };
 }
 
 /**

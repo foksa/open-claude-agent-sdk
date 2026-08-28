@@ -143,6 +143,7 @@ export type InitializeRequest = {
   systemPrompt?: string[];
   appendSystemPrompt?: string;
   sdkMcpServers?: string[];
+  sdkMcpServerConfigs?: Record<string, { timeout?: number }>;
   agents?: Record<string, unknown>;
   hooks?: Record<string, unknown>;
   excludeDynamicSections?: boolean;
@@ -150,6 +151,7 @@ export type InitializeRequest = {
   agentProgressSummaries?: boolean;
   title?: string;
   skills?: string[];
+  perTaskStopAffordance?: boolean;
 };
 
 export type InterruptRequest = {
