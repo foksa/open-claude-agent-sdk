@@ -1978,3 +1978,55 @@ describe('v0.3.248 type re-exports', () => {
     expect(server.timeout).toBeUndefined();
   });
 });
+
+describe('v0.3.257 type re-exports', () => {
+  test('ModelUsage carries optional thinkingTokens', () => {
+    const usage = { thinkingTokens: 128 } satisfies Pick<
+      import('../../src/types/index.ts').ModelUsage,
+      'thinkingTokens'
+    >;
+    expect(usage.thinkingTokens).toBe(128);
+  });
+
+  test('SDKMcpResourceLink is importable and shapes a resource link entry', () => {
+    const link: import('../../src/types/index.ts').SDKMcpResourceLink = {
+      uri: 'file:///tmp/report.pdf',
+      name: 'report.pdf',
+    };
+    expect(link.uri).toBe('file:///tmp/report.pdf');
+  });
+
+  test('PreModelSwitchHookInput / PostModelSwitchHookInput are members of HookInput', () => {
+    const pre = { hook_event_name: 'PreModelSwitch' } satisfies Pick<
+      import('../../src/types/index.ts').PreModelSwitchHookInput,
+      'hook_event_name'
+    >;
+    const post = { hook_event_name: 'PostModelSwitch' } satisfies Pick<
+      import('../../src/types/index.ts').PostModelSwitchHookInput,
+      'hook_event_name'
+    >;
+    expect(pre.hook_event_name).toBe('PreModelSwitch');
+    expect(post.hook_event_name).toBe('PostModelSwitch');
+  });
+});
+
+describe('v0.3.259 type re-exports', () => {
+  test('SDKAssistantMessage carries optional user_message_uuids alongside user_message_uuid', () => {
+    const msg = {
+      user_message_uuid: 'abc-123',
+      user_message_uuids: ['abc-123', 'def-456'],
+    } satisfies Pick<
+      import('../../src/types/index.ts').SDKAssistantMessage,
+      'user_message_uuid' | 'user_message_uuids'
+    >;
+    expect(msg.user_message_uuids).toEqual(['abc-123', 'def-456']);
+  });
+
+  test('Options accepts permissionPrompts', () => {
+    const opts = { permissionPrompts: 'none' } satisfies Pick<
+      import('../../src/types/index.ts').Options,
+      'permissionPrompts'
+    >;
+    expect(opts.permissionPrompts).toBe('none');
+  });
+});

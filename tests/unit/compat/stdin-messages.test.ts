@@ -844,6 +844,36 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'updateSettings sends update_settings control request matching official SDK',
+    async () => {
+      const settings = { outputStyle: 'concise' };
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.updateSettings('localSettings', settings);
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.updateSettings('localSettings', settings);
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'update_settings');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'update_settings');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   updateSettings stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'reloadPlugins sends reload_plugins control request matching official SDK',
     async () => {
       const [open, official] = await Promise.all([
@@ -1012,6 +1042,37 @@ describe('stdin message compatibility', () => {
       }
 
       console.log('   getContextUsage stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'getContextUsage({ detail }) sends detail field matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.getContextUsage({ detail: 'summary' });
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.getContextUsage({ detail: 'summary' });
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'get_context_usage');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'get_context_usage');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+      expect(openReq?.request?.detail).toBe('summary');
+      expect(officialReq?.request?.detail).toBe('summary');
+
+      console.log('   getContextUsage({ detail }) stdin messages match');
     },
     { timeout: 60000 }
   );

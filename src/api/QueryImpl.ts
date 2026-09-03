@@ -272,6 +272,12 @@ export class QueryImpl implements Query {
     );
   }
 
+  async updateSettings(source: 'localSettings', settings: Record<string, unknown>): Promise<void> {
+    await this.controlManager.sendControlRequestWithResponse(
+      ControlRequests.updateSettings(source, settings)
+    );
+  }
+
   async streamInput(stream: AsyncIterable<SDKUserMessage>): Promise<void> {
     for await (const msg of stream) {
       this.controlManager.writeToStdin(msg);
@@ -397,9 +403,11 @@ export class QueryImpl implements Query {
     return init.account;
   }
 
-  async getContextUsage(): Promise<SDKControlGetContextUsageResponse> {
+  async getContextUsage(opts?: {
+    detail?: 'summary' | 'full';
+  }): Promise<SDKControlGetContextUsageResponse> {
     return this.controlManager.sendControlRequestWithResponse<SDKControlGetContextUsageResponse>(
-      ControlRequests.getContextUsage()
+      ControlRequests.getContextUsage(opts)
     );
   }
 

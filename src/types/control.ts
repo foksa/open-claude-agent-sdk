@@ -39,6 +39,7 @@ export const RequestSubtype = {
   MCP_TOGGLE: 'mcp_toggle',
   SET_MCP_PERMISSION_MODE_OVERRIDE: 'set_mcp_permission_mode_override',
   APPLY_FLAG_SETTINGS: 'apply_flag_settings',
+  UPDATE_SETTINGS: 'update_settings',
   RELOAD_PLUGINS: 'reload_plugins',
   RELOAD_SKILLS: 'reload_skills',
   SEED_READ_STATE: 'seed_read_state',
@@ -107,6 +108,7 @@ export type ControlRequestInner =
   | McpToggleRequest
   | SetMcpPermissionModeOverrideRequest
   | ApplyFlagSettingsRequest
+  | UpdateSettingsRequest
   | ReloadPluginsRequest
   | SeedReadStateRequest
   | GetContextUsageRequest
@@ -221,6 +223,12 @@ export type ApplyFlagSettingsRequest = {
   settings: Record<string, unknown>;
 };
 
+export type UpdateSettingsRequest = {
+  subtype: typeof RequestSubtype.UPDATE_SETTINGS;
+  source: 'localSettings';
+  settings: Record<string, unknown>;
+};
+
 export type ReloadPluginsRequest = {
   subtype: typeof RequestSubtype.RELOAD_PLUGINS;
 };
@@ -244,6 +252,7 @@ export type SeedReadStateRequest = {
 
 export type GetContextUsageRequest = {
   subtype: typeof RequestSubtype.GET_CONTEXT_USAGE;
+  detail?: 'summary' | 'full';
 };
 
 export type GetUsageRequest = {

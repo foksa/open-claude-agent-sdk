@@ -36,6 +36,7 @@ import {
   type SetModelRequest,
   type SetPermissionModeRequest,
   type StopTaskRequest,
+  type UpdateSettingsRequest,
 } from '../types/control.ts';
 import type {
   ElicitationResult,
@@ -67,6 +68,7 @@ export type OutboundControlRequest =
   | McpSetServersRequest
   | StopTaskRequest
   | ApplyFlagSettingsRequest
+  | UpdateSettingsRequest
   | ReloadPluginsRequest
   | ReloadSkillsRequest
   | SeedReadStateRequest
@@ -143,6 +145,15 @@ export const ControlRequests = {
     settings,
   }),
 
+  updateSettings: (
+    source: 'localSettings',
+    settings: Record<string, unknown>
+  ): UpdateSettingsRequest => ({
+    subtype: RequestSubtype.UPDATE_SETTINGS,
+    source,
+    settings,
+  }),
+
   reloadPlugins: (): ReloadPluginsRequest => ({
     subtype: RequestSubtype.RELOAD_PLUGINS,
   }),
@@ -157,8 +168,9 @@ export const ControlRequests = {
     mtime,
   }),
 
-  getContextUsage: (): GetContextUsageRequest => ({
+  getContextUsage: (opts?: { detail?: 'summary' | 'full' }): GetContextUsageRequest => ({
     subtype: RequestSubtype.GET_CONTEXT_USAGE,
+    ...(opts?.detail !== undefined && { detail: opts.detail }),
   }),
 
   getUsage: (): GetUsageRequest => ({
@@ -249,6 +261,7 @@ export class ControlProtocolHandler {
         case RequestSubtype.MCP_RECONNECT:
         case RequestSubtype.MCP_TOGGLE:
         case RequestSubtype.APPLY_FLAG_SETTINGS:
+        case RequestSubtype.UPDATE_SETTINGS:
         case RequestSubtype.RELOAD_PLUGINS:
         case RequestSubtype.RELOAD_SKILLS:
         case RequestSubtype.SEED_READ_STATE:

@@ -707,4 +707,22 @@ describe('CLI arguments compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'permissionPrompts args match official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { permissionPrompts: 'none' }),
+        capture(officialQuery, 'test', { permissionPrompts: 'none' }),
+      ]);
+
+      expect(open.args).toContain('--permission-prompts');
+      expect(official.args).toContain('--permission-prompts');
+      expect(open.args[open.args.indexOf('--permission-prompts') + 1]).toBe('none');
+      expect(official.args[official.args.indexOf('--permission-prompts') + 1]).toBe('none');
+
+      console.log('   permissionPrompts args match');
+    },
+    { timeout: 60000 }
+  );
 });

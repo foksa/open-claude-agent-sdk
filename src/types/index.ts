@@ -134,6 +134,8 @@ export type {
   PermissionRequestHookInput,
   PermissionRequestHookSpecificOutput,
   PostCompactHookInput,
+  PostModelSwitchHookInput,
+  PostModelSwitchHookSpecificOutput,
   PostToolBatchHookInput,
   PostToolBatchHookSpecificOutput,
   PostToolBatchToolCall,
@@ -142,6 +144,8 @@ export type {
   PostToolUseHookInput,
   PostToolUseHookSpecificOutput,
   PreCompactHookInput,
+  PreModelSwitchHookInput,
+  PreModelSwitchHookSpecificOutput,
   PreToolUseHookInput,
   PreToolUseHookSpecificOutput,
   SessionCronSummary,
@@ -189,6 +193,7 @@ export type {
   McpSetServersResult,
   McpSSEServerConfig,
   McpStdioServerConfig,
+  SDKMcpResourceLink,
   SdkMcpToolDefinition,
 } from '@anthropic-ai/claude-agent-sdk';
 

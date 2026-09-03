@@ -49,6 +49,19 @@ describe('buildCliArgs', () => {
     expect(args).toContain('claude-sonnet-4-20250514');
   });
 
+  test('includes --permission-prompts when specified', () => {
+    const args = buildCliArgs({ permissionPrompts: 'none' });
+
+    expect(args).toContain('--permission-prompts');
+    expect(args).toContain('none');
+  });
+
+  test('does not include --permission-prompts when not specified', () => {
+    const args = buildCliArgs({});
+
+    expect(args).not.toContain('--permission-prompts');
+  });
+
   test('includes maxTurns when specified', () => {
     const args = buildCliArgs({ maxTurns: 5 });
 

@@ -46,6 +46,7 @@ const FLAG_MAP: FlagMapping[] = [
   { key: 'model', flag: '--model', type: 'string' },
   { key: 'agent', flag: '--agent', type: 'string' },
   { key: 'debugFile', flag: '--debug-file', type: 'string' },
+  { key: 'permissionPrompts', flag: '--permission-prompts', type: 'string' },
 
   // String pass-through, bound with equals-form (--flag=value) — matches official SDK
   { key: 'resume', flag: '--resume', type: 'equals-string' },

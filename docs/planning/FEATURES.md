@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-08-28
+**Last Updated:** 2026-09-03
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -48,7 +48,8 @@
 | `reinitialize()` | ✅ | Resends the `initialize` control request with a fresh request_id, reusing the same request shape as the initial handshake (v0.3.195); E2E tested in control-methods.test.ts, stdin parity tested |
 | `seedReadState()` | 🔌 | Sends control request matching official SDK (v0.2.83) |
 | `applyFlagSettings()` | 🔌 | Sends control request matching official SDK; no behavioral test |
-| `getContextUsage()` | ✅ | Returns context usage breakdown; E2E tested (v0.2.86) |
+| `updateSettings()` | 🔌 | Sends `update_settings` control request `{source, settings}` matching official SDK (v0.3.259); no behavioral test |
+| `getContextUsage()` | ✅ | Returns context usage breakdown; E2E tested (v0.2.86); `detail: 'summary' \| 'full'` option added (v0.3.257) |
 | `backgroundTasks()` | 🔌 | Sends background_tasks control request; protocol parity tested (v0.3.142) |
 | `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()` | 🔌 | Sends get_usage control request; protocol parity tested (v0.3.169) |
 | **Query Options** |
@@ -90,6 +91,7 @@
 | `betas` | 🔌 | CLI flag passed |
 | `fallbackModel` | 🔌 | CLI flag passed |
 | `permissionPromptToolName` | 🔌 | CLI flag passed |
+| `permissionPrompts` | 🔌 | CLI flag `--permission-prompts` (`'host' \| 'none'`) verified to match official SDK (v0.3.259) |
 | `extraArgs` | 🔌 | CLI flag passed |
 | `thinking` | ✅ | adaptive/enabled/disabled all E2E tested |
 | `effort` | ✅ | E2E tested with low effort level |
@@ -250,6 +252,9 @@
 | `perTaskStopAffordance` option | 🔌 | Added in v0.3.246; `Options.perTaskStopAffordance` → `perTaskStopAffordance` init message field; capture-verified byte-identical against official SDK in stdin-messages.test.ts; declares that this consumer wires `stop_task` for per-task stopping, so `interrupt()` on an open-input session spares running background agents/workflows |
 | MCP: `createSdkMcpServer({ timeout })` | 🔌 | Added in v0.3.248; per-server tool-call timeout (ms), sent as `sdkMcpServerConfigs: { [name]: { timeout } }` in the init message alongside `sdkMcpServers`; invalid values (non-positive-integer) silently omitted, matching official SDK's validation; capture-verified in mcp-servers.test.ts (valid + invalid cases) |
 | Output-field additions (v0.3.239–v0.3.250) | ⚠️ | `ModelUsage.costBasis` (v0.3.246), `Settings.modelPricing` for managed-settings orgs (v0.3.246), `SDKAssistantMessage.user_message_uuid` (v0.3.246), `ambient` flag on `SDKTaskStartedMessage`, `SDKTaskNotificationMessage`, and `SDKBackgroundTasksChangedMessage.tasks[]` (v0.3.247) — all type-only, forwarded via existing re-exports; no SDK changes needed |
+| `PreModelSwitchHookInput` / `PostModelSwitchHookInput` / `*HookSpecificOutput` types | ⚠️ | Re-exported from official SDK (v0.3.257); `HookInput`/hook-output union members for the model-switch lifecycle event |
+| `SDKMcpResourceLink` type | ⚠️ | Re-exported from official SDK (v0.3.257); shape of `tool_use_result.resourceLinks` and `task_notification.resource_links` entries for backgrounded MCP tasks returning file references (type-only — `tool_use_result` stays `unknown`) |
+| Output-field additions (v0.3.251–v0.3.259) | ⚠️ | `ModelUsage.thinkingTokens` (v0.3.257), `SDKAssistantMessage`/result `user_message_uuids[]` alongside `user_message_uuid` for merged-prompt-batch turns (v0.3.259) — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |
