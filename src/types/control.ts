@@ -9,7 +9,13 @@
  * @internal
  */
 
-import type { HookInput, PermissionMode, PermissionUpdate, SDKMessage } from './index.ts';
+import type {
+  HookInput,
+  PermissionMode,
+  PermissionUpdate,
+  SDKMessage,
+  SdkPluginConfig,
+} from './index.ts';
 
 // ============================================================================
 // Protocol constants — single source of truth for all wire format strings
@@ -42,6 +48,7 @@ export const RequestSubtype = {
   UPDATE_SETTINGS: 'update_settings',
   RELOAD_PLUGINS: 'reload_plugins',
   RELOAD_SKILLS: 'reload_skills',
+  RELOAD_OUTPUT_STYLES: 'reload_output_styles',
   SEED_READ_STATE: 'seed_read_state',
   GET_CONTEXT_USAGE: 'get_context_usage',
   GET_USAGE: 'get_usage',
@@ -116,6 +123,7 @@ export type ControlRequestInner =
   | ReadFileRequest
   | BackgroundTasksRequest
   | ReloadSkillsRequest
+  | ReloadOutputStylesRequest
   | RequestUserDialogRequest
   | GetUsageRequest;
 
@@ -154,6 +162,7 @@ export type InitializeRequest = {
   title?: string;
   skills?: string[];
   perTaskStopAffordance?: boolean;
+  plugins?: SdkPluginConfig[];
 };
 
 export type InterruptRequest = {
@@ -235,6 +244,10 @@ export type ReloadPluginsRequest = {
 
 export type ReloadSkillsRequest = {
   subtype: typeof RequestSubtype.RELOAD_SKILLS;
+};
+
+export type ReloadOutputStylesRequest = {
+  subtype: typeof RequestSubtype.RELOAD_OUTPUT_STYLES;
 };
 
 export type RequestUserDialogRequest = {

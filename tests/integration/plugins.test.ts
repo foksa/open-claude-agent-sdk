@@ -218,6 +218,40 @@ testWithBothSDKs(
 );
 
 // =============================================================================
+// pluginDelivery: 'initialize' (v0.3.261 — plugins sent over stdin instead of argv)
+// =============================================================================
+
+testWithBothSDKs(
+  "pluginDelivery: 'initialize' loads plugin and reports plugins_applied",
+  async (sdk) => {
+    const messages = await runWithSDK(sdk, 'Hello', {
+      cwd: fixturesDir,
+      settingSources: [],
+      maxTurns: 1,
+      plugins: [{ type: 'local', path: internalPluginPath }],
+      pluginDelivery: 'initialize',
+    });
+
+    const init = messages.find(
+      (m) => m.type === 'system' && 'subtype' in m && m.subtype === 'init'
+    );
+    expect(init).toBeTruthy();
+
+    if (init && 'slash_commands' in init) {
+      const slashCommands = init.slash_commands as string[];
+      const hasPing = slashCommands.some((cmd) => cmd.includes('internal-plugin:ping'));
+      expect(hasPing).toBe(true);
+    }
+
+    const result = messages.find((m) => m.type === 'result');
+    expect(result).toBeTruthy();
+
+    console.log(`   [${sdk}] Plugin loaded via pluginDelivery: 'initialize'`);
+  },
+  90000
+);
+
+// =============================================================================
 // Error Handling
 // =============================================================================
 

@@ -932,6 +932,35 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'reloadOutputStyles sends reload_output_styles control request matching official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.reloadOutputStyles();
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.reloadOutputStyles();
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'reload_output_styles');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'reload_output_styles');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   reloadOutputStyles stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'reinitialize resends an initialize control request matching official SDK',
     async () => {
       const [open, official] = await Promise.all([
@@ -1350,6 +1379,32 @@ describe('stdin message compatibility', () => {
       }
 
       console.log('   perTaskStopAffordance stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    "plugins in init message matches official SDK when pluginDelivery: 'initialize' (v0.3.261)",
+    async () => {
+      const plugins = [{ type: 'local' as const, path: './path/to/plugin1' }];
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { plugins, pluginDelivery: 'initialize' }),
+        capture(officialQuery, 'test', { plugins, pluginDelivery: 'initialize' }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit?.request?.plugins).toEqual(plugins);
+      expect(officialInit?.request?.plugins).toEqual(plugins);
+
+      if (openInit && officialInit) {
+        const openNorm = normalizeMessage(openInit);
+        const officialNorm = normalizeMessage(officialInit);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log("   plugins pluginDelivery: 'initialize' stdin messages match");
     },
     { timeout: 60000 }
   );

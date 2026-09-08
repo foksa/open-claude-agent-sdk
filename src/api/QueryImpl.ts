@@ -28,6 +28,7 @@ import type {
   SDKControlInitializeResponse,
   SDKControlInterruptResponse,
   SDKControlReadFileResponse,
+  SDKControlReloadOutputStylesResponse,
   SDKControlReloadPluginsResponse,
   SDKControlReloadSkillsResponse,
   SDKMessage,
@@ -439,6 +440,12 @@ export class QueryImpl implements Query {
   async reloadSkills(): Promise<SDKControlReloadSkillsResponse> {
     return this.controlManager.sendControlRequestWithResponse<SDKControlReloadSkillsResponse>(
       ControlRequests.reloadSkills()
+    );
+  }
+
+  async reloadOutputStyles(): Promise<SDKControlReloadOutputStylesResponse> {
+    return this.controlManager.sendControlRequestWithResponse<SDKControlReloadOutputStylesResponse>(
+      ControlRequests.reloadOutputStyles()
     );
   }
 

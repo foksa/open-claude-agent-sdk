@@ -624,6 +624,25 @@ describe('CLI arguments compatibility', () => {
   );
 
   test.concurrent(
+    "plugins with pluginDelivery: 'initialize' sends --await-initialize instead of --plugin-dir",
+    async () => {
+      const plugins = [{ type: 'local' as const, path: './path/to/plugin1' }];
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { plugins, pluginDelivery: 'initialize' }),
+        capture(officialQuery, 'test', { plugins, pluginDelivery: 'initialize' }),
+      ]);
+
+      expect(open.args).toContain('--await-initialize');
+      expect(official.args).toContain('--await-initialize');
+      expect(open.args).not.toContain('--plugin-dir');
+      expect(official.args).not.toContain('--plugin-dir');
+
+      console.log("   plugins pluginDelivery: 'initialize' args match");
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'managedSettings --managed-settings args match official SDK',
     async () => {
       const managedSettings = { permissions: { allow: [], deny: [] } };

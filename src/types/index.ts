@@ -296,6 +296,7 @@ export type {
   SDKControlGetContextUsageResponse,
   SDKControlGetUsageResponse,
   SDKControlReadFileResponse,
+  SDKControlReloadOutputStylesResponse,
   SDKControlReloadPluginsResponse,
   SDKControlReloadSkillsResponse,
   SDKPermissionDenial,

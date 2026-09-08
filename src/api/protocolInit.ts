@@ -96,6 +96,11 @@ export function buildInitRequest(
     ...(options.perTaskStopAffordance !== undefined && {
       perTaskStopAffordance: options.perTaskStopAffordance,
     }),
+    ...(options.pluginDelivery === 'initialize' &&
+      options.plugins &&
+      options.plugins.length > 0 && {
+        plugins: options.plugins,
+      }),
   };
 
   if (options.hooks) {

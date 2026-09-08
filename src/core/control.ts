@@ -26,6 +26,7 @@ import {
   type McpToggleRequest,
   MessageType,
   type ReadFileRequest,
+  type ReloadOutputStylesRequest,
   type ReloadPluginsRequest,
   type ReloadSkillsRequest,
   RequestSubtype,
@@ -71,6 +72,7 @@ export type OutboundControlRequest =
   | UpdateSettingsRequest
   | ReloadPluginsRequest
   | ReloadSkillsRequest
+  | ReloadOutputStylesRequest
   | SeedReadStateRequest
   | GetContextUsageRequest
   | GetUsageRequest
@@ -160,6 +162,10 @@ export const ControlRequests = {
 
   reloadSkills: (): ReloadSkillsRequest => ({
     subtype: RequestSubtype.RELOAD_SKILLS,
+  }),
+
+  reloadOutputStyles: (): ReloadOutputStylesRequest => ({
+    subtype: RequestSubtype.RELOAD_OUTPUT_STYLES,
   }),
 
   seedReadState: (path: string, mtime: number): SeedReadStateRequest => ({
@@ -264,6 +270,7 @@ export class ControlProtocolHandler {
         case RequestSubtype.UPDATE_SETTINGS:
         case RequestSubtype.RELOAD_PLUGINS:
         case RequestSubtype.RELOAD_SKILLS:
+        case RequestSubtype.RELOAD_OUTPUT_STYLES:
         case RequestSubtype.SEED_READ_STATE:
         case RequestSubtype.GET_CONTEXT_USAGE:
         case RequestSubtype.GET_USAGE:

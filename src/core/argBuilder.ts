@@ -289,13 +289,20 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
   }
 
-  // Plugins → --plugin-dir (one per plugin), or --plugin-dir-no-mcp with skipMcpDiscovery
+  // Plugins → --plugin-dir (one per plugin), or --plugin-dir-no-mcp with skipMcpDiscovery.
+  // With pluginDelivery: 'initialize', the list is sent over stdin in the initialize
+  // request instead (see sendProtocolInit), and the CLI is started with --await-initialize
+  // so the command line doesn't grow with the plugin count.
   if (options.plugins && options.plugins.length > 0) {
-    for (const plugin of options.plugins) {
-      if (plugin.type === 'local') {
-        args.push(plugin.skipMcpDiscovery ? '--plugin-dir-no-mcp' : '--plugin-dir', plugin.path);
-      } else {
-        throw new Error(`Unsupported plugin type: ${(plugin as { type: string }).type}`);
+    if (options.pluginDelivery === 'initialize') {
+      args.push('--await-initialize');
+    } else {
+      for (const plugin of options.plugins) {
+        if (plugin.type === 'local') {
+          args.push(plugin.skipMcpDiscovery ? '--plugin-dir-no-mcp' : '--plugin-dir', plugin.path);
+        } else {
+          throw new Error(`Unsupported plugin type: ${(plugin as { type: string }).type}`);
+        }
       }
     }
   }

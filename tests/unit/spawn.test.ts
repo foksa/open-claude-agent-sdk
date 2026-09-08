@@ -167,6 +167,17 @@ describe('buildCliArgs', () => {
     expect(args[args.indexOf('--plugin-dir') + 1]).toBe('/abs/plugin2');
   });
 
+  test("plugins with pluginDelivery: 'initialize' emit --await-initialize, not --plugin-dir", () => {
+    const args = buildCliArgs({
+      plugins: [{ type: 'local', path: './plugin1' }],
+      pluginDelivery: 'initialize',
+    });
+
+    expect(args).toContain('--await-initialize');
+    expect(args).not.toContain('--plugin-dir');
+    expect(args).not.toContain('--plugin-dir-no-mcp');
+  });
+
   test('does not include --setting-sources when not specified', () => {
     const args = buildCliArgs({});
 

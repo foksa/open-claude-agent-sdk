@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-09-03
+**Last Updated:** 2026-09-08
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -45,6 +45,7 @@
 | `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
 | `reloadPlugins()` | 🔌 | Sends control request matching official SDK (v0.2.85) |
 | `reloadSkills()` | 🔌 | Sends reload_skills control request; protocol parity tested (v0.3.165) |
+| `reloadOutputStyles()` | 🔌 | Sends reload_output_styles control request; protocol parity tested (v0.3.263) |
 | `reinitialize()` | ✅ | Resends the `initialize` control request with a fresh request_id, reusing the same request shape as the initial handshake (v0.3.195); E2E tested in control-methods.test.ts, stdin parity tested |
 | `seedReadState()` | 🔌 | Sends control request matching official SDK (v0.2.83) |
 | `applyFlagSettings()` | 🔌 | Sends control request matching official SDK; no behavioral test |
@@ -84,8 +85,9 @@
 | `settings` | 🔌 | CLI flag passed (string path or JSON object), sandbox merges in |
 | `managedSettings` | 🔌 | CLI flag `--managed-settings` verified to match official SDK (v0.2.118) |
 | `onElicitation` | ⚠️ | Callback for MCP elicitation requests; control protocol handler implemented (v0.2.104) |
-| `plugins` | 🔌 | CLI flag passed, plugin loading not behaviorally tested |
+| `plugins` | ✅ | `--plugin-dir` per plugin; commands/invocation E2E tested in plugins.test.ts |
 | `plugins[].skipMcpDiscovery` | 🔌 | Emits `--plugin-dir-no-mcp` instead of `--plugin-dir` (v0.3.172); args verified to match official SDK |
+| `pluginDelivery: 'initialize'` | ✅ | Sends `plugins` over stdin in the initialize request + `--await-initialize` instead of `--plugin-dir` flags, so the command line doesn't grow with plugin count (v0.3.261); E2E tested in plugins.test.ts |
 | `additionalDirectories` | 🔌 | CLI flag passed |
 | `agent` | 🔌 | CLI flag passed |
 | `betas` | 🔌 | CLI flag passed |
@@ -255,13 +257,14 @@
 | `PreModelSwitchHookInput` / `PostModelSwitchHookInput` / `*HookSpecificOutput` types | ⚠️ | Re-exported from official SDK (v0.3.257); `HookInput`/hook-output union members for the model-switch lifecycle event |
 | `SDKMcpResourceLink` type | ⚠️ | Re-exported from official SDK (v0.3.257); shape of `tool_use_result.resourceLinks` and `task_notification.resource_links` entries for backgrounded MCP tasks returning file references (type-only — `tool_use_result` stays `unknown`) |
 | Output-field additions (v0.3.251–v0.3.259) | ⚠️ | `ModelUsage.thinkingTokens` (v0.3.257), `SDKAssistantMessage`/result `user_message_uuids[]` alongside `user_message_uuid` for merged-prompt-batch turns (v0.3.259) — all type-only, forwarded via existing re-exports; no SDK changes needed |
+| Output-field additions (v0.3.260–v0.3.263) | ⚠️ | `thinking_tokens` system message `user_message_uuid`, result-message `first_content_frame_ms`/`first_stream_post_ms`/`first_stream_post_ack_ms`/`first_stream_post_wall_ms` remote-session latency fields (v0.3.260) — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |
 | Subagent support (`agents`) | ✅ | E2E tested: invocation, hooks, abort |
 | Agent teams | ❌ | Types exported only; no env var, no tests |
 | Output styles | ✅ | ExtendedQuery extension methods tested |
-| Plugin system | 🔌 | CLI flag passed, no behavioral test |
+| Plugin system | ✅ | `--plugin-dir` (argv) and `pluginDelivery: 'initialize'` (stdin) both E2E tested; commands/invocation verified in plugins.test.ts |
 
 ---
 
