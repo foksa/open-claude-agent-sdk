@@ -27,6 +27,7 @@ import type {
   SDKControlGetUsageResponse,
   SDKControlInitializeResponse,
   SDKControlInterruptResponse,
+  SDKControlListPermissionRulesResponse,
   SDKControlReadFileResponse,
   SDKControlReloadOutputStylesResponse,
   SDKControlReloadPluginsResponse,
@@ -418,6 +419,18 @@ export class QueryImpl implements Query {
     );
   }
 
+  /**
+   * Get the session's live permission rules and workspace directories — the
+   * same data /permissions lists in the terminal. Not (yet) part of the
+   * official SDK's public `Query` type, but present on its runtime Query
+   * class (v0.3.270); kept here to mirror actual behavior.
+   */
+  async listPermissionRules(): Promise<SDKControlListPermissionRulesResponse> {
+    return this.controlManager.sendControlRequestWithResponse<SDKControlListPermissionRulesResponse>(
+      ControlRequests.listPermissionRules()
+    );
+  }
+
   async readFile(
     path: string,
     options?: { maxBytes?: number }
@@ -431,9 +444,11 @@ export class QueryImpl implements Query {
     }
   }
 
-  async reloadPlugins(): Promise<SDKControlReloadPluginsResponse> {
+  async reloadPlugins(options?: {
+    holdOnCacheImpact?: boolean;
+  }): Promise<SDKControlReloadPluginsResponse> {
     return this.controlManager.sendControlRequestWithResponse<SDKControlReloadPluginsResponse>(
-      ControlRequests.reloadPlugins()
+      ControlRequests.reloadPlugins(options)
     );
   }
 

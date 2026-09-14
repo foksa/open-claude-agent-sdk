@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import type { HookCallbackMatcher } from '../../../src/types/index.ts';
+import type { HookCallbackMatcher, Query } from '../../../src/types/index.ts';
 import { createSdkMcpServer, tool } from '../../../src/types/index.ts';
 import {
   capture,
@@ -903,6 +903,37 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'reloadPlugins({ holdOnCacheImpact: true }) sends hold_on_cache_impact matching official SDK (v0.3.268)',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await q.reloadPlugins({ holdOnCacheImpact: true });
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await q.reloadPlugins({ holdOnCacheImpact: true });
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'reload_plugins');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'reload_plugins');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        expect(openReq.request.hold_on_cache_impact).toBe(true);
+        expect(officialReq.request.hold_on_cache_impact).toBe(true);
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   reloadPlugins holdOnCacheImpact stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'reloadSkills sends reload_skills control request matching official SDK',
     async () => {
       const [open, official] = await Promise.all([
@@ -1204,6 +1235,67 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'systemPrompt custom type with snapshot in init message matches official SDK (v0.3.267)',
+    async () => {
+      const systemPrompt = {
+        type: 'custom' as const,
+        prompt: 'You are a release bot.',
+        snapshot: true,
+      };
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { systemPrompt }),
+        capture(officialQuery, 'test', { systemPrompt }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      expect(openInit?.request?.systemPrompt).toEqual([systemPrompt.prompt]);
+      expect(officialInit?.request?.systemPrompt).toEqual([systemPrompt.prompt]);
+      expect(openInit?.request?.systemPromptSnapshot).toBe(true);
+      expect(officialInit?.request?.systemPromptSnapshot).toBe(true);
+
+      console.log('   systemPrompt custom + snapshot test passed');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'systemPrompt preset with snapshot: false in init message matches official SDK (v0.3.267)',
+    async () => {
+      const systemPrompt = {
+        type: 'preset' as const,
+        preset: 'claude_code' as const,
+        append: 'Be terse.',
+        snapshot: false,
+      };
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { systemPrompt }),
+        capture(officialQuery, 'test', { systemPrompt }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit).toBeTruthy();
+      expect(officialInit).toBeTruthy();
+
+      expect(openInit?.request?.appendSystemPrompt).toBe('Be terse.');
+      expect(officialInit?.request?.appendSystemPrompt).toBe('Be terse.');
+      expect(openInit?.request?.systemPromptSnapshot).toBe(false);
+      expect(officialInit?.request?.systemPromptSnapshot).toBe(false);
+
+      console.log('   systemPrompt preset + snapshot:false test passed');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'title in init message matches official SDK',
     async () => {
       const [open, official] = await Promise.all([
@@ -1354,6 +1446,42 @@ describe('stdin message compatibility', () => {
       }
 
       console.log('   usage_EXPERIMENTAL stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'listPermissionRules sends list_permission_rules control request matching official SDK (v0.3.270)',
+    async () => {
+      // Not part of the official SDK's public `Query` type (see QueryImpl.ts
+      // comment) but present on its runtime Query class — cast past the type.
+      const call = (q: Query) =>
+        (q as unknown as { listPermissionRules(): Promise<unknown> }).listPermissionRules();
+
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await call(q);
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await call(q);
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'list_permission_rules');
+      const officialReq = official.stdin.find(
+        (m) => m.request?.subtype === 'list_permission_rules'
+      );
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+
+      if (openReq && officialReq) {
+        const openNorm = normalizeMessage(openReq);
+        const officialNorm = normalizeMessage(officialReq);
+        expect(openNorm).toEqual(officialNorm);
+      }
+
+      console.log('   listPermissionRules stdin messages match');
     },
     { timeout: 60000 }
   );

@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-09-08
+**Last Updated:** 2026-09-14
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -43,7 +43,7 @@
 | `supportedAgents()` | ✅ | Returns array of AgentInfo from init response |
 | `readFile()` | 🔌 | Sends control request matching official SDK (v0.2.119); returns null on error |
 | `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
-| `reloadPlugins()` | 🔌 | Sends control request matching official SDK (v0.2.85) |
+| `reloadPlugins()` | 🔌 | Sends control request matching official SDK (v0.2.85); `holdOnCacheImpact` option added (v0.3.268), stdin parity tested |
 | `reloadSkills()` | 🔌 | Sends reload_skills control request; protocol parity tested (v0.3.165) |
 | `reloadOutputStyles()` | 🔌 | Sends reload_output_styles control request; protocol parity tested (v0.3.263) |
 | `reinitialize()` | ✅ | Resends the `initialize` control request with a fresh request_id, reusing the same request shape as the initial handshake (v0.3.195); E2E tested in control-methods.test.ts, stdin parity tested |
@@ -53,6 +53,7 @@
 | `getContextUsage()` | ✅ | Returns context usage breakdown; E2E tested (v0.2.86); `detail: 'summary' \| 'full'` option added (v0.3.257) |
 | `backgroundTasks()` | 🔌 | Sends background_tasks control request; protocol parity tested (v0.3.142) |
 | `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()` | 🔌 | Sends get_usage control request; protocol parity tested (v0.3.169) |
+| `listPermissionRules()` | 🔌 | Sends `list_permission_rules` control request; not part of official SDK's public `Query` type but present on its runtime Query class (v0.3.270), stdin parity tested |
 | **Query Options** |
 | `prompt` | ✅ | String and AsyncIterable |
 | `permissionMode` | ✅ | Multiple modes tested behaviorally |
@@ -61,12 +62,12 @@
 | `maxBudgetUsd` | 🔌 | CLI flag passed, no budget-exceeded test |
 | `includePartialMessages` | ✅ | Streaming test verifies partial messages appear |
 | `cwd` | ✅ | Verified working directory is used |
-| `canUseTool` | ✅ | 8 behavioral tests (allow/deny/selective/async); `requestId` field (v0.3.199) + `null` return to suppress response unit tested |
+| `canUseTool` | ✅ | 8 behavioral tests (allow/deny/selective/async); `requestId` field (v0.3.199) + `null` return to suppress response unit tested; `defaultToNo`/`suppressAlwaysAllowRule` hints forwarded from CLI (v0.3.268), unit tested |
 | `hooks` | ⚠️ | See Hooks section — 7 of 26 events tested |
 | `allowDangerouslySkipPermissions` | ✅ | Verified in permission-modes.test.ts |
 | `outputFormat` | ✅ | JSON schema validation tested E2E |
 | `settingSources` | ✅ | Skills/commands loaded from fixtures |
-| `systemPrompt` | ✅ | String, preset, preset+append all tested |
+| `systemPrompt` | ✅ | String, preset, preset+append, custom, and `snapshot` option (v0.3.267) all tested |
 | `allowedTools` | ✅ | Tool restriction verified behaviorally |
 | `skills` | 🔌 | Appends Skill entries to --allowedTools + init message field; parity tested via compat tests |
 | `disallowedTools` | 🔌 | CLI flag verified, no behavioral test |
@@ -258,6 +259,11 @@
 | `SDKMcpResourceLink` type | ⚠️ | Re-exported from official SDK (v0.3.257); shape of `tool_use_result.resourceLinks` and `task_notification.resource_links` entries for backgrounded MCP tasks returning file references (type-only — `tool_use_result` stays `unknown`) |
 | Output-field additions (v0.3.251–v0.3.259) | ⚠️ | `ModelUsage.thinkingTokens` (v0.3.257), `SDKAssistantMessage`/result `user_message_uuids[]` alongside `user_message_uuid` for merged-prompt-batch turns (v0.3.259) — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | Output-field additions (v0.3.260–v0.3.263) | ⚠️ | `thinking_tokens` system message `user_message_uuid`, result-message `first_content_frame_ms`/`first_stream_post_ms`/`first_stream_post_ack_ms`/`first_stream_post_wall_ms` remote-session latency fields (v0.3.260) — all type-only, forwarded via existing re-exports; no SDK changes needed |
+| `systemPrompt` custom type + `snapshot` option | 🔌 | `{ type: 'custom', prompt, snapshot }` was previously unhandled (fell through to no systemPrompt sent); now wraps `prompt` like the string/array cases; `snapshot` (custom or preset) → `systemPromptSnapshot` init field (v0.3.267); stdin parity tested |
+| `reloadPlugins({ holdOnCacheImpact })` option | 🔌 | `hold_on_cache_impact` control request field, held reload response carries `held`/`cache_impact` (v0.3.268); stdin parity tested |
+| `canUseTool` `defaultToNo` / `suppressAlwaysAllowRule` hints | ⚠️ | `default_to_no`/`suppress_always_allow_rule` on the `can_use_tool` control request forwarded into the callback context (v0.3.268); unit tested in control.test.ts (types are official SDK's, re-exported via `Options`) |
+| `listPermissionRules()` (SDK API) | 🔌 | Sends `list_permission_rules` control request; response types (`SDKControlListPermissionRulesResponse`, `SDKControlPermissionRulesState`, `SDKPermissionRuleEntry`, `SDKPermissionRuleDescription`, `SDKPermissionWorkspaceDirectory`) re-exported; not on official SDK's public `Query` type, but present on its runtime Query class (v0.3.270) — implemented to match actual behavior; stdin parity tested |
+| Output-field additions (v0.3.265–v0.3.270) | ⚠️ | `result_index`, `local_command`, `resume_reason` (assistant/stream-event/result), `kind` on `get_context_usage` categories, always-present `pending_permission_requests` on `initialize` success — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

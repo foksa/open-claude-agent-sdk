@@ -56,6 +56,7 @@ export const RequestSubtype = {
   READ_FILE: 'read_file',
   BACKGROUND_TASKS: 'background_tasks',
   REQUEST_USER_DIALOG: 'request_user_dialog',
+  LIST_PERMISSION_RULES: 'list_permission_rules',
 } as const;
 
 /** Control response subtypes */
@@ -125,7 +126,8 @@ export type ControlRequestInner =
   | ReloadSkillsRequest
   | ReloadOutputStylesRequest
   | RequestUserDialogRequest
-  | GetUsageRequest;
+  | GetUsageRequest
+  | ListPermissionRulesRequest;
 
 export type CanUseToolRequest = {
   subtype: typeof RequestSubtype.CAN_USE_TOOL;
@@ -139,6 +141,8 @@ export type CanUseToolRequest = {
   display_name?: string;
   agent_id?: string;
   description?: string;
+  default_to_no?: boolean;
+  suppress_always_allow_rule?: boolean;
 };
 
 export type HookCallbackRequest = {
@@ -152,6 +156,7 @@ export type InitializeRequest = {
   subtype: typeof RequestSubtype.INITIALIZE;
   systemPrompt?: string[];
   appendSystemPrompt?: string;
+  systemPromptSnapshot?: boolean;
   sdkMcpServers?: string[];
   sdkMcpServerConfigs?: Record<string, { timeout?: number }>;
   agents?: Record<string, unknown>;
@@ -240,6 +245,7 @@ export type UpdateSettingsRequest = {
 
 export type ReloadPluginsRequest = {
   subtype: typeof RequestSubtype.RELOAD_PLUGINS;
+  hold_on_cache_impact?: boolean;
 };
 
 export type ReloadSkillsRequest = {
@@ -270,6 +276,10 @@ export type GetContextUsageRequest = {
 
 export type GetUsageRequest = {
   subtype: typeof RequestSubtype.GET_USAGE;
+};
+
+export type ListPermissionRulesRequest = {
+  subtype: typeof RequestSubtype.LIST_PERMISSION_RULES;
 };
 
 export type ReadFileRequest = {

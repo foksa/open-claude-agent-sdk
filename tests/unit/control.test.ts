@@ -134,6 +134,40 @@ describe('ControlProtocolHandler', () => {
       expect(canUseTool.mock.calls[0][2]).toMatchObject({ requestId: 'req-999' });
     });
 
+    test('forwards defaultToNo and suppressAlwaysAllowRule hints (v0.3.268)', async () => {
+      const { stream } = createMockStdin();
+      const canUseTool = mock(
+        async (
+          _toolName: string,
+          _input: Record<string, unknown>,
+          _context: Record<string, unknown>
+        ) => {
+          return { behavior: 'allow' as const };
+        }
+      );
+      const handler = new ControlProtocolHandler(stream, { canUseTool });
+
+      const req: ControlRequest = {
+        type: 'control_request',
+        request_id: 'req-hints',
+        request: {
+          subtype: 'can_use_tool',
+          tool_name: 'Bash',
+          input: { command: 'rm -rf /' },
+          tool_use_id: 'tu-hints',
+          default_to_no: true,
+          suppress_always_allow_rule: true,
+        },
+      };
+
+      await handler.handleControlRequest(req);
+
+      expect(canUseTool.mock.calls[0][2]).toMatchObject({
+        defaultToNo: true,
+        suppressAlwaysAllowRule: true,
+      });
+    });
+
     test('suppresses the control response when callback returns null', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {

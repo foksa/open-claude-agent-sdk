@@ -2030,3 +2030,42 @@ describe('v0.3.259 type re-exports', () => {
     expect(opts.permissionPrompts).toBe('none');
   });
 });
+
+describe('v0.3.270 type re-exports', () => {
+  test('SDKPermissionRuleEntry shapes one permission rule with its provenance', () => {
+    const rule: import('../../src/types/index.ts').SDKPermissionRuleEntry = {
+      behavior: 'allow',
+      source: 'userSettings',
+      rule: 'Bash(npm run *)',
+      editability: 'persistent',
+    };
+    expect(rule.behavior).toBe('allow');
+    expect(rule.editability).toBe('persistent');
+  });
+
+  test('SDKPermissionRuleDescription and SDKPermissionWorkspaceDirectory are importable', () => {
+    const description: import('../../src/types/index.ts').SDKPermissionRuleDescription = {
+      prefix: 'Any Bash command starting with',
+      emphasis: 'npm run',
+    };
+    const dir: import('../../src/types/index.ts').SDKPermissionWorkspaceDirectory = {
+      path: '/tmp/workspace',
+      source: 'cliArg',
+    };
+    expect(description.prefix).toBe('Any Bash command starting with');
+    expect(dir.source).toBe('cliArg');
+  });
+
+  test('SDKControlListPermissionRulesResponse wraps an SDKControlPermissionRulesState', () => {
+    const response: import('../../src/types/index.ts').SDKControlListPermissionRulesResponse = {
+      state: {
+        rules: [],
+        workspaceDirectories: [],
+        originalCwd: '/tmp/project',
+        managedOnly: false,
+      },
+    };
+    expect(response.state.originalCwd).toBe('/tmp/project');
+    expect(response.state.managedOnly).toBe(false);
+  });
+});

@@ -40,6 +40,8 @@ function buildSdkMcpServerConfigs(
  * - string[] → systemPrompt: [...] (array passed through)
  * - { type: 'preset', preset: 'claude_code' } → neither field (use preset)
  * - { type: 'preset', preset: 'claude_code', append: '...' } → appendSystemPrompt: "..."
+ * - { type: 'custom', prompt: '...' | [...] } → systemPrompt: "..." | [...]
+ * - `snapshot` (custom or preset, v0.3.267) → systemPromptSnapshot: boolean
  *
  * Shared by the initial handshake and `Query.reinitialize()`, which resends
  * this same request shape with a fresh request_id.
@@ -51,6 +53,7 @@ export function buildInitRequest(
 ): InitializeRequest {
   let systemPrompt: string[] | undefined;
   let appendSystemPrompt: string | undefined;
+  let systemPromptSnapshot: boolean | undefined;
 
   let excludeDynamicSections: boolean | undefined;
 
@@ -63,6 +66,11 @@ export function buildInitRequest(
   } else if (Array.isArray(options.systemPrompt)) {
     // Array of strings for cache boundary support - pass through directly
     systemPrompt = options.systemPrompt;
+  } else if (options.systemPrompt.type === 'custom') {
+    systemPrompt = Array.isArray(options.systemPrompt.prompt)
+      ? options.systemPrompt.prompt
+      : [options.systemPrompt.prompt];
+    systemPromptSnapshot = options.systemPrompt.snapshot;
   } else if (options.systemPrompt.type === 'preset') {
     if (options.systemPrompt.append) {
       appendSystemPrompt = options.systemPrompt.append;
@@ -70,6 +78,7 @@ export function buildInitRequest(
     if (options.systemPrompt.excludeDynamicSections) {
       excludeDynamicSections = true;
     }
+    systemPromptSnapshot = options.systemPrompt.snapshot;
   }
 
   const sdkMcpServerConfigs = buildSdkMcpServerConfigs(options);
@@ -78,6 +87,7 @@ export function buildInitRequest(
     subtype: RequestSubtype.INITIALIZE,
     ...(systemPrompt !== undefined && { systemPrompt }),
     ...(appendSystemPrompt !== undefined && { appendSystemPrompt }),
+    ...(systemPromptSnapshot !== undefined && { systemPromptSnapshot }),
     ...(excludeDynamicSections !== undefined && { excludeDynamicSections }),
     ...(sdkMcpServerNames.length > 0 && { sdkMcpServers: sdkMcpServerNames }),
     ...(sdkMcpServerConfigs && { sdkMcpServerConfigs }),

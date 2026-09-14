@@ -20,6 +20,7 @@ import {
   type InitializeRequest,
   type InternalHookCallback,
   type InterruptRequest,
+  type ListPermissionRulesRequest,
   type McpReconnectRequest,
   type McpSetServersRequest,
   type McpStatusRequest,
@@ -77,7 +78,8 @@ export type OutboundControlRequest =
   | GetContextUsageRequest
   | GetUsageRequest
   | ReadFileRequest
-  | BackgroundTasksRequest;
+  | BackgroundTasksRequest
+  | ListPermissionRulesRequest;
 
 /**
  * Type-safe control request builder functions
@@ -156,8 +158,9 @@ export const ControlRequests = {
     settings,
   }),
 
-  reloadPlugins: (): ReloadPluginsRequest => ({
+  reloadPlugins: (opts?: { holdOnCacheImpact?: boolean }): ReloadPluginsRequest => ({
     subtype: RequestSubtype.RELOAD_PLUGINS,
+    ...(opts?.holdOnCacheImpact && { hold_on_cache_impact: true }),
   }),
 
   reloadSkills: (): ReloadSkillsRequest => ({
@@ -181,6 +184,10 @@ export const ControlRequests = {
 
   getUsage: (): GetUsageRequest => ({
     subtype: RequestSubtype.GET_USAGE,
+  }),
+
+  listPermissionRules: (): ListPermissionRulesRequest => ({
+    subtype: RequestSubtype.LIST_PERMISSION_RULES,
   }),
 
   readFile: (path: string, maxBytes?: number): ReadFileRequest => ({
@@ -276,6 +283,7 @@ export class ControlProtocolHandler {
         case RequestSubtype.GET_USAGE:
         case RequestSubtype.READ_FILE:
         case RequestSubtype.BACKGROUND_TASKS:
+        case RequestSubtype.LIST_PERMISSION_RULES:
           // These are sent FROM SDK TO CLI, not the other way around
           // If we receive them, just acknowledge
           this.sendSuccess(req.request_id, {});
@@ -303,6 +311,8 @@ export class ControlProtocolHandler {
       blocked_path,
       decision_reason,
       agent_id,
+      default_to_no,
+      suppress_always_allow_rule,
     } = req.request;
 
     if (!this.options.canUseTool) {
@@ -318,6 +328,8 @@ export class ControlProtocolHandler {
       toolUseID: tool_use_id,
       agentID: agent_id,
       requestId: req.request_id,
+      defaultToNo: default_to_no,
+      suppressAlwaysAllowRule: suppress_always_allow_rule,
     });
 
     // A `null` result means the consumer already sent a control_response
