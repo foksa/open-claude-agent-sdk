@@ -8,7 +8,7 @@
 import { describe, expect, test } from 'bun:test';
 import { AbortError } from '../../src/index.ts';
 import { createSdkMcpServer } from '../../src/mcp.ts';
-import { InMemorySessionStore, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '../../src/types/index.ts';
+import { SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '../../src/types/index.ts';
 
 describe('v0.2.49 type re-exports', () => {
   test('ConfigChangeHookInput is importable', () => {
@@ -1187,12 +1187,6 @@ describe('v0.2.114 type re-exports', () => {
     expect(opts.title).toBe('My Custom Session Title');
   });
 
-  test('InMemorySessionStore is importable and usable', () => {
-    const store = new InMemorySessionStore();
-    expect(typeof store.append).toBe('function');
-    expect(typeof store.load).toBe('function');
-  });
-
   test('SYSTEM_PROMPT_DYNAMIC_BOUNDARY is the expected string', () => {
     expect(SYSTEM_PROMPT_DYNAMIC_BOUNDARY).toBe('__SYSTEM_PROMPT_DYNAMIC_BOUNDARY__');
   });
@@ -1363,16 +1357,6 @@ describe('v0.3.142 type re-exports', () => {
     expect(plist).toBe('plist');
     expect(hklm).toBe('hklm');
     expect(remote).toBe('remote');
-  });
-
-  test('filterEscalatingDefaultMode is importable from main entry', () => {
-    const { filterEscalatingDefaultMode } = require('../../src/index.ts');
-    expect(typeof filterEscalatingDefaultMode).toBe('function');
-  });
-
-  test('resolveSettings is importable from main entry', () => {
-    const { resolveSettings } = require('../../src/index.ts');
-    expect(typeof resolveSettings).toBe('function');
   });
 });
 

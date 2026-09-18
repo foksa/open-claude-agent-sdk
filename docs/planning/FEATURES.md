@@ -147,15 +147,15 @@
 | Skills & commands | ✅ | Loaded from fixtures and invoked |
 | Budget/cost tracking | ✅ | total_cost_usd, usage, modelUsage verified |
 | Session management | ✅ | Resume, fork, continue, sessionId all E2E tested |
-| Session storage API | ✅ | listSessions, getSessionMetadata, renameSession, deleteSession, getProjectStoragePath — via `./storage` subpath |
-| `listSessions()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
-| `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; `includeSystemMessages` supported (v0.2.89); `parent_agent_id` field added (v0.3.202, always `null` — main-transcript reads only); messages queued while a tool ran (`queued_command` attachments) surface as user messages with `isQueuedCommand`/`origin`, plus `timestamp`/`is_meta`/`isCompletedLocalCommand` output fields (v0.3.274–v0.3.275), unit tested byte-equal against official SDK; chain reconstruction now also merges parallel tool-use sibling entries and re-links compaction-preserved messages (`preservedMessages`/`preservedSegment`), parity tested against official SDK |
-| `forkSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.76); E2E tested in session-utils.test.ts |
-| `renameSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.74); E2E tested in session-utils.test.ts |
-| `tagSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.76); E2E tested in session-utils.test.ts |
-| `getSessionInfo()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.74); E2E tested in session-utils.test.ts |
-| `listSubagents()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.89); E2E tested |
-| `getSubagentMessages()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.89); E2E tested |
+| Session storage API | ✅ | listSessions, getSessionMetadata, renameSession, deleteSession, getProjectStoragePath — via `./storage` subpath (our own API, not official-compatible); now respects `CLAUDE_CONFIG_DIR` and the long-path hash suffix |
+| `listSessions()` (SDK API) | ✅ | Ported from the official SDK (v0.50.0): `offset`, `includeWorktrees`, `includeProgrammatic`, `tag`/`createdAt`/`aiTitle`/`lastPrompt`, sidecar titles, continued-in and colliding-project filtering, long-path hash matching the CLI; works under Node (was `Bun.file`-only); parity tested in session-parity.test.ts |
+| `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; `includeSystemMessages` supported (v0.2.89); `parent_agent_id` field added (v0.3.202, always `null` — main-transcript reads only); messages queued while a tool ran (`queued_command` attachments) surface as user messages with `isQueuedCommand`/`origin`, plus `timestamp`/`is_meta`/`isCompletedLocalCommand` output fields (v0.3.274–v0.3.275), unit tested byte-equal against official SDK; works under Node; known gap: transcripts over 5MB are parsed whole (official skips pre-compaction content while streaming); chain reconstruction now also merges parallel tool-use sibling entries and re-links compaction-preserved messages (`preservedMessages`/`preservedSegment`), parity tested against official SDK |
+| `forkSession()` (SDK API) | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts — forked transcripts compared entry-by-entry incl. `upToMessageId`, queued-command ids, title fallback |
+| `renameSession()` (SDK API) | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts — file bytes and error messages compared |
+| `tagSession()` (SDK API) | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts — incl. unicode sanitization |
+| `getSessionInfo()` (SDK API) | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts |
+| `listSubagents()` (SDK API) | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts |
+| `getSubagentMessages()` (SDK API) | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts — incl. `.meta.json` parent ids and pagination |
 | `SDKTaskProgressMessage` type | ⚠️ | Re-exported from official SDK; includes `summary` field (v0.2.72) |
 | `SDKElicitationCompleteMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
 | `SDKLocalCommandOutputMessage` type | ⚠️ | Re-exported from official SDK (v0.2.63); part of SDKMessage union |
@@ -188,15 +188,16 @@
 | `shouldQuery` field on `SDKUserMessage` | ⚠️ | Re-exported from official SDK (v0.2.110); skip assistant turn |
 | `systemPrompt` accepts `string[]` | 🔌 | Cache boundary support (v0.2.110); init message verified |
 | `mcp_set_servers` per-tool `permission_policy` | ⚠️ | `McpServerToolPolicy` type re-exported; `McpHttpServerConfig`/`McpSSEServerConfig` `tools` field (v0.2.111) |
-| `WarmQuery` interface | ✅ | Re-exported from official SDK (v0.2.111); E2E tested in startup.test.ts |
-| `startup()` function | ✅ | Re-exported from official SDK (v0.2.111); E2E tested in startup.test.ts |
+| `WarmQuery` interface | ⚠️ | Type re-exported only; `startup()` is not supported |
+| `startup()` function | ❌ | Not supported (v0.50.0). It was a runtime re-export that ran the official SDK's own query code, and broke clean installs |
 | `title` option | ✅ | Init message field verified + customTitle confirmed via getSessionInfo (v0.2.113) |
 | `options.env` replaces `process.env` | 🔌 | v0.2.113 behavior: user env replaces instead of overlays process.env |
-| `SessionStore` / `SessionKey` / `SessionStoreEntry` types | ⚠️ | Re-exported from official SDK (v0.2.113); alpha session mirror API |
+| `SessionStore` / `SessionKey` / `SessionStoreEntry` types | ⚠️ | Types re-exported (v0.2.113); alpha session mirror API |
+| `Options.sessionStore` (transcript mirroring) | ❌ | Not implemented: `query()` ignores it (no `--session-mirror`, no `transcript_mirror` handling); session helpers ignore their `sessionStore` option |
 | `ImportSessionToStoreOptions` type | ⚠️ | Re-exported from official SDK (v0.2.113) |
-| `InMemorySessionStore` class | ✅ | Re-exported from official SDK (v0.2.113); E2E tested in session-utils.test.ts |
-| `importSessionToStore()` function | ✅ | Re-exported from official SDK (v0.2.113); E2E tested in session-utils.test.ts |
-| `deleteSession()` function | ✅ | Re-exported from official SDK (v0.2.113); E2E tested in session-utils.test.ts |
+| `InMemorySessionStore` class | ❌ | Dropped (v0.50.0) with the rest of `sessionStore` — see `Options.sessionStore` |
+| `importSessionToStore()` function | ❌ | Dropped (v0.50.0) with the rest of `sessionStore` |
+| `deleteSession()` function | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts — removes transcript and companion directory |
 | `SDKControlReadFileResponse` type | ⚠️ | Re-exported from official SDK (v0.2.119); response for `readFile()` control method |
 | `updatedToolOutput` on `PostToolUseHookSpecificOutput` | ⚠️ | New in v0.2.121; replaces tool output for any tool type (deprecates `updatedMCPToolOutput`) |
 | `PostToolBatchHookInput` type | ⚠️ | Re-exported (was missing); input for `PostToolBatch` hook event |
@@ -207,8 +208,8 @@
 | `SessionSummaryEntry` type | ⚠️ | Re-exported (was missing); used with `foldSessionSummary()` |
 | `AnyZodRawShape` type | ⚠️ | Re-exported (was missing); Zod shape union used in `SdkMcpToolDefinition` |
 | `InferShape` type | ⚠️ | Re-exported (was missing); type helper for tool handler argument inference |
-| `AbortError` class | ⚠️ | Re-exported (was missing); users can now `catch (e) { if (e instanceof AbortError) }` |
-| `foldSessionSummary()` function | ⚠️ | Re-exported (was missing); pure helper for custom `SessionStore` implementations |
+| `AbortError` class | ✅ | Our own class in `src/constants.ts` (v0.50.0); thrown by iteration when `abortController` aborts |
+| `foldSessionSummary()` function | ❌ | Dropped (v0.50.0) with the rest of `sessionStore` |
 | `SDKPermissionDeniedMessage` type | ⚠️ | Re-exported from official SDK (v0.3.142); permission_denied system message |
 | `BackgroundTaskSummary` type | ⚠️ | Re-exported from official SDK (v0.3.144); shape of in-flight tasks in `StopHookInput`/`SubagentStopHookInput` |
 | `SessionCronSummary` type | ⚠️ | Re-exported from official SDK (v0.3.144); shape of session-scoped cron tasks in `StopHookInput`/`SubagentStopHookInput` |
@@ -227,8 +228,8 @@
 | `UserDialogRequest` / `UserDialogResult` types | ⚠️ | Re-exported from official SDK (v0.3.165); shape of `request_user_dialog` control requests and host responses |
 | `OnUserDialog` callback | ⚠️ | Re-exported from official SDK (v0.3.165); passed in `options.onUserDialog`; inbound `request_user_dialog` control requests are routed to this callback or answered `{behavior:'cancelled'}` |
 | `SDKControlReloadSkillsResponse` type | ⚠️ | Re-exported from official SDK (v0.3.165); response shape for `reloadSkills()` — carries refreshed `skills: SlashCommand[]` |
-| `resolveSettings()` function | ⚠️ | Re-exported from official SDK (v0.2.136); reads MDM/plist/file settings without spawning CLI |
-| `filterEscalatingDefaultMode()` function | ⚠️ | Re-exported from official SDK (v0.2.136); utility to remove managed-only settings |
+| `resolveSettings()` function | ❌ | Not supported (v0.50.0); was a runtime re-export that broke clean installs. Types still re-exported |
+| `filterEscalatingDefaultMode()` function | ❌ | Not supported (v0.50.0); was a runtime re-export that broke clean installs |
 | `ResolvedSettings` / `ResolvedSettingSource` / `ResolveSettingsOptions` types | ⚠️ | Re-exported from official SDK (v0.2.136); types for `resolveSettings()` |
 | `PolicySettingsOrigin` / `ProvenanceEntry` types | ⚠️ | Re-exported from official SDK (v0.2.136); provenance tracking in ResolvedSettings |
 | `SDKMirrorErrorMessage` type | ⚠️ | Re-exported from official SDK (v0.2.113); part of SDKMessage union |
@@ -236,7 +237,7 @@
 | `SDKControlGetUsageResponse` type | ⚠️ | Re-exported from official SDK (v0.3.169); return type for usage_EXPERIMENTAL method |
 | `SDKMessageOrigin` type | ⚠️ | Re-exported from official SDK (v0.2.113); message origin discriminated union |
 | `origin` on result messages | ⚠️ | `SDKResultSuccess`/`SDKResultError` gain optional `origin?: SDKMessageOrigin` (v0.2.126); type-only, forwarded via re-export |
-| `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` constant | ⚠️ | Re-exported from official SDK (v0.2.113); cache boundary marker for systemPrompt arrays |
+| `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` constant | ✅ | Defined in `src/constants.ts` (v0.50.0), typed against and unit tested equal to the official value |
 | `SDKWorkerShuttingDownMessage` type | ⚠️ | Re-exported from official SDK (v0.3.178); system/worker_shutting_down event; emitted on graceful Remote Control worker teardown with `reason` string |
 | `SDKInformationalMessage` type | ⚠️ | Re-exported from official SDK (v0.3.178); system/informational event; carries `level` (info/notice/suggestion/warning), optional `prevent_continuation` to halt execution |
 | `SDKRateLimitInfo` credits-required fields | ⚠️ | `errorCode`, `canUserPurchaseCredits`, `hasChargeableSavedPaymentMethod` added (v0.3.181); type-only, forwarded via re-export |
@@ -244,7 +245,7 @@
 | `system/model_fallback` new trigger values | ⚠️ | `SDKModelRefusalFallbackMessage.trigger` gains `server_error` and `last_resort` (v0.3.174); type-only, forwarded via re-export |
 | `SDKModelRefusalNoFallbackMessage` type | ⚠️ | Re-exported from official SDK (v0.3.191); emitted when model refusal has no fallback configured, so the turn ends as an error; part of SDKMessage union |
 | `prompt_id` on `BaseHookInput` | ⚠️ | Correlates hook events with OpenTelemetry prompt-level events (v0.3.196); type-only, forwarded via re-export |
-| `USAGE_LIMIT_ERROR_PREFIXES` / `USAGE_TRANSITION_PREFIXES` / `USAGE_WARNING_PREFIXES` / `ORG_POLICY_LIMIT_PREFIXES` constants | ⚠️ | Re-exported from official SDK (v0.3.211); `@alpha` string-prefix buckets for classifying rate-limit/usage messages without hand-mirrored lists |
+| `USAGE_LIMIT_ERROR_PREFIXES` / `USAGE_TRANSITION_PREFIXES` / `USAGE_WARNING_PREFIXES` / `ORG_POLICY_LIMIT_PREFIXES` constants | ✅ | Defined in `src/constants.ts` (v0.50.0), typed against and unit tested equal to the official values |
 | Output-field additions (v0.3.210–v0.3.217) | ⚠️ | `SDKAssistantMessage.timestamp`/`aborted`, `SDKMessageOrigin` `subkind:'scheduled-trigger'`, `tool_progress` `subagent_type`/`subagent_retry`, `system/init` plugin `version`, `RewindFilesResult.skippedLinks`, result-message `user_message_uuid`/`request_sent_wall_ms` — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | `DirectoryAddedHookInput` type | ⚠️ | Re-exported from official SDK (v0.3.219); `HookInput` union member for the `DirectoryAdded` lifecycle event, fired when a new working directory is registered mid-session |
 | `FastModeDisabledReason` type | ⚠️ | Re-exported from official SDK (v0.3.219); powers `fast_mode_disabled_reason` on result/init messages, forwarded via existing re-exports |

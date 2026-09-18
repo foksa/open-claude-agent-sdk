@@ -47,6 +47,7 @@
     "dev": "bun run src/index.ts",
     "build": "tsc -p tsconfig.build.json",
     "bump": "bun scripts/bump-version.ts",
+    "check:clean-install": "bun scripts/check-clean-install.ts",
     "test": "bun test",
     "test:unit": "bun test tests/unit/",
     "test:integration": "bun test tests/integration/",
@@ -60,7 +61,7 @@
     "check:fix": "biome check --write .",
     "typecheck": "tsc --noEmit",
     "typecheck:tests": "tsc -p tsconfig.type-tests.json --noEmit",
-    "ci": "bun run typecheck && bun run typecheck:tests && bun run check && bun run test:unit && bun run build",
+    "ci": "bun run typecheck && bun run typecheck:tests && bun run check && bun run test:unit && bun run build && bun run check:clean-install",
     "prerelease": "bun run ci",
     "release": "bun run build",
     "prepare": "git config core.hooksPath .githooks",
@@ -85,6 +86,14 @@
     "@anthropic-ai/sdk": "^0.93.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "^4.3.6"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.276"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/claude-agent-sdk": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.276",

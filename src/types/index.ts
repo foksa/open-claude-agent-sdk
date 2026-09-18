@@ -321,7 +321,7 @@ export type {
   UserDialogResult,
 } from '@anthropic-ai/claude-agent-sdk';
 
-export { EXIT_REASONS, HOOK_EVENTS } from '@anthropic-ai/claude-agent-sdk';
+export { EXIT_REASONS, HOOK_EVENTS } from '../constants.ts';
 
 // ============================================================================
 // OPEN SDK EXTENSIONS (beyond official SDK)
@@ -373,8 +373,4 @@ export type {
   WarmQuery,
 } from '@anthropic-ai/claude-agent-sdk';
 
-export {
-  AbortError,
-  InMemorySessionStore,
-  SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
-} from '@anthropic-ai/claude-agent-sdk';
+export { AbortError, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '../constants.ts';

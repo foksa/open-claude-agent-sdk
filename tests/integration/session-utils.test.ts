@@ -2,7 +2,7 @@
  * Integration tests for session utility functions (v0.2.74-76, v0.2.113-114)
  *
  * Tests: forkSession, renameSession, tagSession, getSessionInfo,
- *        deleteSession, title option, importSessionToStore
+ *        deleteSession, title option
  * These are standalone functions that read/write session JSONL files.
  * Each test creates a real session via query(), then exercises the utility.
  */
@@ -16,16 +16,13 @@ import {
   renameSession as officialRenameSession,
 } from '@anthropic-ai/claude-agent-sdk';
 import {
-  InMemorySessionStore,
   deleteSession as openDeleteSession,
   forkSession as openForkSession,
   getSessionInfo as openGetSessionInfo,
-  importSessionToStore as openImportSessionToStore,
   renameSession as openRenameSession,
   tagSession as openTagSession,
 } from '../../src/index.ts';
 import { listSessions as openListSessions } from '../../src/sessions/listSessions.ts';
-import type { SessionKey, SessionStore, SessionStoreEntry } from '../../src/types/index.ts';
 import { runWithSDK } from './comparison-utils.ts';
 import { expectSuccessResult } from './test-helpers.ts';
 
@@ -345,78 +342,6 @@ describe('title option', () => {
       expect(info?.customTitle).toBe(customTitle);
 
       console.log(`   title option — customTitle "${customTitle}" set on session`);
-    },
-    { timeout: 90000 }
-  );
-});
-
-// ============================================================================
-// importSessionToStore + InMemorySessionStore (v0.2.113)
-// ============================================================================
-
-describe('importSessionToStore', () => {
-  test.concurrent(
-    'copies session JSONL entries into a SessionStore',
-    async () => {
-      const tempCwd = mkdtempSync(`${tmpdir()}/sdk-test-import-`);
-      const sessionId = await createSession(tempCwd);
-
-      // Use a custom store to capture what's appended
-      const received: { key: SessionKey; entries: SessionStoreEntry[] }[] = [];
-      const store: SessionStore = {
-        async append(key, entries) {
-          received.push({ key, entries });
-        },
-        async load() {
-          return null;
-        },
-      };
-
-      await openImportSessionToStore(sessionId, store, { dir: tempCwd });
-
-      expect(received.length).toBeGreaterThan(0);
-      expect(received.every((r) => r.key.sessionId === sessionId)).toBe(true);
-      const totalEntries = received.reduce((sum, r) => sum + r.entries.length, 0);
-      expect(totalEntries).toBeGreaterThan(0);
-
-      console.log(
-        `   importSessionToStore — ${totalEntries} entries across ${received.length} batch(es)`
-      );
-    },
-    { timeout: 90000 }
-  );
-
-  test.concurrent(
-    'InMemorySessionStore can load imported session',
-    async () => {
-      const tempCwd = mkdtempSync(`${tmpdir()}/sdk-test-import-mem-`);
-      const sessionId = await createSession(tempCwd);
-
-      const store = new InMemorySessionStore();
-
-      // Capture the key used during import so we can load back
-      let importedKey: SessionKey | undefined;
-      const wrappedStore: SessionStore = {
-        async append(key, entries) {
-          importedKey = key;
-          await store.append(key, entries);
-        },
-        async load(key) {
-          return store.load(key);
-        },
-      };
-
-      await openImportSessionToStore(sessionId, wrappedStore, { dir: tempCwd });
-      expect(importedKey).toBeDefined();
-      if (!importedKey) throw new Error('importedKey should be defined');
-
-      const loaded = await store.load(importedKey);
-      expect(loaded).not.toBeNull();
-      if (!loaded) throw new Error('loaded should not be null');
-      expect(loaded.length).toBeGreaterThan(0);
-      expect(loaded.every((e) => typeof e.type === 'string')).toBe(true);
-
-      console.log(`   InMemorySessionStore — loaded ${loaded.length} entries back`);
     },
     { timeout: 90000 }
   );
