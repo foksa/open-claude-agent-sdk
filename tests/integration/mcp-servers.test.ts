@@ -305,4 +305,47 @@ describe('allowedTools Wildcard Filtering', () => {
     },
     120000
   );
+
+  testWithBothSDKs(
+    'canUseTool receives mcpServer provenance for SDK MCP tools (v0.3.274)',
+    async (sdk) => {
+      const server = createSdkMcpServer({
+        name: 'provenance-tools',
+        tools: [
+          tool(
+            'get_secret_number',
+            'Returns a secret number. Always call this tool when asked for the secret number.',
+            {},
+            async () => ({
+              content: [{ type: 'text' as const, text: '42' }],
+            })
+          ),
+        ],
+      });
+
+      const seen: { toolName: string; mcpServer?: { name: string; source: string } }[] = [];
+      const messages = await runWithSDK(
+        sdk,
+        'What is the secret number? Use the get_secret_number tool to find out. Reply with just the number.',
+        {
+          permissionMode: 'default',
+          canUseTool: async (toolName, _input, options) => {
+            seen.push({ toolName, mcpServer: options.mcpServer });
+            return { behavior: 'allow' as const };
+          },
+          mcpServers: { 'provenance-tools': server },
+          maxTurns: 3,
+        }
+      );
+
+      expect(messages.find((m) => m.type === 'result')).toBeTruthy();
+
+      const mcpCall = seen.find((c) => c.toolName.startsWith('mcp__provenance-tools__'));
+      expect(mcpCall).toBeTruthy();
+      expect(mcpCall?.mcpServer).toEqual({ name: 'provenance-tools', source: 'sdk' });
+
+      console.log(`   [${sdk}] canUseTool mcpServer: ${JSON.stringify(mcpCall?.mcpServer)}`);
+    },
+    120000
+  );
 });

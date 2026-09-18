@@ -168,6 +168,87 @@ describe('ControlProtocolHandler', () => {
       });
     });
 
+    test('forwards mcpServer, matchedAskRule and prompt display fields (v0.3.276)', async () => {
+      const { stream } = createMockStdin();
+      const canUseTool = mock(
+        async (
+          _toolName: string,
+          _input: Record<string, unknown>,
+          _context: Record<string, unknown>
+        ) => {
+          return { behavior: 'allow' as const };
+        }
+      );
+      const handler = new ControlProtocolHandler(stream, { canUseTool });
+
+      const req: ControlRequest = {
+        type: 'control_request',
+        request_id: 'req-mcp',
+        request: {
+          subtype: 'can_use_tool',
+          tool_name: 'mcp__my-server__do_thing',
+          input: {},
+          tool_use_id: 'tu-mcp',
+          title: 'Claude wants to do a thing',
+          display_name: 'Do thing',
+          description: 'Does the thing',
+          mcp_server: { name: 'my-server', source: 'sdk' },
+          matched_ask_rule: { source: 'userSettings', tool_name: 'mcp__my-server__do_thing' },
+        },
+      };
+
+      await handler.handleControlRequest(req);
+
+      const context = canUseTool.mock.calls[0][2];
+      expect(context).toMatchObject({
+        title: 'Claude wants to do a thing',
+        displayName: 'Do thing',
+        description: 'Does the thing',
+        mcpServer: { name: 'my-server', source: 'sdk' },
+        matchedAskRule: { source: 'userSettings', toolName: 'mcp__my-server__do_thing' },
+      });
+      expect(context.matchedAskRule).not.toHaveProperty('ruleContent');
+    });
+
+    test('omits mcpServer for non-MCP tools', async () => {
+      const { stream } = createMockStdin();
+      const canUseTool = mock(
+        async (
+          _toolName: string,
+          _input: Record<string, unknown>,
+          _context: Record<string, unknown>
+        ) => {
+          return { behavior: 'allow' as const };
+        }
+      );
+      const handler = new ControlProtocolHandler(stream, { canUseTool });
+
+      await handler.handleControlRequest({
+        type: 'control_request',
+        request_id: 'req-plain',
+        request: { subtype: 'can_use_tool', tool_name: 'Read', input: {}, tool_use_id: 'tu-plain' },
+      });
+
+      expect(canUseTool.mock.calls[0][2]).not.toHaveProperty('mcpServer');
+      expect(canUseTool.mock.calls[0][2]).not.toHaveProperty('matchedAskRule');
+    });
+
+    test('echoes toolUseID in the permission response', async () => {
+      const { stream, writes } = createMockStdin();
+      const handler = new ControlProtocolHandler(stream, {
+        canUseTool: async () => ({ behavior: 'allow' as const }),
+      });
+
+      await handler.handleControlRequest({
+        type: 'control_request',
+        request_id: 'req-echo',
+        request: { subtype: 'can_use_tool', tool_name: 'Read', input: {}, tool_use_id: 'tu-echo' },
+      });
+
+      const response = JSON.parse(writes[0]);
+      expect(response.response.response).toEqual({ behavior: 'allow', toolUseID: 'tu-echo' });
+    });
+
     test('suppresses the control response when callback returns null', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {

@@ -744,4 +744,20 @@ describe('CLI arguments compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'projectConfigRoot args match official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { projectConfigRoot: '/tmp/project-root' }),
+        capture(officialQuery, 'test', { projectConfigRoot: '/tmp/project-root' }),
+      ]);
+
+      expect(open.args).toContain('--project-config-root=/tmp/project-root');
+      expect(official.args).toContain('--project-config-root=/tmp/project-root');
+
+      console.log('   projectConfigRoot args match');
+    },
+    { timeout: 60000 }
+  );
 });

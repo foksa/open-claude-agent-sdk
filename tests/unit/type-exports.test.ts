@@ -2069,3 +2069,34 @@ describe('v0.3.270 type re-exports', () => {
     expect(response.state.managedOnly).toBe(false);
   });
 });
+
+describe('v0.3.276 type re-exports', () => {
+  test('McpServerProvenance is importable', () => {
+    const provenance: import('../../src/types/index.ts').McpServerProvenance = {
+      name: 'my-server',
+      source: 'sdk',
+    };
+    expect(provenance.source).toBe('sdk');
+  });
+
+  test('SDKStartupFailureReason is importable', () => {
+    const reason: import('../../src/types/index.ts').SDKStartupFailureReason = 'cwd_unavailable';
+    expect(reason).toBe('cwd_unavailable');
+  });
+
+  test('SDKUsageReport is importable', () => {
+    const report: import('../../src/types/index.ts').SDKUsageReport = {
+      session: {
+        total_cost_usd: 0.01,
+        total_api_duration_ms: 100,
+        total_duration_ms: 200,
+        total_lines_added: 1,
+        total_lines_removed: 0,
+        model_usage: {},
+      },
+      rate_limits: null,
+    };
+    expect(report.session.total_cost_usd).toBe(0.01);
+    expect(report.rate_limits).toBeNull();
+  });
+});

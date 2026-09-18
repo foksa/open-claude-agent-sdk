@@ -6,7 +6,7 @@
  */
 
 import { expect } from 'bun:test';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runWithSDK, type SDKType, testWithBothSDKs } from './comparison-utils.ts';
@@ -130,6 +130,34 @@ testWithBothSDKs(
     expectSuccessResult(messages);
 
     console.log(`   [${sdk}] fallbackModel — option accepted, query succeeded`);
+  },
+  90000
+);
+
+// ============================================================================
+// projectConfigRoot
+// ============================================================================
+
+testWithBothSDKs(
+  'projectConfigRoot loads project commands from the given root',
+  async (sdk: SDKType) => {
+    const root = mkdtempSync(join(tmpdir(), 'project-config-root-'));
+    mkdirSync(join(root, '.claude', 'commands'), { recursive: true });
+    writeFileSync(join(root, '.claude', 'commands', 'root-only-cmd.md'), 'Say "root command".');
+
+    const messages = await runWithSDK(sdk, 'Say "ok".', {
+      maxTurns: 1,
+      permissionMode: 'default',
+      settingSources: ['project'],
+      projectConfigRoot: root,
+    });
+
+    expectSuccessResult(messages);
+    const init = messages.find((m) => m.type === 'system' && m.subtype === 'init');
+    const commands = init && 'slash_commands' in init ? init.slash_commands : [];
+    expect(commands).toContain('root-only-cmd');
+
+    console.log(`   [${sdk}] projectConfigRoot — command from root discovered`);
   },
   90000
 );

@@ -310,9 +310,14 @@ export class ControlProtocolHandler {
       permission_suggestions,
       blocked_path,
       decision_reason,
+      title,
+      display_name,
+      description,
       agent_id,
       default_to_no,
       suppress_always_allow_rule,
+      mcp_server,
+      matched_ask_rule,
     } = req.request;
 
     if (!this.options.canUseTool) {
@@ -324,19 +329,32 @@ export class ControlProtocolHandler {
       signal: new AbortController().signal,
       suggestions: permission_suggestions,
       blockedPath: blocked_path,
+      ...(mcp_server && { mcpServer: { name: mcp_server.name, source: mcp_server.source } }),
       decisionReason: decision_reason,
+      title,
+      displayName: display_name,
+      description,
+      defaultToNo: default_to_no,
+      suppressAlwaysAllowRule: suppress_always_allow_rule,
       toolUseID: tool_use_id,
       agentID: agent_id,
       requestId: req.request_id,
-      defaultToNo: default_to_no,
-      suppressAlwaysAllowRule: suppress_always_allow_rule,
+      ...(matched_ask_rule && {
+        matchedAskRule: {
+          source: matched_ask_rule.source,
+          toolName: matched_ask_rule.tool_name,
+          ...(matched_ask_rule.rule_content !== undefined && {
+            ruleContent: matched_ask_rule.rule_content,
+          }),
+        },
+      }),
     });
 
     // A `null` result means the consumer already sent a control_response
     // out-of-band (e.g. a signed HTTP POST echoing `requestId`); skip ours.
     if (result === null) return;
 
-    this.sendSuccess(req.request_id, result);
+    this.sendSuccess(req.request_id, { ...result, toolUseID: tool_use_id });
   }
 
   private async handleHookCallback(req: ControlRequest) {

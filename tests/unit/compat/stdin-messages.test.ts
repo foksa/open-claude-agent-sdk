@@ -1536,4 +1536,30 @@ describe('stdin message compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'agents with omitClaudeMd in init message match official SDK',
+    async () => {
+      const agents = {
+        reviewer: { description: 'Reviews code', prompt: 'You review code', omitClaudeMd: true },
+      };
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { agents }),
+        capture(officialQuery, 'test', { agents }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit?.request?.agents?.reviewer?.omitClaudeMd).toBe(true);
+      expect(officialInit?.request?.agents?.reviewer?.omitClaudeMd).toBe(true);
+
+      if (openInit && officialInit) {
+        expect(normalizeMessage(openInit)).toEqual(normalizeMessage(officialInit));
+      }
+
+      console.log('   agents omitClaudeMd stdin messages match');
+    },
+    { timeout: 60000 }
+  );
 });

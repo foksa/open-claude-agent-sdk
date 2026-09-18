@@ -143,6 +143,8 @@ export type CanUseToolRequest = {
   description?: string;
   default_to_no?: boolean;
   suppress_always_allow_rule?: boolean;
+  mcp_server?: { name: string; source: string };
+  matched_ask_rule?: { source: string; tool_name: string; rule_content?: string };
 };
 
 export type HookCallbackRequest = {

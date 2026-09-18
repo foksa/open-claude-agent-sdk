@@ -71,6 +71,7 @@ export type {
   SDKResultMessage,
   SDKResultSuccess,
   SDKSessionStateChangedMessage,
+  SDKStartupFailureReason,
   SDKStatus,
   SDKStatusMessage,
   SDKSystemMessage,
@@ -187,6 +188,7 @@ export type {
   McpSdkServerConfigWithInstance,
   McpServerConfig,
   McpServerConfigForProcessTransport,
+  McpServerProvenance,
   McpServerStatus,
   McpServerStatusConfig,
   McpServerToolPolicy,
@@ -211,6 +213,7 @@ export type {
   ModelInfo,
   ModelUsage,
   NonNullableUsage,
+  SDKUsageReport,
 } from '@anthropic-ai/claude-agent-sdk';
 
 // ============================================================================

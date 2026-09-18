@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-09-14
+**Last Updated:** 2026-09-18
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -62,7 +62,7 @@
 | `maxBudgetUsd` | 🔌 | CLI flag passed, no budget-exceeded test |
 | `includePartialMessages` | ✅ | Streaming test verifies partial messages appear |
 | `cwd` | ✅ | Verified working directory is used |
-| `canUseTool` | ✅ | 8 behavioral tests (allow/deny/selective/async); `requestId` field (v0.3.199) + `null` return to suppress response unit tested; `defaultToNo`/`suppressAlwaysAllowRule` hints forwarded from CLI (v0.3.268), unit tested |
+| `canUseTool` | ✅ | 8 behavioral tests (allow/deny/selective/async); `requestId` field (v0.3.199) + `null` return to suppress response unit tested; `defaultToNo`/`suppressAlwaysAllowRule` hints forwarded from CLI (v0.3.268), unit tested; `mcpServer` provenance (v0.3.274) E2E tested; `title`/`displayName`/`description`/`matchedAskRule` forwarded and `toolUseID` echoed in the response, matching official SDK |
 | `hooks` | ⚠️ | See Hooks section — 7 of 26 events tested |
 | `allowDangerouslySkipPermissions` | ✅ | Verified in permission-modes.test.ts |
 | `outputFormat` | ✅ | JSON schema validation tested E2E |
@@ -90,6 +90,7 @@
 | `plugins[].skipMcpDiscovery` | 🔌 | Emits `--plugin-dir-no-mcp` instead of `--plugin-dir` (v0.3.172); args verified to match official SDK |
 | `pluginDelivery: 'initialize'` | ✅ | Sends `plugins` over stdin in the initialize request + `--await-initialize` instead of `--plugin-dir` flags, so the command line doesn't grow with plugin count (v0.3.261); E2E tested in plugins.test.ts |
 | `additionalDirectories` | 🔌 | CLI flag passed |
+| `projectConfigRoot` | ✅ | `--project-config-root=<path>` single arg (v0.3.274); CLI args parity tested; E2E tested (project commands load from the root) |
 | `agent` | 🔌 | CLI flag passed |
 | `betas` | 🔌 | CLI flag passed |
 | `fallbackModel` | 🔌 | CLI flag passed |
@@ -148,7 +149,7 @@
 | Session management | ✅ | Resume, fork, continue, sessionId all E2E tested |
 | Session storage API | ✅ | listSessions, getSessionMetadata, renameSession, deleteSession, getProjectStoragePath — via `./storage` subpath |
 | `listSessions()` (SDK API) | ✅ | Matches official SDK signature; compared with official SDK in integration tests |
-| `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; `includeSystemMessages` supported (v0.2.89); `parent_agent_id` field added (v0.3.202, always `null` — main-transcript reads only); compared with official SDK |
+| `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; `includeSystemMessages` supported (v0.2.89); `parent_agent_id` field added (v0.3.202, always `null` — main-transcript reads only); messages queued while a tool ran (`queued_command` attachments) surface as user messages with `isQueuedCommand`/`origin`, plus `timestamp`/`is_meta`/`isCompletedLocalCommand` output fields (v0.3.274–v0.3.275), unit tested byte-equal against official SDK; chain reconstruction now also merges parallel tool-use sibling entries and re-links compaction-preserved messages (`preservedMessages`/`preservedSegment`), parity tested against official SDK |
 | `forkSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.76); E2E tested in session-utils.test.ts |
 | `renameSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.74); E2E tested in session-utils.test.ts |
 | `tagSession()` (SDK API) | ✅ | Re-exported from official SDK (v0.2.76); E2E tested in session-utils.test.ts |
@@ -264,6 +265,10 @@
 | `canUseTool` `defaultToNo` / `suppressAlwaysAllowRule` hints | ⚠️ | `default_to_no`/`suppress_always_allow_rule` on the `can_use_tool` control request forwarded into the callback context (v0.3.268); unit tested in control.test.ts (types are official SDK's, re-exported via `Options`) |
 | `listPermissionRules()` (SDK API) | 🔌 | Sends `list_permission_rules` control request; response types (`SDKControlListPermissionRulesResponse`, `SDKControlPermissionRulesState`, `SDKPermissionRuleEntry`, `SDKPermissionRuleDescription`, `SDKPermissionWorkspaceDirectory`) re-exported; not on official SDK's public `Query` type, but present on its runtime Query class (v0.3.270) — implemented to match actual behavior; stdin parity tested |
 | Output-field additions (v0.3.265–v0.3.270) | ⚠️ | `result_index`, `local_command`, `resume_reason` (assistant/stream-event/result), `kind` on `get_context_usage` categories, always-present `pending_permission_requests` on `initialize` success — all type-only, forwarded via existing re-exports; no SDK changes needed |
+| `canUseTool` `mcpServer` provenance | ✅ | `mcp_server` on the `can_use_tool` control request → `mcpServer: { name, source }` in the callback context (v0.3.274); unit tested in control.test.ts, E2E tested with an in-process SDK MCP server (`source: 'sdk'`) in mcp-servers.test.ts |
+| `AgentDefinition.omitClaudeMd` | 🔌 | Added in v0.3.271; passes through the `agents` init message field unchanged; stdin parity tested |
+| `McpServerProvenance` / `SDKStartupFailureReason` / `SDKUsageReport` types | ⚠️ | Re-exported from official SDK (v0.3.273–v0.3.274) |
+| Output-field additions (v0.3.271–v0.3.276) | ⚠️ | `usage_report` on `/usage` assistant messages, `reason: 'worker_restart'` on `task_notification` (v0.3.273), `startup_failure_reason` on results, `mcp_server` on tool hook inputs, `source` on MCP server status rows (v0.3.274) — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
 | MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |

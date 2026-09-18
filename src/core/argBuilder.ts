@@ -131,6 +131,11 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   // All simple flag mappings
   applyFlagMap(args, options);
 
+  // projectConfigRoot — single `--project-config-root=<path>` arg (official SDK form)
+  if (options.projectConfigRoot !== undefined) {
+    args.push(`--project-config-root=${options.projectConfigRoot}`);
+  }
+
   // allowedTools + skills — merged into single --allowedTools CSV
   // skills: 'all'      → appends 'Skill' to the CSV
   // skills: string[]   → appends 'Skill(name)' per entry to the CSV
