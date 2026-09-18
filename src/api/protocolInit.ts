@@ -91,6 +91,13 @@ export function buildInitRequest(
     ...(excludeDynamicSections !== undefined && { excludeDynamicSections }),
     ...(sdkMcpServerNames.length > 0 && { sdkMcpServers: sdkMcpServerNames }),
     ...(sdkMcpServerConfigs && { sdkMcpServerConfigs }),
+    ...(options.outputFormat?.type === 'json_schema' && {
+      jsonSchema: options.outputFormat.schema as Record<string, unknown>,
+    }),
+    ...(options.planModeInstructions !== undefined && {
+      planModeInstructions: options.planModeInstructions,
+    }),
+    ...(options.toolAliases !== undefined && { toolAliases: options.toolAliases }),
     ...(options.agents && { agents: options.agents }),
     ...(options.promptSuggestions !== undefined && {
       promptSuggestions: options.promptSuggestions,
@@ -99,10 +106,13 @@ export function buildInitRequest(
       agentProgressSummaries: options.agentProgressSummaries,
     }),
     ...(options.title !== undefined && { title: options.title }),
-    ...(Array.isArray(options.skills) &&
-      options.skills.length > 0 && {
-        skills: options.skills,
-      }),
+    ...(Array.isArray(options.skills) && { skills: options.skills }),
+    ...(options.forwardSubagentText !== undefined && {
+      forwardSubagentText: options.forwardSubagentText,
+    }),
+    ...(options.supportedDialogKinds !== undefined && {
+      supportedDialogKinds: options.supportedDialogKinds,
+    }),
     ...(options.perTaskStopAffordance !== undefined && {
       perTaskStopAffordance: options.perTaskStopAffordance,
     }),

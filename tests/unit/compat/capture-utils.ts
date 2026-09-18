@@ -53,6 +53,33 @@ export type CaptureResult = {
 };
 
 /**
+ * Run a query against the capture CLI and return the error it throws (from
+ * option validation or iteration), or undefined when it succeeds. `capture()`
+ * swallows errors, so use this for rejection cases.
+ */
+export async function queryError(
+  queryFn: typeof openQuery,
+  options: Record<string, unknown>
+): Promise<string | undefined> {
+  try {
+    for await (const msg of queryFn({
+      prompt: 'test',
+      options: {
+        pathToClaudeCodeExecutable: CAPTURE_CLI,
+        settingSources: [],
+        maxTurns: 1,
+        ...options,
+      },
+    })) {
+      if (msg.type === 'result') break;
+    }
+    return undefined;
+  } catch (err) {
+    return (err as Error).message;
+  }
+}
+
+/**
  * Run SDK query and capture CLI args + stdin messages
  */
 export async function capture(

@@ -40,12 +40,12 @@ describe('ControlProtocolHandler', () => {
       expect(response.type).toBe('control_response');
       expect(response.response.subtype).toBe('error');
       expect(response.response.request_id).toBe('req-123');
-      expect(response.response.error).toContain('Unknown request type');
+      expect(response.response.error).toBe('Unsupported control request subtype: unknown_type');
     });
   });
 
   describe('canUseTool handling', () => {
-    test('allows tool use by default when no canUseTool callback', async () => {
+    test('errors when no canUseTool callback is registered (never auto-allows)', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {});
 
@@ -65,8 +65,8 @@ describe('ControlProtocolHandler', () => {
       expect(writes.length).toBe(1);
       const response = JSON.parse(writes[0]);
       expect(response.type).toBe('control_response');
-      expect(response.response.subtype).toBe('success');
-      expect(response.response.response.behavior).toBe('allow');
+      expect(response.response.subtype).toBe('error');
+      expect(response.response.error).toBe('canUseTool callback is not provided.');
     });
 
     test('calls canUseTool callback when provided', async () => {
@@ -300,7 +300,7 @@ describe('ControlProtocolHandler', () => {
   });
 
   describe('hook_callback handling', () => {
-    test('continues by default when hook callback not found', async () => {
+    test('errors when the hook callback id is unknown', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {});
 
@@ -318,8 +318,8 @@ describe('ControlProtocolHandler', () => {
 
       expect(writes.length).toBe(1);
       const response = JSON.parse(writes[0]);
-      expect(response.response.subtype).toBe('success');
-      expect(response.response.response.continue).toBe(true);
+      expect(response.response.subtype).toBe('error');
+      expect(response.response.error).toBe('No hook callback found for ID: nonexistent_hook');
     });
 
     test('executes registered hook and returns result', async () => {
@@ -380,50 +380,6 @@ describe('ControlProtocolHandler', () => {
       const response = JSON.parse(writes[0]);
       expect(response.response.subtype).toBe('error');
       expect(response.response.error).toContain('Hook failed');
-    });
-  });
-
-  describe('initialize handling', () => {
-    test('acknowledges initialize request', async () => {
-      const { stream, writes } = createMockStdin();
-      const handler = new ControlProtocolHandler(stream, {});
-
-      const req: ControlRequest = {
-        type: 'control_request',
-        request_id: 'req-init',
-        request: {
-          subtype: 'initialize',
-        },
-      };
-
-      await handler.handleControlRequest(req);
-
-      expect(writes.length).toBe(1);
-      const response = JSON.parse(writes[0]);
-      expect(response.response.subtype).toBe('success');
-      expect(response.response.request_id).toBe('req-init');
-    });
-  });
-
-  describe('interrupt handling', () => {
-    test('acknowledges interrupt request', async () => {
-      const { stream, writes } = createMockStdin();
-      const handler = new ControlProtocolHandler(stream, {});
-
-      const req: ControlRequest = {
-        type: 'control_request',
-        request_id: 'req-int',
-        request: {
-          subtype: 'interrupt',
-        },
-      };
-
-      await handler.handleControlRequest(req);
-
-      expect(writes.length).toBe(1);
-      const response = JSON.parse(writes[0]);
-      expect(response.response.subtype).toBe('success');
-      expect(response.response.request_id).toBe('req-int');
     });
   });
 
@@ -493,7 +449,7 @@ describe('ControlProtocolHandler', () => {
   });
 
   describe('request_user_dialog handling', () => {
-    test('cancels by default when no onUserDialog callback', async () => {
+    test('stays silent when no onUserDialog callback (matches official)', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {});
 
@@ -509,10 +465,7 @@ describe('ControlProtocolHandler', () => {
 
       await handler.handleControlRequest(req);
 
-      expect(writes.length).toBe(1);
-      const response = JSON.parse(writes[0]);
-      expect(response.response.subtype).toBe('success');
-      expect(response.response.response.behavior).toBe('cancelled');
+      expect(writes.length).toBe(0);
     });
 
     test('passes requestId matching the control envelope request_id', async () => {
@@ -557,65 +510,118 @@ describe('ControlProtocolHandler', () => {
     });
   });
 
-  describe('SDK-to-CLI request types (passthrough)', () => {
-    test('acknowledges set_permission_mode request', async () => {
-      const { stream, writes } = createMockStdin();
-      const handler = new ControlProtocolHandler(stream, {});
+  describe('SDK-to-CLI request types sent by the CLI', () => {
+    for (const request of [
+      { subtype: 'initialize' },
+      { subtype: 'interrupt' },
+      { subtype: 'set_permission_mode', mode: 'acceptEdits' },
+      { subtype: 'stop_task', task_id: 'task-abc-123' },
+      { subtype: 'mcp_status' },
+    ]) {
+      test(`answers ${request.subtype} with an unsupported-subtype error (matches official)`, async () => {
+        const { stream, writes } = createMockStdin();
+        const handler = new ControlProtocolHandler(stream, {});
+        await handler.handleControlRequest({
+          type: 'control_request',
+          request_id: 'req-x',
+          request: request as unknown as ControlRequest['request'],
+        });
+        expect(writes.length).toBe(1);
+        const response = JSON.parse(writes[0]);
+        expect(response.response.subtype).toBe('error');
+        expect(response.response.error).toBe(
+          `Unsupported control request subtype: ${request.subtype}`
+        );
+      });
+    }
+  });
 
-      const req: ControlRequest = {
-        type: 'control_request',
-        request_id: 'req-perm',
-        request: {
-          subtype: 'set_permission_mode',
-          mode: 'acceptEdits',
-        },
-      };
-
-      await handler.handleControlRequest(req);
-
-      expect(writes.length).toBe(1);
-      const response = JSON.parse(writes[0]);
-      expect(response.response.subtype).toBe('success');
+  describe('cancellation and lifecycle', () => {
+    const canUseToolRequest = (id: string): ControlRequest => ({
+      type: 'control_request',
+      request_id: id,
+      request: { subtype: 'can_use_tool', tool_name: 'Bash', input: {}, tool_use_id: `tu-${id}` },
     });
 
-    test('acknowledges stop_task request', async () => {
-      const { stream, writes } = createMockStdin();
-      const handler = new ControlProtocolHandler(stream, {});
-
-      const req: ControlRequest = {
-        type: 'control_request',
-        request_id: 'req-stop-task',
-        request: {
-          subtype: 'stop_task',
-          task_id: 'task-abc-123',
+    test('control_cancel_request aborts the signal passed to the callback', async () => {
+      const { stream } = createMockStdin();
+      let seenSignal: AbortSignal | undefined;
+      let release: () => void = () => {};
+      const handler = new ControlProtocolHandler(stream, {
+        canUseTool: async (_name, _input, { signal }) => {
+          seenSignal = signal;
+          await new Promise<void>((resolve) => {
+            release = resolve;
+          });
+          return { behavior: 'deny', message: 'cancelled' };
         },
-      };
-
-      await handler.handleControlRequest(req);
-
-      expect(writes.length).toBe(1);
-      const response = JSON.parse(writes[0]);
-      expect(response.response.subtype).toBe('success');
-      expect(response.response.request_id).toBe('req-stop-task');
+      });
+      const pending = handler.handleControlRequest(canUseToolRequest('req-c1'));
+      await Promise.resolve();
+      expect(seenSignal?.aborted).toBe(false);
+      handler.cancelRequest('req-c1');
+      expect(seenSignal?.aborted).toBe(true);
+      release();
+      await pending;
     });
 
-    test('acknowledges mcp_status request', async () => {
+    test('duplicate delivery of an in-flight request invokes the callback once', async () => {
       const { stream, writes } = createMockStdin();
-      const handler = new ControlProtocolHandler(stream, {});
-
-      const req: ControlRequest = {
-        type: 'control_request',
-        request_id: 'req-mcp',
-        request: {
-          subtype: 'mcp_status',
+      let calls = 0;
+      let release: () => void = () => {};
+      const handler = new ControlProtocolHandler(stream, {
+        canUseTool: async () => {
+          calls++;
+          await new Promise<void>((resolve) => {
+            release = resolve;
+          });
+          return { behavior: 'allow' };
         },
-      };
-
-      await handler.handleControlRequest(req);
-
+      });
+      const first = handler.handleControlRequest(canUseToolRequest('req-dup'));
+      await handler.handleControlRequest(canUseToolRequest('req-dup'));
+      release();
+      await first;
+      expect(calls).toBe(1);
       expect(writes.length).toBe(1);
-      const response = JSON.parse(writes[0]);
-      expect(response.response.subtype).toBe('success');
+    });
+
+    test('after close(), late callback results are not written and signals are aborted', async () => {
+      const { stream, writes } = createMockStdin();
+      let seenSignal: AbortSignal | undefined;
+      let release: () => void = () => {};
+      const handler = new ControlProtocolHandler(stream, {
+        canUseTool: async (_name, _input, { signal }) => {
+          seenSignal = signal;
+          await new Promise<void>((resolve) => {
+            release = resolve;
+          });
+          return { behavior: 'allow' };
+        },
+      });
+      const pending = handler.handleControlRequest(canUseToolRequest('req-late'));
+      await Promise.resolve();
+      handler.close();
+      expect(seenSignal?.aborted).toBe(true);
+      release();
+      await pending;
+      expect(writes.length).toBe(0);
+    });
+
+    test('hook callbacks receive a live, cancellable signal', async () => {
+      const { stream } = createMockStdin();
+      const handler = new ControlProtocolHandler(stream, {});
+      let seenSignal: AbortSignal | undefined;
+      handler.registerCallback('hook_0', async (_input, _id, { signal }) => {
+        seenSignal = signal;
+        return {};
+      });
+      await handler.handleControlRequest({
+        type: 'control_request',
+        request_id: 'req-hook',
+        request: { subtype: 'hook_callback', callback_id: 'hook_0', input: {} as never },
+      });
+      expect(seenSignal).toBeInstanceOf(AbortSignal);
     });
   });
 

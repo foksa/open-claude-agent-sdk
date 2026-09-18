@@ -31,14 +31,14 @@
 | `setPermissionMode()` | 🔌 | Sends control request, no behavioral verification |
 | `setModel()` | 🔌 | Sends control request, no behavioral verification |
 | `setMaxThinkingTokens()` | 🔌 | Sends control request, no behavioral verification |
-| `streamInput()` | ✅ | Tested in multi-turn.test.ts |
+| `streamInput()` | ✅ | Tested in multi-turn.test.ts; closes stdin when the stream ends (after the first result when callbacks are active), so AsyncIterable prompts no longer hang — parity tested in lifecycle.test.ts (v0.50.0) |
 | `supportedCommands()` | ✅ | Returns array with name/description |
 | `supportedModels()` | ✅ | Returns array with value/displayName |
 | `mcpServerStatus()` | ✅ | Returns status with and without SDK MCP servers |
 | `accountInfo()` | ✅ | Returns account data with expected shape |
 | `reconnectMcpServer()` | ✅ | Tested with minimal stdio MCP server |
 | `toggleMcpServer()` | ✅ | Disable and re-enable tested with stdio MCP server |
-| `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs |
+| `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs; in-process servers are connected/disconnected locally and sent as `{type:'sdk', name, timeout?}` (v0.50.0, stdin parity tested) — previously a newly added SDK server was never registered |
 | `setMcpPermissionModeOverride()` | 🔌 | Sends set_mcp_permission_mode_override control request; protocol parity tested (v0.3.187) |
 | `supportedAgents()` | ✅ | Returns array of AgentInfo from init response |
 | `readFile()` | 🔌 | Sends control request matching official SDK (v0.2.119); returns null on error |
@@ -62,14 +62,14 @@
 | `maxBudgetUsd` | 🔌 | CLI flag passed, no budget-exceeded test |
 | `includePartialMessages` | ✅ | Streaming test verifies partial messages appear |
 | `cwd` | ✅ | Verified working directory is used |
-| `canUseTool` | ✅ | 8 behavioral tests (allow/deny/selective/async); `requestId` field (v0.3.199) + `null` return to suppress response unit tested; `defaultToNo`/`suppressAlwaysAllowRule` hints forwarded from CLI (v0.3.268), unit tested; `mcpServer` provenance (v0.3.274) E2E tested; `title`/`displayName`/`description`/`matchedAskRule` forwarded and `toolUseID` echoed in the response, matching official SDK |
+| `canUseTool` | ✅ | 8 behavioral tests (allow/deny/selective/async); `requestId` field (v0.3.199) + `null` return to suppress response unit tested; `defaultToNo`/`suppressAlwaysAllowRule` hints forwarded from CLI (v0.3.268), unit tested; `mcpServer` provenance (v0.3.274) E2E tested; `title`/`displayName`/`description`/`matchedAskRule` forwarded and `toolUseID` echoed in the response, matching official SDK; callbacks get a live `signal` aborted by `control_cancel_request` (v0.50.0); with no callback the request now errors like official instead of auto-allowing |
 | `hooks` | ⚠️ | See Hooks section — 7 of 26 events tested |
 | `allowDangerouslySkipPermissions` | ✅ | Verified in permission-modes.test.ts |
 | `outputFormat` | ✅ | JSON schema validation tested E2E |
 | `settingSources` | ✅ | Skills/commands loaded from fixtures |
 | `systemPrompt` | ✅ | String, preset, preset+append, custom, and `snapshot` option (v0.3.267) all tested |
 | `allowedTools` | ✅ | Tool restriction verified behaviorally |
-| `skills` | 🔌 | Appends Skill entries to --allowedTools + init message field; parity tested via compat tests |
+| `skills` | 🔌 | Appends Skill entries to --allowedTools + init message field; parity tested via compat tests; names validated and deduplicated against `allowedTools` like official, empty array sent in init (v0.50.0) |
 | `disallowedTools` | 🔌 | CLI flag verified, no behavioral test |
 | `tools` | 🔌 | CLI flag verified, no behavioral test |
 | `mcpServers` | ✅ | In-process SDK MCP servers tested E2E |
@@ -82,10 +82,10 @@
 | `persistSession` | 🔌 | CLI flag passed |
 | `sandbox` | ✅ | Config passed via --settings, tested |
 | Image uploads (streaming input) | ✅ | Base64 image in content blocks, tested E2E |
-| `abortController` | ✅ | Signal cancellation tested |
-| `settings` | 🔌 | CLI flag passed (string path or JSON object), sandbox merges in |
+| `abortController` | ✅ | Signal cancellation tested; abort now rejects iteration with `AbortError('Claude Code process aborted by user')`, closes stdin and kills the CLI after 2s (v0.50.0, parity tested) — previously it only sent an interrupt |
+| `settings` | 🔌 | CLI flag passed (string path or JSON object), sandbox merges in; settings file path + `sandbox` now throws like official instead of silently dropping the file (v0.50.0) |
 | `managedSettings` | 🔌 | CLI flag `--managed-settings` verified to match official SDK (v0.2.118) |
-| `onElicitation` | ⚠️ | Callback for MCP elicitation requests; control protocol handler implemented (v0.2.104) |
+| `onElicitation` | ⚠️ | Callback for MCP elicitation requests; control protocol handler implemented (v0.2.104); receives a live, cancellable `signal` (v0.50.0) |
 | `plugins` | ✅ | `--plugin-dir` per plugin; commands/invocation E2E tested in plugins.test.ts |
 | `plugins[].skipMcpDiscovery` | 🔌 | Emits `--plugin-dir-no-mcp` instead of `--plugin-dir` (v0.3.172); args verified to match official SDK |
 | `pluginDelivery: 'initialize'` | ✅ | Sends `plugins` over stdin in the initialize request + `--await-initialize` instead of `--plugin-dir` flags, so the command line doesn't grow with plugin count (v0.3.261); E2E tested in plugins.test.ts |
@@ -96,8 +96,8 @@
 | `fallbackModel` | 🔌 | CLI flag passed |
 | `permissionPromptToolName` | 🔌 | CLI flag passed |
 | `permissionPrompts` | 🔌 | CLI flag `--permission-prompts` (`'host' \| 'none'`) verified to match official SDK (v0.3.259) |
-| `extraArgs` | 🔌 | CLI flag passed |
-| `thinking` | ✅ | adaptive/enabled/disabled all E2E tested |
+| `extraArgs` | 🔌 | CLI flag passed; values starting with `-` are passed as `--key=value` like official (v0.50.0) |
+| `thinking` | ✅ | adaptive/enabled/disabled all E2E tested; `display` → `--thinking-display`, `maxThinkingTokens: 0` → `--thinking disabled` (v0.50.0, args parity tested) |
 | `effort` | ✅ | E2E tested with low effort level |
 | `taskBudget` | 🔌 | CLI flag `--task-budget` verified to match official SDK (v0.2.84) |
 | `includeHookEvents` | 🔌 | CLI flag verified; lifecycle messages only for declarative hooks (v0.2.88) |
@@ -109,10 +109,10 @@
 | `resumeDropsTurn` | 🔌 | CLI flag `--resume-drops-turn=<value>` verified to match official SDK (v0.3.223); used with `resumeSessionAt` to guard truncating resumes |
 | `enableFileCheckpointing` | ⚠️ | Unit tested (env var), needs integration test |
 | `toolConfig` | 🔌 | Env var `CLAUDE_CODE_QUESTION_PREVIEW_FORMAT` verified to match official SDK |
-| `executable` | ⚠️ | Unit tested, needs integration test |
+| `executable` | ⚠️ | Ignored for native binaries like official (v0.50.0; previously wrapped the native binary and failed); parity tested in lifecycle.test.ts |
 | `executableArgs` | ⚠️ | Unit tested, needs integration test |
 | `env` | ⚠️ | Unit tested, needs integration test |
-| `stderr` | ⚠️ | Unit tested, needs integration test |
+| `stderr` | ⚠️ | stderr is always drained (v0.50.0) — previously an unread pipe could block the CLI with `debug`/`DEBUG_CLAUDE_AGENT_SDK`; parity tested in lifecycle.test.ts |
 | `spawnClaudeCodeProcess` | ⚠️ | Unit tested, needs integration test |
 | **Hooks (7 of 26 E2E tested)** |
 | `PreToolUse` | ✅ | 4 behavioral tests (intercept, modify, cancel) |
@@ -270,8 +270,13 @@
 | `AgentDefinition.omitClaudeMd` | 🔌 | Added in v0.3.271; passes through the `agents` init message field unchanged; stdin parity tested |
 | `McpServerProvenance` / `SDKStartupFailureReason` / `SDKUsageReport` types | ⚠️ | Re-exported from official SDK (v0.3.273–v0.3.274) |
 | Output-field additions (v0.3.271–v0.3.276) | ⚠️ | `usage_report` on `/usage` assistant messages, `reason: 'worker_restart'` on `task_notification` (v0.3.273), `startup_failure_reason` on results, `mcp_server` on tool hook inputs, `source` on MCP server status rows (v0.3.274) — all type-only, forwarded via existing re-exports; no SDK changes needed |
-| MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools |
-| MCP: `tool()` helper | ✅ | With Zod schemas and annotations |
+| `planModeInstructions` / `toolAliases` / `forwardSubagentText` options | 🔌 | Sent in the `initialize` request (v0.50.0; previously silently ignored); stdin parity tested |
+| `supportedDialogKinds` option | 🔌 | Sent in `initialize`; throws without `onUserDialog` like official (v0.50.0); stdin parity tested |
+| `outputFormat` → `jsonSchema` init field | 🔌 | JSON schema now also sent in `initialize` alongside `--json-schema`, like official (v0.50.0) |
+| Control protocol robustness | ✅ | Control requests are handled concurrently (a callback that awaits a query method no longer deadlocks), `control_cancel_request` aborts callbacks, `keep_alive`/`transcript_mirror` frames are dropped, duplicate deliveries skipped, unsupported inbound subtypes and missing hook ids answered with errors like official (v0.50.0) |
+| Process exit handling | ✅ | Iteration waits for stdout to drain before completing; a non-zero exit or signal now rejects with the official error text, preferring the last error `result` (`Claude Code returned an error result: …`) — previously the error result was often lost (v0.50.0, parity tested) |
+| MCP: `createSdkMcpServer()` | ✅ | 2 real E2E tests with in-process tools; `instructions` and `alwaysLoad` supported, server-initiated notifications (e.g. `tools/list_changed`) forwarded to the CLI (v0.50.0) |
+| MCP: `tool()` helper | ✅ | With Zod schemas and annotations; `searchHint`/`alwaysLoad` sent as `_meta` like official (v0.50.0) |
 | MCP: control methods | ✅ | toggle/setServers/status tested; reconnect needs running server |
 | Subagent support (`agents`) | ✅ | E2E tested: invocation, hooks, abort |
 | Agent teams | ❌ | Types exported only; no env var, no tests |

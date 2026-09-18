@@ -18,7 +18,7 @@ Update `@anthropic-ai/claude-agent-sdk` to the target version (or latest), imple
 
 ## Step 2: Bump Dependency
 
-1. Update version in `package.json` devDependencies, and the `peerDependencies` range (`^X.Y.Z`) to match
+1. Update version in `package.json` devDependencies, the `peerDependencies` range (`^X.Y.Z`), and `COMPATIBLE_SDK_VERSION` in `src/constants.ts` to match (`tests/unit/index.test.ts` enforces all three)
 2. `bun install`
 3. `bun run typecheck` — fix any breakage before proceeding
 

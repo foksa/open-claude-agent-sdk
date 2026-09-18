@@ -7,6 +7,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { unlinkSync, writeFileSync } from 'node:fs';
+import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query } from '../../src/api/query.ts';
 import type { SDKMessage } from '../../src/types/index.ts';
 
@@ -51,40 +52,65 @@ describe('error handling', () => {
     { timeout: 15000 }
   );
 
+  /** Run a fake CLI through both SDKs; returns yielded message types and the thrown error. */
+  async function runBoth(scriptBody: string) {
+    const script = createTempScript(scriptBody);
+    try {
+      const results = [];
+      for (const [name, q] of [
+        ['open', query],
+        ['official', officialQuery],
+      ] as const) {
+        const types: string[] = [];
+        let error: string | undefined;
+        try {
+          for await (const msg of q({
+            prompt: 'test',
+            options: { pathToClaudeCodeExecutable: script, settingSources: [] },
+          })) {
+            types.push(msg.type);
+          }
+        } catch (err) {
+          error = (err as Error).message;
+        }
+        results.push({ name, types, error });
+      }
+      return { open: results[0], official: results[1] };
+    } finally {
+      unlinkSync(script);
+    }
+  }
+
   test(
-    'CLI exits non-zero after partial output completes generator',
+    'CLI exits non-zero after partial output: messages, then exit error (matches official)',
     async () => {
-      // Script sends a system message then exits with code 1.
-      // Stdout closes before the exit handler fires, so the generator
-      // completes normally after yielding the partial messages.
-      const script = createTempScript(`
+      const { open, official } = await runBoth(`
 echo '{"type":"system","subtype":"init","session_id":"test","tools":[],"mcp_servers":[]}'
 exit 1
 `);
+      expect(open.types).toEqual(['system']);
+      expect(open.error).toBe('Claude Code process exited with code 1');
+      expect({ types: open.types, error: open.error }).toEqual({
+        types: official.types,
+        error: official.error,
+      });
+    },
+    { timeout: 15000 }
+  );
 
-      try {
-        const messages: SDKMessage[] = [];
-
-        for await (const msg of query({
-          prompt: 'test',
-          options: {
-            pathToClaudeCodeExecutable: script,
-            permissionMode: 'default',
-            settingSources: [],
-          },
-        })) {
-          messages.push(msg);
-          if (msg.type === 'result') break;
-        }
-
-        // Should have received the system message
-        expect(messages.length).toBeGreaterThan(0);
-        expect(messages[0].type).toBe('system');
-
-        console.log(`   CLI exit 1: yielded ${messages.length} messages before generator ended`);
-      } finally {
-        unlinkSync(script);
-      }
+  test(
+    'error result before exit is reported instead of the exit code (matches official)',
+    async () => {
+      const { open, official } = await runBoth(`
+echo '{"type":"system","subtype":"init","session_id":"e","tools":[],"mcp_servers":[]}'
+echo '{"type":"result","subtype":"error_during_execution","is_error":true,"errors":["  Invalid API key  ","","Org blocked"],"session_id":"e","duration_ms":0,"duration_api_ms":0,"num_turns":0,"total_cost_usd":0,"usage":{}}'
+exit 1
+`);
+      expect(open.error).toBe('Claude Code returned an error result: Invalid API key; Org blocked');
+      expect({ types: open.types, error: open.error }).toEqual({
+        types: official.types,
+        error: official.error,
+      });
     },
     { timeout: 15000 }
   );
@@ -122,41 +148,21 @@ exit 1
   );
 
   test(
-    'CLI crashes mid-stream yields partial messages then completes',
+    'CLI killed mid-stream yields partial messages then a signal error (matches official)',
     async () => {
-      // Script sends init + assistant message, then kills itself.
-      // Tests that partial messages are yielded before generator ends.
-      const script = createTempScript(`
+      const { open, official } = await runBoth(`
 echo '{"type":"system","subtype":"init","session_id":"crash","tools":[],"mcp_servers":[]}'
 sleep 0.1
 echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Hello"}]},"session_id":"crash"}'
 sleep 0.1
 kill -9 $$
 `);
-
-      try {
-        const messages: SDKMessage[] = [];
-
-        for await (const msg of query({
-          prompt: 'test',
-          options: {
-            pathToClaudeCodeExecutable: script,
-            permissionMode: 'default',
-            settingSources: [],
-          },
-        })) {
-          messages.push(msg);
-          if (msg.type === 'result') break;
-        }
-
-        // Should have received partial messages before crash
-        expect(messages.length).toBeGreaterThanOrEqual(1);
-        expect(messages[0].type).toBe('system');
-
-        console.log(`   CLI crash: yielded ${messages.length} messages before generator ended`);
-      } finally {
-        unlinkSync(script);
-      }
+      expect(open.types).toEqual(['system', 'assistant']);
+      expect(open.error).toBe('Claude Code process terminated by signal SIGKILL');
+      expect({ types: open.types, error: open.error }).toEqual({
+        types: official.types,
+        error: official.error,
+      });
     },
     { timeout: 15000 }
   );

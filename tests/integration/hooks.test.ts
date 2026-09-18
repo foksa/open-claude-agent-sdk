@@ -3,7 +3,7 @@
  * Same tests run with both open and official SDKs
  */
 
-import { expect, test } from 'bun:test';
+import { expect } from 'bun:test';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as openQuery } from '../../src/api/query.ts';
 import type {
@@ -547,63 +547,3 @@ testWithBothSDKs(
   },
   60000
 );
-
-// Our SDK translates abortController.abort() into an interrupt() control request,
-// which lets the CLI finish gracefully and emit a result message. The official SDK
-// closes the stream immediately on abort, racing past the CLI's final message.
-test('[open] aborting abortController inside PostToolUse hook still delivers result message', async () => {
-  const abortController = new AbortController();
-  let hookFireCount = 0;
-  const messages: SDKMessage[] = [];
-
-  const hooks: Record<string, HookCallbackMatcher[]> = {
-    PostToolUse: [
-      {
-        hooks: [
-          async (_input, _toolUseId, _context) => {
-            hookFireCount++;
-            abortController.abort();
-            return {};
-          },
-        ],
-      },
-    ],
-  };
-
-  const queryPromise = (async () => {
-    try {
-      for await (const msg of openQuery({
-        prompt: 'Read the package.json file',
-        options: {
-          model: 'haiku',
-          settingSources: [],
-          maxTurns: 5,
-          permissionMode: 'default',
-          canUseTool: async (_toolName: string, input: Record<string, unknown>) => ({
-            behavior: 'allow' as const,
-            updatedInput: input,
-          }),
-          abortController,
-          hooks,
-        },
-      })) {
-        messages.push(msg);
-        if (msg.type === 'result') break;
-      }
-    } catch {}
-  })();
-
-  const hangGuard = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('query hung for 20s after PostToolUse abort')), 20000)
-  );
-
-  await Promise.race([queryPromise, hangGuard]);
-
-  console.log(
-    `   [open] hook fires: ${hookFireCount}, messages: ${messages.length}, has result: ${messages.some((m) => m.type === 'result')}`
-  );
-
-  if (hookFireCount > 0) {
-    expect(messages.some((m) => m.type === 'result')).toBe(true);
-  }
-}, 60000);

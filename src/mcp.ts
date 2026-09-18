@@ -36,6 +36,7 @@ export type SdkMcpToolDefinition<Schema extends AnyZodRawShape = AnyZodRawShape>
   description: string;
   inputSchema: Schema;
   annotations?: ToolAnnotations;
+  _meta?: Record<string, unknown>;
   handler: (args: InferShape<Schema>, extra: unknown) => Promise<CallToolResult>;
 };
 
@@ -60,6 +61,8 @@ type McpSdkServerConfigWithInstance = {
 type CreateSdkMcpServerOptions = {
   name: string;
   version?: string;
+  /** Server instructions surfaced to the model (MCP `instructions`). */
+  instructions?: string;
   // biome-ignore lint/suspicious/noExplicitAny: must match official SDK signature
   tools?: Array<SdkMcpToolDefinition<any>>;
   /**
@@ -71,6 +74,8 @@ type CreateSdkMcpServerOptions = {
    * until it is removed and re-added.
    */
   timeout?: number;
+  /** Mark every tool as always loaded (never deferred behind tool search). */
+  alwaysLoad?: boolean;
 };
 
 /**
@@ -116,7 +121,7 @@ export function createSdkMcpServer(
 ): McpSdkServerConfigWithInstance {
   const server = new McpServer(
     { name: options.name, version: options.version ?? '1.0.0' },
-    { capabilities: { tools: options.tools ? {} : undefined } }
+    { capabilities: { tools: options.tools ? {} : undefined }, instructions: options.instructions }
   );
 
   if (options.tools) {
@@ -127,6 +132,7 @@ export function createSdkMcpServer(
           description: t.description,
           inputSchema: t.inputSchema,
           annotations: t.annotations,
+          _meta: options.alwaysLoad ? { 'anthropic/alwaysLoad': true, ...t._meta } : t._meta,
         },
         t.handler
       );
@@ -165,13 +171,18 @@ export function tool<Schema extends AnyZodRawShape>(
   description: string,
   inputSchema: Schema,
   handler: (args: InferShape<Schema>, extra: unknown) => Promise<CallToolResult>,
-  extras?: { annotations?: ToolAnnotations }
+  extras?: { annotations?: ToolAnnotations; searchHint?: string; alwaysLoad?: boolean }
 ): SdkMcpToolDefinition<Schema> {
+  // searchHint / alwaysLoad travel to the CLI as MCP `_meta` (official SDK keys)
+  const meta: Record<string, unknown> = {};
+  if (extras?.searchHint) meta['anthropic/searchHint'] = extras.searchHint;
+  if (extras?.alwaysLoad) meta['anthropic/alwaysLoad'] = true;
   return {
     name,
     description,
     inputSchema,
     handler,
-    ...extras,
+    annotations: extras?.annotations,
+    _meta: Object.keys(meta).length > 0 ? meta : undefined,
   };
 }

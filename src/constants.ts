@@ -7,6 +7,14 @@
 
 type Official = typeof import('@anthropic-ai/claude-agent-sdk');
 
+/**
+ * Version of @anthropic-ai/claude-agent-sdk this package mirrors. Sent to the
+ * CLI as CLAUDE_AGENT_SDK_VERSION, as the official SDK does, so the CLI sees
+ * an SDK host of the protocol version we implement. Kept equal to the pinned
+ * devDependency (tests/unit/index.test.ts).
+ */
+export const COMPATIBLE_SDK_VERSION = '0.3.276';
+
 /** Thrown when a query is aborted via its AbortController. */
 export class AbortError extends Error {}
 

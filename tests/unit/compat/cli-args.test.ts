@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { capture, officialQuery, openQuery } from './capture-utils.ts';
+import { capture, officialQuery, openQuery, queryError } from './capture-utils.ts';
 
 describe('CLI arguments compatibility', () => {
   test.concurrent(
@@ -760,4 +760,88 @@ describe('CLI arguments compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  /** Group `--flag value` pairs so arg order does not matter, then sort. */
+  function argPairs(args: string[]): string[] {
+    const pairs: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      const next = args[i + 1];
+      if (
+        args[i].startsWith('--') &&
+        !args[i].includes('=') &&
+        next !== undefined &&
+        !next.startsWith('--')
+      ) {
+        pairs.push(`${args[i]} ${next}`);
+        i++;
+      } else {
+        pairs.push(args[i]);
+      }
+    }
+    return pairs.sort();
+  }
+
+  async function captureOrError(queryFn: typeof openQuery, options: Record<string, unknown>) {
+    const error = await queryError(queryFn, options);
+    if (error !== undefined) return { error };
+    const { args } = await capture(queryFn, 'test', options);
+    expect(args.length).toBeGreaterThan(0);
+    return { args: argPairs(args) };
+  }
+
+  const parityCases: [string, Record<string, unknown>][] = [
+    ['thinking adaptive + display', { thinking: { type: 'adaptive', display: 'summarized' } }],
+    [
+      'thinking enabled + budget + display',
+      { thinking: { type: 'enabled', budgetTokens: 2048, display: 'omitted' } },
+    ],
+    [
+      'thinking disabled ignores display',
+      { thinking: { type: 'disabled', display: 'summarized' } as unknown },
+    ],
+    ['maxThinkingTokens 0 disables thinking', { maxThinkingTokens: 0 }],
+    ['maxThinkingTokens budget', { maxThinkingTokens: 4096 }],
+    [
+      'extraArgs value starting with a dash',
+      { extraArgs: { 'some-flag': '-x', other: 'plain', bare: null } },
+    ],
+    [
+      'settings object + sandbox are merged',
+      { settings: { model: 'haiku' }, sandbox: { enabled: true } },
+    ],
+    [
+      'settings JSON string + sandbox are merged',
+      { settings: '{"model":"haiku"}', sandbox: { enabled: false } },
+    ],
+    [
+      'settings path + sandbox is rejected',
+      { settings: '/tmp/settings.json', sandbox: { enabled: true } },
+    ],
+    ['settings path alone passes through', { settings: '/tmp/settings.json' }],
+    [
+      'skills deduplicated against allowedTools',
+      { skills: ['pdf', 'xlsx'], allowedTools: ['Read', 'Skill(pdf)'] },
+    ],
+    ['skills with parentheses rejected', { skills: ['bad(name)'] }],
+    ['skills wildcard rejected', { skills: ['*'] }],
+    ['skills padded name rejected', { skills: [' pdf'] }],
+    ['skills leading slash rejected', { skills: ['/pdf'] }],
+    ['skills wildcard suffix rejected', { skills: ['plugin:*'] }],
+    ['empty skills array', { skills: [] }],
+  ];
+
+  for (const [name, options] of parityCases) {
+    test.concurrent(
+      `${name} (matches official SDK)`,
+      async () => {
+        const [open, official] = await Promise.all([
+          captureOrError(openQuery, options),
+          captureOrError(officialQuery, options),
+        ]);
+        if (name.includes('rejected')) expect(official).toHaveProperty('error');
+        expect(open).toEqual(official);
+      },
+      { timeout: 60000 }
+    );
+  }
 });
