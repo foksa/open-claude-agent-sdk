@@ -1,22 +1,22 @@
-import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { getProjectsBaseDir, projectDirName } from '../sessions/paths.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Encode a project path the same way Claude CLI does:
- * replace every non-alphanumeric character with `-`.
+ * Encode a project path the same way Claude CLI does: replace every
+ * non-alphanumeric character with `-`, hash-suffixing names over 200 chars.
  */
 export function encodePath(projectPath: string): string {
-  return projectPath.replace(/[^a-zA-Z0-9]/g, '-');
+  return projectDirName(projectPath);
 }
 
 /**
- * Returns the on-disk storage directory for a project.
+ * Returns the on-disk storage directory for a project (respects CLAUDE_CONFIG_DIR).
  * e.g. `/Users/foo/my-project` → `~/.claude/projects/-Users-foo-my-project`
  */
 export function getProjectStoragePath(projectPath: string): string {
-  return join(homedir(), '.claude', 'projects', encodePath(projectPath));
+  return join(getProjectsBaseDir(), encodePath(projectPath));
 }
 
 /**

@@ -18,7 +18,7 @@ Update `@anthropic-ai/claude-agent-sdk` to the target version (or latest), imple
 
 ## Step 2: Bump Dependency
 
-1. Update version in `package.json` devDependencies
+1. Update version in `package.json` devDependencies, the `peerDependencies` range (`^X.Y.Z`), and `COMPATIBLE_SDK_VERSION` in `src/constants.ts` to match (`tests/unit/index.test.ts` enforces all three)
 2. `bun install`
 3. `bun run typecheck` — fix any breakage before proceeding
 
@@ -34,7 +34,8 @@ Output sections:
 - **MISSING** — exported by the official SDK but not re-exported by us. Each is one of:
   - A new type → add to the appropriate section in `src/types/index.ts`
   - A runtime value we deliberately re-implement (e.g. `query`, `tool`, `createSdkMcpServer`) → leave alone
-  - A new runtime function we haven't wired up yet (e.g. session helpers) → implement separately, not via re-export
+  - A deliberately unsupported runtime value (`startup`, `resolveSettings`, `filterEscalatingDefaultMode`, the `sessionStore` helpers) → leave alone
+  - A new runtime function or constant → implement it ourselves (constants go in `src/constants.ts`, typed against the official declaration). **Never** `export { value } from '@anthropic-ai/claude-agent-sdk'` — the official SDK is only an optional peer for types, so a runtime import breaks every clean install. `bun run check:clean-install` enforces this.
 - **EXTRA** — we re-export something that no longer exists upstream. Likely renamed or removed; investigate each one.
 
 For types referenced in the `SDKMessage` union but NOT individually `export declare type`'d in `sdk.d.ts`, the diff won't catch them. Define those locally with a comment explaining why — see `SDKRateLimitEvent` and `SDKPromptSuggestionMessage` as examples.

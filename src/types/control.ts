@@ -25,6 +25,12 @@ import type {
 export const MessageType = {
   CONTROL_REQUEST: 'control_request',
   CONTROL_RESPONSE: 'control_response',
+  /** CLI withdraws an in-flight control request (e.g. permission prompt answered elsewhere) */
+  CONTROL_CANCEL_REQUEST: 'control_cancel_request',
+  /** Transport heartbeat — never surfaced to the consumer */
+  KEEP_ALIVE: 'keep_alive',
+  /** Transcript entries for a sessionStore mirror (only sent with --session-mirror) */
+  TRANSCRIPT_MIRROR: 'transcript_mirror',
 } as const;
 
 /** Control request subtypes (CLI → SDK and SDK → CLI) */
@@ -143,6 +149,8 @@ export type CanUseToolRequest = {
   description?: string;
   default_to_no?: boolean;
   suppress_always_allow_rule?: boolean;
+  mcp_server?: { name: string; source: string };
+  matched_ask_rule?: { source: string; tool_name: string; rule_content?: string };
 };
 
 export type HookCallbackRequest = {
@@ -159,6 +167,9 @@ export type InitializeRequest = {
   systemPromptSnapshot?: boolean;
   sdkMcpServers?: string[];
   sdkMcpServerConfigs?: Record<string, { timeout?: number }>;
+  jsonSchema?: Record<string, unknown>;
+  planModeInstructions?: string;
+  toolAliases?: Record<string, string>;
   agents?: Record<string, unknown>;
   hooks?: Record<string, unknown>;
   excludeDynamicSections?: boolean;
@@ -166,6 +177,8 @@ export type InitializeRequest = {
   agentProgressSummaries?: boolean;
   title?: string;
   skills?: string[];
+  forwardSubagentText?: boolean;
+  supportedDialogKinds?: string[];
   perTaskStopAffordance?: boolean;
   plugins?: SdkPluginConfig[];
 };

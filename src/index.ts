@@ -3,35 +3,29 @@
  * A lightweight alternative to Claude Agent SDK - uses local CLI
  */
 
-export const version = '0.49.0';
+export const version = '0.50.0';
 
-// Session utilities — re-exported from official SDK (read/write JSONL files directly)
+export { query } from './api/query.ts';
+// Runtime values the official SDK exports — our own implementations, so the
+// package has no runtime dependency on @anthropic-ai/claude-agent-sdk
 export {
   AbortError,
-  deleteSession,
-  filterEscalatingDefaultMode,
-  foldSessionSummary,
-  forkSession,
-  getSessionInfo,
-  getSubagentMessages,
-  InMemorySessionStore,
-  importSessionToStore,
-  listSubagents,
+  EXIT_REASONS,
+  HOOK_EVENTS,
   ORG_POLICY_LIMIT_PREFIXES,
-  renameSession,
-  resolveSettings,
   SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
-  startup,
-  tagSession,
   USAGE_LIMIT_ERROR_PREFIXES,
   USAGE_TRANSITION_PREFIXES,
   USAGE_WARNING_PREFIXES,
-} from '@anthropic-ai/claude-agent-sdk';
-export { query } from './api/query.ts';
+} from './constants.ts';
 // MCP utilities — our own open source implementations
 export { createSdkMcpServer, tool } from './mcp.ts';
 // Session management — matches official SDK API
+export { forkSession } from './sessions/forkSession.ts';
+export { getSessionInfo } from './sessions/getSessionInfo.ts';
 export { getSessionMessages } from './sessions/getSessionMessages.ts';
 export { listSessions } from './sessions/listSessions.ts';
+export { deleteSession, renameSession, tagSession } from './sessions/mutations.ts';
+export { getSubagentMessages, listSubagents } from './sessions/subagents.ts';
 // Re-export all types
 export type * from './types/index.ts';

@@ -29,6 +29,12 @@ bun add open-claude-agent-sdk
 npm install -g @anthropic-ai/claude-code
 ```
 
+**TypeScript:** our types are the official SDK's types, re-exported. Add the official package as a dev dependency so they resolve — it is an optional peer, never loaded at runtime. `--omit=optional` skips its bundled CLI binary:
+
+```bash
+npm install -D @anthropic-ai/claude-agent-sdk --omit=optional
+```
+
 ## Usage
 
 ```typescript

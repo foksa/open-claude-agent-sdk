@@ -46,7 +46,10 @@ export class ControlRequestManager {
 
   /** Write an NDJSON message to the CLI stdin */
   writeToStdin(msg: unknown): void {
-    this.stdin?.write(`${JSON.stringify(msg)}\n`);
+    // After stdin is ended (input finished) or the CLI is gone, drop the write
+    // like the official SDK — writing would raise an unhandled stream error
+    if (!this.stdin || this.stdin.writableEnded || this.stdin.destroyed) return;
+    this.stdin.write(`${JSON.stringify(msg)}\n`);
   }
 
   /** Send a fire-and-forget control request */

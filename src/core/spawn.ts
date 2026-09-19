@@ -9,6 +9,7 @@
 import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import { accessSync, constants, existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { StringDecoder } from 'node:string_decoder';
 import type { Options } from '../types/index.ts';
 
 // ============================================================================
@@ -93,7 +94,7 @@ export function detectClaudeBinary(options?: Options): string {
  *
  * @param binary Path to claude binary or runtime executable
  * @param args CLI arguments
- * @param options Spawn options (cwd, env, stderr callback)
+ * @param options Spawn options (cwd, env, stderr callback, forwarded abort signal)
  */
 export function spawnClaude(
   binary: string,
@@ -102,31 +103,36 @@ export function spawnClaude(
     cwd?: string;
     env?: Record<string, string | undefined>;
     stderr?: (data: string) => void;
+    signal?: AbortSignal;
   }
 ): ChildProcess {
   // v0.2.113+: options.env replaces process.env entirely (not overlay)
   const env: Record<string, string | undefined> = {
     ...(options?.env !== undefined ? options.env : process.env),
   };
-
-  // Official SDK always sets these
   if (!env.CLAUDE_CODE_ENTRYPOINT) {
     env.CLAUDE_CODE_ENTRYPOINT = 'sdk-ts';
   }
   delete env.NODE_OPTIONS;
-  if (env.DEBUG_CLAUDE_AGENT_SDK) {
-    env.DEBUG = '1';
-  }
 
   const proc = spawn(binary, args, {
     stdio: ['pipe', 'pipe', 'pipe'],
     shell: false,
     cwd: options?.cwd,
     env: env as NodeJS.ProcessEnv,
+    windowsHide: true,
+    signal: options?.signal,
   });
 
-  if (options?.stderr && proc.stderr) {
-    proc.stderr.on('data', (chunk: Buffer) => options.stderr?.(chunk.toString()));
+  // Always drain stderr: an unread pipe fills up (e.g. with --debug-to-stderr)
+  // and blocks the CLI on write
+  if (proc.stderr) {
+    const decoder = new StringDecoder('utf8');
+    proc.stderr.on('data', (chunk: Buffer) => {
+      const text = decoder.write(chunk);
+      if (text) options?.stderr?.(text);
+    });
+    proc.stderr.on('error', () => {});
   }
 
   return proc;

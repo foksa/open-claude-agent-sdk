@@ -83,6 +83,66 @@ const FLAG_MAP: FlagMapping[] = [
   { key: 'additionalDirectories', flag: '--add-dir', type: 'repeated' },
 ];
 
+/** `--key value`, or `--key=value` when the value itself looks like a flag. */
+function pushFlagValue(args: string[], key: string, value: unknown): void {
+  const str = String(value);
+  if (str.length > 1 && str.startsWith('-')) args.push(`--${key}=${str}`);
+  else args.push(`--${key}`, str);
+}
+
+// biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what we reject
+const INVALID_SKILL_CHARS = /[(),\u0000-\u001f\u007f-\u009f]/;
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+
+/** Reject skill names that could not match a Skill(...) permission rule (official SDK checks). */
+function validateSkillName(name: unknown): string {
+  if (typeof name !== 'string' || name.trim() === '') {
+    throw new Error('Skill names must be non-empty strings.');
+  }
+  const shown = JSON.stringify(name);
+  if (LONE_SURROGATE.test(name)) {
+    throw new Error(
+      `Invalid skill name ${shown}: the name contains an unpaired surrogate, which cannot survive the UTF-8 encoding of the CLI invocation; no skill discovered from the filesystem can have such a name.`
+    );
+  }
+  if (name !== name.trim()) {
+    throw new Error(
+      `Invalid skill name ${shown}: leading or trailing whitespace is not allowed — the Skill tool trims the invoked name, so a padded rule can never match. Remove the padding.`
+    );
+  }
+  if (INVALID_SKILL_CHARS.test(name)) {
+    throw new Error(
+      `Invalid skill name ${shown}: parentheses, commas, and control characters are not allowed in skill names. Skill names match the skill's directory name (or 'plugin:skill' for plugin-qualified skills); rename the skill if its directory name contains these characters.`
+    );
+  }
+  if (name === '*')
+    throw new Error("Invalid skill name '*': use skills: 'all' to enable every skill.");
+  if (name.endsWith(':*') || name.endsWith(' *')) {
+    throw new Error(
+      `Invalid skill name ${shown}: wildcard-suffix names are not allowed; list each skill by its exact name.`
+    );
+  }
+  if (name.startsWith('/')) {
+    throw new Error(
+      `Invalid skill name ${shown}: skill names may not start with '/'. Skills are invoked as slash commands, but the skills option takes the skill's canonical name — the directory name, or 'plugin:skill'.`
+    );
+  }
+  if (name.includes('\\\\')) {
+    throw new Error(
+      `Invalid skill name ${shown}: consecutive backslashes are not allowed — the permission-rule parser collapses escaped backslashes, so the rule would name a different skill. Rename the skill.`
+    );
+  }
+  if (name.endsWith('\\')) {
+    throw new Error(`Invalid skill name ${shown}: names may not end with an unpaired backslash.`);
+  }
+  return name;
+}
+
+function isJsonObjectString(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.startsWith('{') && trimmed.endsWith('}');
+}
+
 function applyFlagMap(args: string[], options: Options): void {
   for (const mapping of FLAG_MAP) {
     const value = options[mapping.key];
@@ -131,21 +191,26 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   // All simple flag mappings
   applyFlagMap(args, options);
 
+  // projectConfigRoot — single `--project-config-root=<path>` arg (official SDK form)
+  if (options.projectConfigRoot !== undefined) {
+    args.push(`--project-config-root=${options.projectConfigRoot}`);
+  }
+
   // allowedTools + skills — merged into single --allowedTools CSV
   // skills: 'all'      → appends 'Skill' to the CSV
-  // skills: string[]   → appends 'Skill(name)' per entry to the CSV
+  // skills: string[]   → appends 'Skill(name)' per entry (validated, deduplicated)
   {
-    const skillEntries: string[] = [];
-    if (options.skills === 'all') {
-      skillEntries.push('Skill');
-    } else if (Array.isArray(options.skills) && options.skills.length > 0) {
-      for (const skill of options.skills) {
-        skillEntries.push(`Skill(${skill})`);
-      }
+    const allowed = [...(options.allowedTools ?? [])];
+    if (options.skills !== undefined) {
+      const entries =
+        options.skills === 'all'
+          ? ['Skill']
+          : options.skills.map((name) => `Skill(${validateSkillName(name)})`);
+      const existing = new Set(allowed);
+      allowed.push(...entries.filter((entry) => !existing.has(entry)));
     }
-    const allAllowedTools = [...(options.allowedTools ?? []), ...skillEntries];
-    if (allAllowedTools.length > 0) {
-      args.push('--allowedTools', allAllowedTools.join(','));
+    if (allowed.length > 0) {
+      args.push('--allowedTools', allowed.join(','));
     }
   }
 
@@ -164,7 +229,8 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   //   disabled                        → --thinking disabled
   //   enabled + budgetTokens          → --max-thinking-tokens <budgetTokens>
   //   enabled (no budgetTokens)       → --thinking adaptive (fallback)
-  // maxThinkingTokens (without thinking) → --max-thinking-tokens <value>
+  //   display (unless disabled)       → --thinking-display <display>
+  // maxThinkingTokens (without thinking): 0 → --thinking disabled, else --max-thinking-tokens
   if (options.thinking) {
     switch (options.thinking.type) {
       case 'adaptive':
@@ -181,8 +247,15 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
         }
         break;
     }
+    if (options.thinking.type !== 'disabled' && options.thinking.display) {
+      args.push('--thinking-display', options.thinking.display);
+    }
   } else if (options.maxThinkingTokens !== undefined) {
-    args.push('--max-thinking-tokens', String(options.maxThinkingTokens));
+    if (options.maxThinkingTokens === 0) {
+      args.push('--thinking', 'disabled');
+    } else {
+      args.push('--max-thinking-tokens', String(options.maxThinkingTokens));
+    }
   }
 
   // canUseTool / permissionPromptToolName — mutually exclusive
@@ -240,37 +313,44 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     args.push('--managed-settings', JSON.stringify(options.managedSettings));
   }
 
-  // settings + sandbox — both go via --settings flag
-  // settings can be a string (path) or an object; sandbox merges into the object form
-  if (options.settings !== undefined || options.sandbox) {
-    if (typeof options.settings === 'string' && !options.sandbox) {
-      // Path to settings file — pass through directly
-      args.push('--settings', options.settings);
-    } else {
-      // Object form — merge settings + sandbox into one JSON blob
-      let settingsObj: Record<string, unknown> =
-        typeof options.settings === 'object' && options.settings !== undefined
-          ? { ...options.settings }
-          : {};
-      if (options.sandbox) {
-        // Official SDK defaults failIfUnavailable: true when enabled: true
-        const sandbox =
-          options.sandbox.enabled && options.sandbox.failIfUnavailable === undefined
-            ? { ...options.sandbox, failIfUnavailable: true }
-            : options.sandbox;
-        settingsObj = { ...settingsObj, sandbox };
-      }
-      args.push('--settings', JSON.stringify(settingsObj));
+  // settings + sandbox — both go via --settings (official SDK behavior):
+  // an object (or JSON string) is merged with sandbox; a file path cannot be
+  let settings =
+    options.settings === undefined
+      ? undefined
+      : typeof options.settings === 'string'
+        ? options.settings
+        : JSON.stringify(options.settings);
+  if (options.sandbox) {
+    // Official SDK defaults failIfUnavailable: true when enabled: true
+    const sandbox =
+      options.sandbox.enabled === true && options.sandbox.failIfUnavailable === undefined
+        ? { ...options.sandbox, failIfUnavailable: true }
+        : options.sandbox;
+    if (settings && !isJsonObjectString(settings)) {
+      throw new Error(
+        'Cannot use both a settings file path and the sandbox option. Include the sandbox configuration in your settings file instead.'
+      );
     }
+    let merged: Record<string, unknown> = { sandbox };
+    if (settings) {
+      try {
+        merged = { ...JSON.parse(settings), sandbox };
+      } catch {}
+    }
+    settings = JSON.stringify(merged);
   }
 
-  // extraArgs — user-supplied passthrough flags
-  const mergedExtraArgs = { ...(options.extraArgs ?? {}) };
+  // extraArgs — user-supplied passthrough flags (settings overrides extraArgs.settings)
+  const mergedExtraArgs: Record<string, string | null> = {
+    ...(options.extraArgs ?? {}),
+    ...(settings !== undefined && { settings }),
+  };
   for (const [key, value] of Object.entries(mergedExtraArgs)) {
     if (value === null) {
       args.push(`--${key}`);
     } else {
-      args.push(`--${key}`, value);
+      pushFlagValue(args, key, value);
     }
   }
 

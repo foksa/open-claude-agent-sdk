@@ -498,7 +498,7 @@ options: { extraArgs: ['--some-undocumented-flag', 'value'] }
 
 ### `loadTimeoutMs`
 
-**Type:** `number` — Timeout in milliseconds for `sessionStore` load operations.
+**Type:** `number` — Timeout in milliseconds for `sessionStore` load operations. **Not supported:** `sessionStore` is ignored by this SDK.
 
 ### `managedSettings`
 
@@ -526,11 +526,11 @@ options: { extraArgs: ['--some-undocumented-flag', 'value'] }
 
 ### `sessionStore`
 
-**Type:** `SessionStore` — External store that receives transcript mirrors as messages arrive. See `InMemorySessionStore` for a reference implementation.
+**Type:** `SessionStore` — External store that receives transcript mirrors as messages arrive. **Not supported:** accepted for type compatibility but ignored — this SDK does not mirror transcripts, and does not export `InMemorySessionStore` or `importSessionToStore`.
 
 ### `sessionStoreFlush`
 
-**Type:** `boolean` — When `true`, flushes the `sessionStore` synchronously after each message.
+**Type:** `boolean` — When `true`, flushes the `sessionStore` synchronously after each message. **Not supported** (see `sessionStore`).
 
 ### `skills`
 

@@ -206,9 +206,15 @@ export const ControlRequests = {
 // Inbound request handler (CLI → SDK)
 // ============================================================================
 
+/** Returned by a handler when the consumer answered out-of-band (or nobody should). */
+const SUPPRESS_RESPONSE = Symbol('suppressControlResponse');
+
 export class ControlProtocolHandler {
   private callbackMap: Map<string, InternalHookCallback> = new Map();
   private mcpServerBridges: Map<string, McpServerBridge> = new Map();
+  /** In-flight inbound requests, cancellable by `control_cancel_request` */
+  private inflight = new Map<string, AbortController>();
+  private closed = false;
 
   constructor(
     private stdin: Writable,
@@ -222,6 +228,22 @@ export class ControlProtocolHandler {
     this.mcpServerBridges = bridges;
   }
 
+  getMcpServerBridge(name: string): McpServerBridge | undefined {
+    return this.mcpServerBridges.get(name);
+  }
+
+  addMcpServerBridge(name: string, bridge: McpServerBridge): void {
+    this.mcpServerBridges.set(name, bridge);
+  }
+
+  removeMcpServerBridge(name: string, bridge: McpServerBridge): void {
+    if (this.mcpServerBridges.get(name) === bridge) this.mcpServerBridges.delete(name);
+  }
+
+  mcpServerBridgeNames(): string[] {
+    return [...this.mcpServerBridges.keys()];
+  }
+
   /**
    * Register a callback function with its ID
    */
@@ -230,78 +252,91 @@ export class ControlProtocolHandler {
   }
 
   /**
+   * Forward a message an in-process MCP server initiated (notification or
+   * server→client request) to the CLI.
+   */
+  sendMcpMessageToCli(serverName: string, message: Record<string, unknown>): void {
+    if (this.closed) return;
+    this.write({
+      type: MessageType.CONTROL_REQUEST,
+      request_id: Math.random().toString(36).substring(2, 15),
+      request: { subtype: RequestSubtype.MCP_MESSAGE, server_name: serverName, message },
+    });
+  }
+
+  /** Abort an in-flight request the CLI withdrew. */
+  cancelRequest(requestId: string): void {
+    const controller = this.inflight.get(requestId);
+    if (controller) {
+      controller.abort();
+      this.inflight.delete(requestId);
+    }
+  }
+
+  /** Stop answering: pending callbacks are aborted and their late results dropped. */
+  close(): void {
+    this.closed = true;
+    for (const controller of this.inflight.values()) controller.abort();
+    this.inflight.clear();
+  }
+
+  /**
    * Handle control request from CLI
-   * Routes to appropriate handler based on request subtype
+   * Routes to appropriate handler based on request subtype. Callers must not
+   * await this in the stdout read loop — callbacks may issue control requests
+   * of their own, whose responses arrive on the same stream.
    */
   async handleControlRequest(req: ControlRequest): Promise<void> {
     if (process.env.DEBUG_HOOKS) {
       console.error('[DEBUG] Control request:', JSON.stringify(req, null, 2));
-      console.error('[DEBUG] Subtype:', req.request.subtype);
     }
-
+    // Requests still buffered in stdout after close(): answering them would run
+    // user callbacks whose responses write() then drops
+    if (this.closed) return;
+    // Duplicate delivery of a request we are still handling
+    if (this.inflight.has(req.request_id)) return;
+    const controller = new AbortController();
+    this.inflight.set(req.request_id, controller);
     try {
-      switch (req.request.subtype) {
-        case RequestSubtype.CAN_USE_TOOL:
-          if (process.env.DEBUG_HOOKS) console.error('[DEBUG] Handling can_use_tool');
-          await this.handleCanUseTool(req);
-          break;
-        case RequestSubtype.HOOK_CALLBACK:
-          if (process.env.DEBUG_HOOKS) console.error('[DEBUG] Handling hook_callback');
-          await this.handleHookCallback(req);
-          break;
-        case RequestSubtype.INITIALIZE:
-          await this.handleInitialize(req);
-          break;
-        case RequestSubtype.INTERRUPT:
-          await this.handleInterrupt(req);
-          break;
-        case RequestSubtype.MCP_MESSAGE:
-          await this.handleMcpMessage(req);
-          break;
-        case RequestSubtype.ELICITATION:
-          await this.handleElicitation(req);
-          break;
-        case RequestSubtype.REQUEST_USER_DIALOG:
-          await this.handleUserDialog(req);
-          break;
-        case RequestSubtype.SET_PERMISSION_MODE:
-        case RequestSubtype.SET_MODEL:
-        case RequestSubtype.SET_MAX_THINKING_TOKENS:
-        case RequestSubtype.MCP_STATUS:
-        case RequestSubtype.REWIND_FILES:
-        case RequestSubtype.STOP_TASK:
-        case RequestSubtype.MCP_SET_SERVERS:
-        case RequestSubtype.MCP_RECONNECT:
-        case RequestSubtype.MCP_TOGGLE:
-        case RequestSubtype.APPLY_FLAG_SETTINGS:
-        case RequestSubtype.UPDATE_SETTINGS:
-        case RequestSubtype.RELOAD_PLUGINS:
-        case RequestSubtype.RELOAD_SKILLS:
-        case RequestSubtype.RELOAD_OUTPUT_STYLES:
-        case RequestSubtype.SEED_READ_STATE:
-        case RequestSubtype.GET_CONTEXT_USAGE:
-        case RequestSubtype.GET_USAGE:
-        case RequestSubtype.READ_FILE:
-        case RequestSubtype.BACKGROUND_TASKS:
-        case RequestSubtype.LIST_PERMISSION_RULES:
-          // These are sent FROM SDK TO CLI, not the other way around
-          // If we receive them, just acknowledge
-          this.sendSuccess(req.request_id, {});
-          break;
-        default:
-          this.sendError(
-            req.request_id,
-            `Unknown request type: ${(req.request as { subtype: string }).subtype}`
-          );
-      }
+      const response = await this.processControlRequest(req, controller.signal);
+      if (response === SUPPRESS_RESPONSE) return;
+      this.sendSuccess(req.request_id, response);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : String(error);
       this.sendError(req.request_id, message);
+    } finally {
+      this.inflight.delete(req.request_id);
     }
   }
 
-  private async handleCanUseTool(req: ControlRequest) {
-    if (req.request.subtype !== RequestSubtype.CAN_USE_TOOL) return;
+  private async processControlRequest(
+    req: ControlRequest,
+    signal: AbortSignal
+  ): Promise<Record<string, unknown> | typeof SUPPRESS_RESPONSE> {
+    switch (req.request.subtype) {
+      case RequestSubtype.CAN_USE_TOOL:
+        return this.handleCanUseTool(req, signal);
+      case RequestSubtype.HOOK_CALLBACK:
+        return this.handleHookCallback(req, signal);
+      case RequestSubtype.MCP_MESSAGE:
+        return this.handleMcpMessage(req);
+      case RequestSubtype.ELICITATION:
+        return this.handleElicitation(req, signal);
+      case RequestSubtype.REQUEST_USER_DIALOG:
+        return this.handleUserDialog(req, signal);
+      default:
+        throw new Error(
+          `Unsupported control request subtype: ${(req.request as { subtype: string }).subtype}`
+        );
+    }
+  }
+
+  private async handleCanUseTool(
+    req: ControlRequest,
+    signal: AbortSignal
+  ): Promise<Record<string, unknown> | typeof SUPPRESS_RESPONSE> {
+    if (req.request.subtype !== RequestSubtype.CAN_USE_TOOL) return SUPPRESS_RESPONSE;
+    if (!this.options.canUseTool) throw new Error('canUseTool callback is not provided.');
 
     const {
       tool_name,
@@ -310,91 +345,66 @@ export class ControlProtocolHandler {
       permission_suggestions,
       blocked_path,
       decision_reason,
+      title,
+      display_name,
+      description,
       agent_id,
       default_to_no,
       suppress_always_allow_rule,
+      mcp_server,
+      matched_ask_rule,
     } = req.request;
 
-    if (!this.options.canUseTool) {
-      this.sendSuccess(req.request_id, { behavior: 'allow' });
-      return;
-    }
-
     const result: PermissionResult | null = await this.options.canUseTool(tool_name, input, {
-      signal: new AbortController().signal,
+      signal,
       suggestions: permission_suggestions,
       blockedPath: blocked_path,
+      ...(mcp_server && { mcpServer: { name: mcp_server.name, source: mcp_server.source } }),
       decisionReason: decision_reason,
+      title,
+      displayName: display_name,
+      description,
+      defaultToNo: default_to_no,
+      suppressAlwaysAllowRule: suppress_always_allow_rule,
       toolUseID: tool_use_id,
       agentID: agent_id,
       requestId: req.request_id,
-      defaultToNo: default_to_no,
-      suppressAlwaysAllowRule: suppress_always_allow_rule,
+      ...(matched_ask_rule && {
+        matchedAskRule: {
+          source: matched_ask_rule.source,
+          toolName: matched_ask_rule.tool_name,
+          ...(matched_ask_rule.rule_content !== undefined && {
+            ruleContent: matched_ask_rule.rule_content,
+          }),
+        },
+      }),
     });
 
     // A `null` result means the consumer already sent a control_response
     // out-of-band (e.g. a signed HTTP POST echoing `requestId`); skip ours.
-    if (result === null) return;
-
-    this.sendSuccess(req.request_id, result);
+    if (result === null) return SUPPRESS_RESPONSE;
+    return { ...result, toolUseID: tool_use_id };
   }
 
-  private async handleHookCallback(req: ControlRequest) {
-    if (req.request.subtype !== RequestSubtype.HOOK_CALLBACK) return;
-
+  private async handleHookCallback(
+    req: ControlRequest,
+    signal: AbortSignal
+  ): Promise<Record<string, unknown>> {
+    if (req.request.subtype !== RequestSubtype.HOOK_CALLBACK) return {};
     const { callback_id, input, tool_use_id } = req.request;
-
-    if (process.env.DEBUG_HOOKS) {
-      console.error('[DEBUG] handleHookCallback:', {
-        callback_id,
-        has_hook: this.callbackMap.has(callback_id),
-        map_size: this.callbackMap.size,
-      });
-    }
-
     const hookFn = this.callbackMap.get(callback_id);
-
-    if (!hookFn) {
-      if (process.env.DEBUG_HOOKS) {
-        console.error('[DEBUG] No hook found for callback_id:', callback_id);
-      }
-      this.sendSuccess(req.request_id, { continue: true });
-      return;
-    }
-
-    try {
-      if (process.env.DEBUG_HOOKS) {
-        console.error('[DEBUG] Executing hook:', callback_id);
-      }
-      const result = await hookFn(input, tool_use_id, {
-        signal: new AbortController().signal,
-      });
-
-      this.sendSuccess(req.request_id, result);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Hook execution failed';
-      this.sendError(req.request_id, message);
-    }
+    if (!hookFn) throw new Error(`No hook callback found for ID: ${callback_id}`);
+    return (await hookFn(input, tool_use_id, { signal })) as Record<string, unknown>;
   }
 
-  private async handleInitialize(req: ControlRequest) {
-    this.sendSuccess(req.request_id, {});
-  }
-
-  private async handleInterrupt(req: ControlRequest) {
-    this.sendSuccess(req.request_id, {});
-  }
-
-  private async handleElicitation(req: ControlRequest) {
-    if (req.request.subtype !== RequestSubtype.ELICITATION) return;
-
+  private async handleElicitation(
+    req: ControlRequest,
+    signal: AbortSignal
+  ): Promise<Record<string, unknown> | typeof SUPPRESS_RESPONSE> {
+    if (req.request.subtype !== RequestSubtype.ELICITATION) return SUPPRESS_RESPONSE;
     const r = req.request;
-
-    if (!this.options.onElicitation) {
-      // No callback — decline automatically (matches official SDK behavior)
-      this.sendSuccess(req.request_id, { action: 'decline' } as Record<string, unknown>);
-      return;
-    }
+    // No callback — decline automatically (matches official SDK behavior)
+    if (!this.options.onElicitation) return { action: 'decline' };
 
     const result: ElicitationResult | null = await this.options.onElicitation(
       {
@@ -408,76 +418,57 @@ export class ControlProtocolHandler {
         displayName: r.display_name,
         description: r.description,
       },
-      { signal: new AbortController().signal, requestId: req.request_id }
+      { signal, requestId: req.request_id }
     );
-
-    // A `null` result means the consumer already sent a control_response
-    // out-of-band (e.g. a signed HTTP POST echoing `requestId`); skip ours.
-    if (result === null) return;
-
-    this.sendSuccess(req.request_id, result as unknown as Record<string, unknown>);
+    if (result === null) return SUPPRESS_RESPONSE;
+    return result as unknown as Record<string, unknown>;
   }
 
-  private async handleUserDialog(req: ControlRequest) {
-    if (req.request.subtype !== RequestSubtype.REQUEST_USER_DIALOG) return;
+  private async handleUserDialog(
+    req: ControlRequest,
+    signal: AbortSignal
+  ): Promise<Record<string, unknown> | typeof SUPPRESS_RESPONSE> {
+    if (req.request.subtype !== RequestSubtype.REQUEST_USER_DIALOG) return SUPPRESS_RESPONSE;
+    // No handler — stay silent so a capable client (or the CLI's own deadline)
+    // settles the dialog, as the official SDK does
+    if (!this.options.onUserDialog) return SUPPRESS_RESPONSE;
 
     const { dialog_kind, payload, tool_use_id } = req.request;
-
-    if (!this.options.onUserDialog) {
-      this.sendSuccess(req.request_id, { behavior: 'cancelled' } as Record<string, unknown>);
-      return;
-    }
-
     const result: UserDialogResult | null = await this.options.onUserDialog(
       { dialogKind: dialog_kind, payload, toolUseID: tool_use_id },
-      { signal: new AbortController().signal, requestId: req.request_id }
+      { signal, requestId: req.request_id }
     );
-
-    // A `null` result means the consumer already sent a control_response
-    // out-of-band (e.g. a signed HTTP POST echoing `requestId`); skip ours.
-    if (result === null) return;
-
-    this.sendSuccess(req.request_id, result as unknown as Record<string, unknown>);
+    if (result === null) return SUPPRESS_RESPONSE;
+    return result as unknown as Record<string, unknown>;
   }
 
-  private async handleMcpMessage(req: ControlRequest) {
-    if (req.request.subtype !== RequestSubtype.MCP_MESSAGE) return;
-
+  private async handleMcpMessage(req: ControlRequest): Promise<Record<string, unknown>> {
+    if (req.request.subtype !== RequestSubtype.MCP_MESSAGE) return {};
     const { server_name, message } = req.request;
     const bridge = this.mcpServerBridges.get(server_name);
-
-    if (!bridge) {
-      this.sendError(req.request_id, `SDK MCP server not found: ${server_name}`);
-      return;
-    }
-
-    const response = await bridge.handleMessage(message);
-    this.sendSuccess(req.request_id, { mcp_response: response });
+    if (!bridge) throw new Error(`SDK MCP server not found: ${server_name}`);
+    return { mcp_response: await bridge.handleMessage(message) };
   }
 
   private sendSuccess(request_id: string, response: Record<string, unknown>) {
-    this.sendControlResponse({
+    this.write({
       type: MessageType.CONTROL_RESPONSE,
-      response: {
-        subtype: ResponseSubtype.SUCCESS,
-        request_id,
-        response,
-      },
+      response: { subtype: ResponseSubtype.SUCCESS, request_id, response },
     });
   }
 
   private sendError(request_id: string, error: string) {
-    this.sendControlResponse({
+    this.write({
       type: MessageType.CONTROL_RESPONSE,
-      response: {
-        subtype: ResponseSubtype.ERROR,
-        request_id,
-        error,
-      },
+      response: { subtype: ResponseSubtype.ERROR, request_id, error },
     });
   }
 
-  private sendControlResponse(response: ControlResponse) {
-    this.stdin.write(`${JSON.stringify(response)}\n`);
+  private write(message: ControlResponse | ControlRequest) {
+    // After close the CLI is gone or going; late callback results are dropped
+    if (this.closed || this.stdin.writableEnded || this.stdin.destroyed) return;
+    try {
+      this.stdin.write(`${JSON.stringify(message)}\n`);
+    } catch {}
   }
 }

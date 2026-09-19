@@ -430,6 +430,17 @@ describe('buildCliArgs', () => {
     expect(args).not.toContain('--managed-settings');
   });
 
+  test('includes --project-config-root=<path> as a single arg when specified', () => {
+    const args = buildCliArgs({ projectConfigRoot: '/repo/main' });
+    expect(args).toContain('--project-config-root=/repo/main');
+    expect(args).not.toContain('--project-config-root');
+  });
+
+  test('does not include --project-config-root when not specified', () => {
+    const args = buildCliArgs({});
+    expect(args.some((a) => a.startsWith('--project-config-root'))).toBe(false);
+  });
+
   test('_testCliArgs only works in test environment', () => {
     const originalEnv = process.env.NODE_ENV;
 

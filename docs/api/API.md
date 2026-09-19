@@ -382,7 +382,7 @@ export type { ModelInfo, ModelUsage, AccountInfo };
 export type { OutputFormat, JsonSchemaOutputFormat };
 
 // Session types
-export type { SessionKey, SessionStore, InMemorySessionStore };
+export type { SessionKey, SessionStore }; // sessionStore mirroring is not supported
 
 // Sandbox types
 export type { SandboxSettings, SandboxFilesystemConfig, SandboxNetworkConfig };

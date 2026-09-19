@@ -13,6 +13,7 @@ import {
   normalizeMessage,
   officialQuery,
   openQuery,
+  queryError,
 } from './capture-utils.ts';
 
 describe('stdin message compatibility', () => {
@@ -1533,6 +1534,117 @@ describe('stdin message compatibility', () => {
       }
 
       console.log("   plugins pluginDelivery: 'initialize' stdin messages match");
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'agents with omitClaudeMd in init message match official SDK',
+    async () => {
+      const agents = {
+        reviewer: { description: 'Reviews code', prompt: 'You review code', omitClaudeMd: true },
+      };
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { agents }),
+        capture(officialQuery, 'test', { agents }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(openInit?.request?.agents?.reviewer?.omitClaudeMd).toBe(true);
+      expect(officialInit?.request?.agents?.reviewer?.omitClaudeMd).toBe(true);
+
+      if (openInit && officialInit) {
+        expect(normalizeMessage(openInit)).toEqual(normalizeMessage(officialInit));
+      }
+
+      console.log('   agents omitClaudeMd stdin messages match');
+    },
+    { timeout: 60000 }
+  );
+
+  const initCases: [string, Record<string, unknown>][] = [
+    ['planModeInstructions', { planModeInstructions: 'Plan carefully' }],
+    ['toolAliases', { toolAliases: { Bash: 'Shell' } }],
+    ['forwardSubagentText', { forwardSubagentText: true }],
+    [
+      'outputFormat json_schema → jsonSchema',
+      { outputFormat: { type: 'json_schema', schema: { type: 'object', properties: {} } } },
+    ],
+    [
+      'supportedDialogKinds with onUserDialog',
+      { supportedDialogKinds: ['refusal_fallback_prompt'], onUserDialog: async () => null },
+    ],
+    ['empty skills array', { skills: [] }],
+  ];
+
+  for (const [name, options] of initCases) {
+    test.concurrent(
+      `initialize carries ${name} (matches official SDK)`,
+      async () => {
+        const [open, official] = await Promise.all([
+          capture(openQuery, 'test', options),
+          capture(officialQuery, 'test', options),
+        ]);
+        const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+        const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+        expect(officialInit).toBeTruthy();
+        if (openInit && officialInit) {
+          expect(normalizeMessage(openInit)).toEqual(normalizeMessage(officialInit));
+        }
+      },
+      { timeout: 60000 }
+    );
+  }
+
+  const invalidCases: [string, Record<string, unknown>][] = [
+    ['supportedDialogKinds without onUserDialog', { supportedDialogKinds: ['x'] }],
+    ['invalid pluginDelivery', { pluginDelivery: 'bogus' }],
+  ];
+  for (const [name, options] of invalidCases) {
+    test.concurrent(
+      `${name} throws like official SDK`,
+      async () => {
+        const [open, official] = await Promise.all([
+          queryError(openQuery, options),
+          queryError(officialQuery, options),
+        ]);
+        expect(official).toBeDefined();
+        expect(open).toBe(official);
+      },
+      { timeout: 60000 }
+    );
+  }
+
+  test.concurrent(
+    'setMcpServers with an in-process server sends only { type, name, timeout } (matches official)',
+    async () => {
+      const makeServer = () =>
+        createSdkMcpServer({
+          name: 'late',
+          timeout: 5000,
+          tools: [
+            tool('ping', 'Ping', {}, async () => ({ content: [{ type: 'text', text: 'pong' }] })),
+          ],
+        });
+      const run = (queryFn: typeof openQuery) =>
+        captureWithQuery(queryFn, 'test', async (q: Query) => {
+          await q.setMcpServers({
+            late: makeServer(),
+            remote: { type: 'http', url: 'https://example.com/mcp' },
+          });
+        });
+      const [open, official] = await Promise.all([run(openQuery), run(officialQuery)]);
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'mcp_set_servers');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'mcp_set_servers');
+      expect(officialReq?.request.servers).toEqual({
+        remote: { type: 'http', url: 'https://example.com/mcp' },
+        late: { type: 'sdk', name: 'late', timeout: 5000 },
+      });
+      expect(openReq && normalizeMessage(openReq)).toEqual(
+        officialReq && normalizeMessage(officialReq)
+      );
     },
     { timeout: 60000 }
   );

@@ -7,6 +7,7 @@
  */
 
 import type { ChildProcess } from 'node:child_process';
+import { COMPATIBLE_SDK_VERSION } from '../constants.ts';
 import { buildCliArgs } from '../core/argBuilder.ts';
 import { detectClaudeBinary, spawnClaude } from '../core/spawn.ts';
 import type { Options } from '../types/index.ts';
@@ -16,7 +17,13 @@ import type { Options } from '../types/index.ts';
  * Allows dependency injection for testing
  */
 export interface ProcessFactory {
-  spawn(options: Options): ChildProcess;
+  /**
+   * @param forwardedSignal Signal handed to the spawned process. It is *not*
+   *   the caller's `abortController.signal`: the official SDK forwards the
+   *   abort only after stdin is closed and the CLI has had its grace period,
+   *   so the child gets a chance to flush session state first.
+   */
+  spawn(options: Options, forwardedSignal?: AbortSignal): ChildProcess;
 }
 
 /**
@@ -34,12 +41,18 @@ function getDefaultExecutable(): string {
   return typeof process.versions.bun !== 'undefined' ? 'bun' : 'node';
 }
 
+/** Truthy env flag the way the official SDK parses it ("1", "true", "yes", "on"). */
+function isEnvTruthy(value: string | undefined): boolean {
+  if (!value) return false;
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase().trim());
+}
+
 /**
  * Default implementation that spawns real Claude CLI
  */
 export class DefaultProcessFactory implements ProcessFactory {
-  spawn(options: Options): ChildProcess {
-    const args = buildCliArgs({ ...options, prompt: '' });
+  spawn(options: Options, forwardedSignal?: AbortSignal): ChildProcess {
+    const cliArgs = buildCliArgs({ ...options, prompt: '' });
 
     // v0.2.113+: user env replaces process.env entirely; undefined means use process.env
     const base = options.env !== undefined ? options.env : process.env;
@@ -50,70 +63,39 @@ export class DefaultProcessFactory implements ProcessFactory {
     if (options.toolConfig?.askUserQuestion?.previewFormat) {
       env.CLAUDE_CODE_QUESTION_PREVIEW_FORMAT = options.toolConfig.askUserQuestion.previewFormat;
     }
+    // Official SDK always sets these
+    if (!env.CLAUDE_CODE_ENTRYPOINT) env.CLAUDE_CODE_ENTRYPOINT = 'sdk-ts';
+    if (!env.CLAUDE_AGENT_SDK_VERSION) env.CLAUDE_AGENT_SDK_VERSION = COMPATIBLE_SDK_VERSION;
+    delete env.NODE_OPTIONS;
+    if (isEnvTruthy(env.DEBUG_CLAUDE_AGENT_SDK)) env.DEBUG = '1';
+    else delete env.DEBUG;
 
-    // Custom spawn function takes priority
+    // A native binary runs directly (`executable` is ignored); a JS entrypoint
+    // runs under `executable` (default: the current runtime)
+    const scriptPath = detectClaudeBinary(options);
+    const native = isNativeBinary(scriptPath);
+    const executableArgs = options.executableArgs ?? [];
+    const command = native ? scriptPath : (options.executable ?? getDefaultExecutable());
+    const args = native
+      ? [...executableArgs, ...cliArgs]
+      : [...executableArgs, scriptPath, ...cliArgs];
+
+    // Never the caller's signal directly — QueryImpl forwards the abort after
+    // the graceful-exit window so the CLI can flush session state (official SDK)
+    const signal = forwardedSignal ?? new AbortController().signal;
+
     if (options.spawnClaudeCodeProcess) {
-      const scriptPath = detectClaudeBinary(options);
-      const native = isNativeBinary(scriptPath);
-      const executable = options.executable ?? getDefaultExecutable();
-      const executableArgs = options.executableArgs ?? [];
-      const command = native ? scriptPath : executable;
-      const spawnArgs = native
-        ? [...executableArgs, ...args]
-        : [...executableArgs, scriptPath, ...args];
-
-      // Build full env for SpawnOptions (env already has correct base)
-      const fullEnv: Record<string, string | undefined> = { ...env };
-      if (!fullEnv.CLAUDE_CODE_ENTRYPOINT) fullEnv.CLAUDE_CODE_ENTRYPOINT = 'sdk-ts';
-      delete fullEnv.NODE_OPTIONS;
-      if (fullEnv.DEBUG_CLAUDE_AGENT_SDK) fullEnv.DEBUG = '1';
-      else delete fullEnv.DEBUG;
-
       const spawnedProcess = options.spawnClaudeCodeProcess({
         command,
-        args: spawnArgs,
+        args,
         cwd: options.cwd,
-        env: fullEnv,
-        signal: AbortSignal.timeout(3600000), // 1 hour default
+        env,
+        signal,
       });
-
       // Wrap SpawnedProcess to ChildProcess-compatible object
       return spawnedProcess as unknown as ChildProcess;
     }
 
-    const scriptPath = detectClaudeBinary(options);
-
-    // When executable is explicitly set, use it as the command with script as arg
-    if (options.executable) {
-      const executableArgs = options.executableArgs ?? [];
-      const fullArgs = [...executableArgs, scriptPath, ...args];
-      return spawnClaude(options.executable, fullArgs, {
-        cwd: options.cwd,
-        env,
-        stderr: options.stderr,
-      });
-    }
-
-    // Default: use detected binary directly (shebang handles runtime)
-    const executableArgs = options.executableArgs ?? [];
-
-    if (isNativeBinary(scriptPath)) {
-      // Native binary: command is the binary, executableArgs before CLI args
-      const fullArgs = [...executableArgs, ...args];
-      return spawnClaude(scriptPath, fullArgs, {
-        cwd: options.cwd,
-        env,
-        stderr: options.stderr,
-      });
-    }
-
-    // JS file: always use explicit runtime (cli.js may lack executable bit)
-    const executable = getDefaultExecutable();
-    const fullArgs = [...executableArgs, scriptPath, ...args];
-    return spawnClaude(executable, fullArgs, {
-      cwd: options.cwd,
-      env,
-      stderr: options.stderr,
-    });
+    return spawnClaude(command, args, { cwd: options.cwd, env, stderr: options.stderr, signal });
   }
 }

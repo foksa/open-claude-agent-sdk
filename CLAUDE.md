@@ -69,6 +69,7 @@ We're wrapping a CLI we don't control. Guessing at flags or protocol means our i
 
 - **Bundle size < 500KB** — our #1 differentiator. Don't pull in heavy deps.
 - **Type compatibility** — re-export official SDK types identically.
+- **Types only from the official SDK** — `@anthropic-ai/claude-agent-sdk` is a devDependency plus an optional peer (for consumers' types). Never import a runtime value from it in `src/`; implement it ourselves. `bun run check:clean-install` (part of `bun run ci`) installs the packed tarball without it and fails on any runtime import.
 - **CLI dependency** — we assume Claude CLI is installed. Don't embed it.
 - **No tool reimplementation** — Read/Write/etc. are the CLI's job.
 
