@@ -101,6 +101,13 @@ export class QueryImpl implements Query {
   private lastErrorResultText: string | undefined;
   private firstResultReceived = false;
   private firstResultWaiters: (() => void)[] = [];
+  private resourcesReleased = false;
+  /**
+   * Signal handed to the spawned process. Aborted only after stdin is closed
+   * and the CLI has had its graceful-exit window, so a caller's abort does not
+   * kill the child before it can flush session state (matches official SDK).
+   */
+  private forwardedAbort = new AbortController();
 
   private constructor(
     private process: ChildProcess,
@@ -133,8 +140,10 @@ export class QueryImpl implements Query {
 
     validateOptions(options);
 
-    // 1. Spawn process
-    const childProcess = processFactory.spawn(options);
+    // 1. Spawn process — the child gets a forwarded signal, never the
+    // caller's own (see QueryImpl.forwardedAbort / shutdown)
+    const forwardedAbort = new AbortController();
+    const childProcess = processFactory.spawn(options, forwardedAbort.signal);
     if (!childProcess.stdin || !childProcess.stdout) {
       throw new Error('Process stdin/stdout not available');
     }
@@ -164,6 +173,7 @@ export class QueryImpl implements Query {
       sdkMcpServerNames,
       controlHandler
     );
+    instance.forwardedAbort = forwardedAbort;
 
     // 5. Initialize message router with callbacks
     instance.router = new MessageRouter(
@@ -244,13 +254,17 @@ export class QueryImpl implements Query {
 
   private handleMessage(msg: SDKMessage): void {
     if (msg.type === 'result') {
+      // `errors` is guarded: unlike the official SDK we run whatever `claude`
+      // is on PATH, and an older CLI may omit it on an error result
       const text = msg.is_error
         ? msg.subtype === 'success'
           ? msg.result
-          : msg.errors
-              .map((e) => e.trim())
-              .filter(Boolean)
-              .join('; ')
+          : Array.isArray(msg.errors)
+            ? msg.errors
+                .map((e) => e.trim())
+                .filter(Boolean)
+                .join('; ')
+            : undefined
         : undefined;
       this.lastErrorResultText = text || undefined;
       this.markFirstResult();
@@ -301,7 +315,10 @@ export class QueryImpl implements Query {
 
     this.messageQueue.complete(error);
     this.controlManager.rejectAll(error ?? new Error('CLI exited before responding'));
-    this.controlHandler?.close();
+    // Iteration is over: mark the query closed and release everything it holds
+    // (abort listener, control handler, stdout reader, in-process MCP servers)
+    this.shutdown();
+    this.releaseResources();
   }
 
   /**
@@ -315,6 +332,7 @@ export class QueryImpl implements Query {
     const error = new AbortError('Claude Code process aborted by user');
     this.messageQueue.complete(error);
     this.controlManager.rejectAll(error);
+    this.releaseResources();
   }
 
   /** End stdin, stop answering control requests, and kill the CLI if it lingers. */
@@ -328,9 +346,29 @@ export class QueryImpl implements Query {
     this.endInput();
     this.markFirstResult();
     const proc = this.process;
-    if (!proc || proc.exitCode !== null || proc.signalCode != null) return;
+    if (!proc || proc.exitCode !== null || proc.signalCode != null) {
+      this.forwardAbortToProcess();
+      return;
+    }
     const term = setTimeout(() => {
-      if (proc.exitCode !== null || proc.signalCode != null) return;
+      if (proc.exitCode !== null || proc.signalCode != null) {
+        this.forwardAbortToProcess();
+        return;
+      }
+      if (process.platform === 'win32') {
+        // No SIGTERM on Windows — it terminates hard, losing session state;
+        // give the CLI the full window, then SIGKILL (matches official SDK)
+        const winKill = setTimeout(() => {
+          if (proc.exitCode === null) {
+            try {
+              proc.kill('SIGKILL');
+            } catch {}
+          }
+          this.forwardAbortToProcess();
+        }, SIGKILL_DELAY_MS);
+        winKill.unref?.();
+        return;
+      }
       try {
         proc.kill('SIGTERM');
       } catch {}
@@ -342,8 +380,36 @@ export class QueryImpl implements Query {
         }
       }, SIGKILL_DELAY_MS);
       kill.unref?.();
+      this.forwardAbortToProcess();
     }, KILL_GRACE_MS);
     term.unref?.();
+  }
+
+  /**
+   * Hand the caller's abort on to the spawned process — only once the CLI has
+   * had its exit window, and only if the caller actually aborted.
+   */
+  private forwardAbortToProcess(): void {
+    if (this.abortController?.signal.aborted && !this.forwardedAbort.signal.aborted) {
+      this.forwardedAbort.abort(this.abortController.signal.reason);
+    }
+  }
+
+  /**
+   * Release everything the query holds open: the abort listener, the control
+   * handler, the stdout reader and every in-process MCP server transport.
+   * Idempotent — every terminal path (finish, abort, close) runs it.
+   */
+  private releaseResources(): void {
+    if (this.resourcesReleased) return;
+    this.resourcesReleased = true;
+    if (this.abortController && this.abortHandler) {
+      this.abortController.signal.removeEventListener('abort', this.abortHandler);
+      this.abortHandler = null;
+    }
+    this.controlHandler?.close();
+    this.router?.close();
+    this.closeMcpBridges();
   }
 
   private endInput(): void {
@@ -458,21 +524,26 @@ export class QueryImpl implements Query {
    * result when callbacks may still be needed (matches official SDK).
    */
   async streamInput(stream: AsyncIterable<SDKUserMessage>): Promise<void> {
-    let count = 0;
-    for await (const msg of stream) {
-      count++;
-      if (this.aborted || this.closed) break;
-      this.controlManager.writeToStdin(msg);
+    try {
+      let count = 0;
+      for await (const msg of stream) {
+        count++;
+        if (this.aborted || this.closed) break;
+        this.controlManager.writeToStdin(msg);
+      }
+      if (count > 0 && this.hasBidirectionalNeeds()) await this.waitForFirstResult();
+      this.endInput();
+    } catch (error) {
+      // An abort is already handled by abort(); anything else is the caller's
+      // stream failing and must surface (matches official SDK)
+      if (!(error instanceof AbortError)) throw error;
     }
-    if (count > 0 && this.hasBidirectionalNeeds()) await this.waitForFirstResult();
-    this.endInput();
   }
 
   close(): void {
-    if (this.closed) return;
+    if (this.resourcesReleased) return;
     this.shutdown();
-    this.router?.close();
-    this.closeMcpBridges();
+    this.releaseResources();
     if (!this.messageQueue.isDone()) {
       this.messageQueue.complete();
     }
@@ -484,7 +555,7 @@ export class QueryImpl implements Query {
    * Used by return() and asyncDispose() to allow the CLI to flush session files.
    */
   private async gracefulClose(): Promise<void> {
-    if (this.closed) return;
+    if (this.resourcesReleased) return;
     this.shutdown();
     const proc = this.process;
     if (proc && proc.exitCode === null && proc.signalCode == null) {
@@ -498,8 +569,7 @@ export class QueryImpl implements Query {
         });
       });
     }
-    this.router?.close();
-    this.closeMcpBridges();
+    this.releaseResources();
     if (!this.messageQueue.isDone()) {
       this.messageQueue.complete();
     }
@@ -657,6 +727,12 @@ export class QueryImpl implements Query {
     const wire = this.controlHandler
       ? await setSdkMcpServers(servers, this.controlHandler)
       : servers;
+    // Keep the SDK server list current: reinitialize() rebuilds the init
+    // request from it, and hasBidirectionalNeeds() decides from it whether
+    // stdin must stay open for the CLI to reach these servers
+    if (this.controlHandler) {
+      this.sdkMcpServerNames = this.controlHandler.mcpServerBridgeNames();
+    }
     return this.controlManager.sendControlRequestWithResponse(ControlRequests.mcpSetServers(wire));
   }
 
@@ -678,9 +754,15 @@ export class QueryImpl implements Query {
       await this.streamInput(generator);
     } catch (error: unknown) {
       const wrappedError = error instanceof Error ? error : new Error(String(error));
+      // The official SDK aborts the query when the prompt stream throws; do the
+      // same teardown (close stdin, kill the CLI if it lingers, reject pending
+      // control requests) but surface the generator's error, not an AbortError
+      this.shutdown();
       if (!this.messageQueue.isDone()) {
         this.messageQueue.complete(wrappedError);
       }
+      this.controlManager.rejectAll(wrappedError);
+      this.releaseResources();
     }
   }
 }

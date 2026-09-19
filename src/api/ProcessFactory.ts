@@ -17,7 +17,13 @@ import type { Options } from '../types/index.ts';
  * Allows dependency injection for testing
  */
 export interface ProcessFactory {
-  spawn(options: Options): ChildProcess;
+  /**
+   * @param forwardedSignal Signal handed to the spawned process. It is *not*
+   *   the caller's `abortController.signal`: the official SDK forwards the
+   *   abort only after stdin is closed and the CLI has had its grace period,
+   *   so the child gets a chance to flush session state first.
+   */
+  spawn(options: Options, forwardedSignal?: AbortSignal): ChildProcess;
 }
 
 /**
@@ -45,7 +51,7 @@ function isEnvTruthy(value: string | undefined): boolean {
  * Default implementation that spawns real Claude CLI
  */
 export class DefaultProcessFactory implements ProcessFactory {
-  spawn(options: Options): ChildProcess {
+  spawn(options: Options, forwardedSignal?: AbortSignal): ChildProcess {
     const cliArgs = buildCliArgs({ ...options, prompt: '' });
 
     // v0.2.113+: user env replaces process.env entirely; undefined means use process.env
@@ -74,19 +80,22 @@ export class DefaultProcessFactory implements ProcessFactory {
       ? [...executableArgs, ...cliArgs]
       : [...executableArgs, scriptPath, ...cliArgs];
 
+    // Never the caller's signal directly — QueryImpl forwards the abort after
+    // the graceful-exit window so the CLI can flush session state (official SDK)
+    const signal = forwardedSignal ?? new AbortController().signal;
+
     if (options.spawnClaudeCodeProcess) {
       const spawnedProcess = options.spawnClaudeCodeProcess({
         command,
         args,
         cwd: options.cwd,
         env,
-        // Fires only when the query is aborted (no implicit timeout)
-        signal: options.abortController?.signal ?? new AbortController().signal,
+        signal,
       });
       // Wrap SpawnedProcess to ChildProcess-compatible object
       return spawnedProcess as unknown as ChildProcess;
     }
 
-    return spawnClaude(command, args, { cwd: options.cwd, env, stderr: options.stderr });
+    return spawnClaude(command, args, { cwd: options.cwd, env, stderr: options.stderr, signal });
   }
 }

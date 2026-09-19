@@ -114,7 +114,7 @@ export class McpServerBridge {
   private isClosed = false;
   private pendingRequests = new Map<
     number | string,
-    { resolve: (value: Record<string, unknown>) => void }
+    { id: number | string; resolve: (value: Record<string, unknown>) => void }
   >();
 
   constructor(
@@ -172,6 +172,17 @@ export class McpServerBridge {
   /** Disconnect the server (setMcpServers removal or query close). */
   async close(): Promise<void> {
     await this.transport?.close();
+    // The transport now rejects sends, so a handler still running would never
+    // resolve its request — answer the CLI with an error instead of hanging it
+    const pending = [...this.pendingRequests.values()];
+    this.pendingRequests.clear();
+    for (const { id, resolve } of pending) {
+      resolve({
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32000, message: 'MCP server disconnected' },
+      });
+    }
   }
 
   /**
@@ -187,8 +198,12 @@ export class McpServerBridge {
 
     // Requests have method + id → wait for response
     if ('method' in message && 'id' in message && message.id !== null) {
+      const id = message.id as number | string;
+      if (this.isClosed) {
+        return { jsonrpc: '2.0', id, error: { code: -32000, message: 'MCP server disconnected' } };
+      }
       return new Promise((resolve) => {
-        this.pendingRequests.set(message.id as number | string, { resolve });
+        this.pendingRequests.set(id, { id, resolve });
         this.serverOnMessage?.(message);
       });
     }

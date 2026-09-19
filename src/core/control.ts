@@ -290,6 +290,9 @@ export class ControlProtocolHandler {
     if (process.env.DEBUG_HOOKS) {
       console.error('[DEBUG] Control request:', JSON.stringify(req, null, 2));
     }
+    // Requests still buffered in stdout after close(): answering them would run
+    // user callbacks whose responses write() then drops
+    if (this.closed) return;
     // Duplicate delivery of a request we are still handling
     if (this.inflight.has(req.request_id)) return;
     const controller = new AbortController();

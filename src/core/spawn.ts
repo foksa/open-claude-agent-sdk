@@ -94,7 +94,7 @@ export function detectClaudeBinary(options?: Options): string {
  *
  * @param binary Path to claude binary or runtime executable
  * @param args CLI arguments
- * @param options Spawn options (cwd, env, stderr callback)
+ * @param options Spawn options (cwd, env, stderr callback, forwarded abort signal)
  */
 export function spawnClaude(
   binary: string,
@@ -103,6 +103,7 @@ export function spawnClaude(
     cwd?: string;
     env?: Record<string, string | undefined>;
     stderr?: (data: string) => void;
+    signal?: AbortSignal;
   }
 ): ChildProcess {
   // v0.2.113+: options.env replaces process.env entirely (not overlay)
@@ -120,6 +121,7 @@ export function spawnClaude(
     cwd: options?.cwd,
     env: env as NodeJS.ProcessEnv,
     windowsHide: true,
+    signal: options?.signal,
   });
 
   // Always drain stderr: an unread pipe fills up (e.g. with --debug-to-stderr)

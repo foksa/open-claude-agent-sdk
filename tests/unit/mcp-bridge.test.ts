@@ -69,6 +69,48 @@ describe('McpServerBridge', () => {
     expect(forwarded).toEqual([]);
   });
 
+  test('close() answers requests still in flight instead of hanging the CLI', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const slow = tool('slow', 'Slow', {}, async () => {
+      await gate;
+      return { content: [{ type: 'text' as const, text: 'done' }] };
+    });
+    const server = createSdkMcpServer({ name: 'slow', tools: [slow] });
+    const bridge = new McpServerBridge(server.instance, () => {});
+    await bridge.connect();
+    await bridge.handleMessage({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2025-06-18',
+        capabilities: {},
+        clientInfo: { name: 't', version: '1' },
+      },
+    });
+    bridge.handleMessage({ jsonrpc: '2.0', method: 'notifications/initialized' });
+
+    const inFlight = bridge.handleMessage({
+      jsonrpc: '2.0',
+      id: 2,
+      method: 'tools/call',
+      params: { name: 'slow', arguments: {} },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // The CLI must get an answer even though the handler is still running
+    await bridge.close();
+    const answered = await Promise.race([
+      inFlight,
+      new Promise((resolve) => setTimeout(() => resolve('TIMED OUT'), 1000)),
+    ]);
+    expect(answered).toMatchObject({ jsonrpc: '2.0', id: 2, error: { code: -32000 } });
+    release();
+  });
+
   test('close() disconnects the server; later sends fail', async () => {
     const server = createSdkMcpServer({ name: 'closing', tools: [ping] });
     const bridge = new McpServerBridge(server.instance, () => {});

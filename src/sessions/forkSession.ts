@@ -306,10 +306,14 @@ async function writeJsonl(filePath: string, entries: Record<string, unknown>[]):
     stream.once('finish', resolve);
     stream.once('error', reject);
   });
+  // `done` rejects on stream errors; every wait races it so a failure while
+  // backpressured (ENOSPC, EACCES) surfaces instead of hanging on a 'drain'
+  // that will never fire
+  done.catch(() => {});
   try {
     for (const entry of entries) {
       if (!stream.write(`${JSON.stringify(entry)}\n`)) {
-        await new Promise<void>((resolve) => stream.once('drain', resolve));
+        await Promise.race([new Promise<void>((resolve) => stream.once('drain', resolve)), done]);
       }
     }
     stream.end();
