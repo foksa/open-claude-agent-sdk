@@ -244,6 +244,7 @@ export class QueryImpl implements Query {
     if (stderr) {
       const decoder = new StringDecoder('utf8');
       const append = (text: string) => {
+        if (this.stderrDone) return;
         this.stderrTail += text;
         if (this.stderrTail.length > 2 * STDERR_TAIL_CHARS) {
           this.stderrTail = this.stderrTail.slice(-STDERR_TAIL_CHARS);
@@ -340,6 +341,7 @@ export class QueryImpl implements Query {
       if (!this.stderrTimer) {
         this.stderrTimer = setTimeout(() => {
           this.stderrDone = true;
+          this.releaseStderr();
           this.finish();
         }, STDOUT_DRAIN_MS);
         this.stderrTimer.unref?.();
@@ -377,6 +379,21 @@ export class QueryImpl implements Query {
     // (abort listener, control handler, stdout reader, in-process MCP servers)
     this.shutdown();
     this.releaseResources();
+  }
+
+  /**
+   * Stop waiting on a stderr pipe that outlived the CLI (a forked child still
+   * holds it): later output is ignored and the pipe must not keep the host
+   * alive — unref it, or destroy it when it cannot be unref'd (official SDK).
+   */
+  private releaseStderr(): void {
+    const stderr = this.process?.stderr as
+      | (NonNullable<ChildProcess['stderr']> & { unref?: () => void })
+      | null
+      | undefined;
+    if (!stderr) return;
+    if (typeof stderr.unref === 'function') stderr.unref();
+    else stderr.destroy();
   }
 
   private formatStderrTail(): string {

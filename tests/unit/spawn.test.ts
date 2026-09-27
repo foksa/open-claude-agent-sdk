@@ -2,9 +2,10 @@
  * Unit tests for spawn.ts - CLI argument building
  */
 
-import { describe, expect, test } from 'bun:test';
-import { existsSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { afterAll, describe, expect, test } from 'bun:test';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { buildCliArgs } from '../../src/core/argBuilder.ts';
 import type { Options } from '../../src/types/index.ts';
 
@@ -466,15 +467,26 @@ describe('buildCliArgs', () => {
 });
 
 describe('DEBUG_CLAUDE_AGENT_SDK', () => {
+  // A scratch config dir, so the debug/ directory is never created under the
+  // real ~/.claude (which may be read-only or absent where tests run)
+  const configDir = mkdtempSync(join(tmpdir(), 'sdk-debug-config-'));
+  afterAll(() => rmSync(configDir, { recursive: true, force: true }));
+
   function withDebugEnv(value: string | undefined, fn: () => void) {
-    const saved = process.env.DEBUG_CLAUDE_AGENT_SDK;
+    const saved = {
+      DEBUG_CLAUDE_AGENT_SDK: process.env.DEBUG_CLAUDE_AGENT_SDK,
+      CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR,
+    };
     if (value === undefined) delete process.env.DEBUG_CLAUDE_AGENT_SDK;
     else process.env.DEBUG_CLAUDE_AGENT_SDK = value;
+    process.env.CLAUDE_CONFIG_DIR = configDir;
     try {
       fn();
     } finally {
-      if (saved === undefined) delete process.env.DEBUG_CLAUDE_AGENT_SDK;
-      else process.env.DEBUG_CLAUDE_AGENT_SDK = saved;
+      for (const [key, v] of Object.entries(saved)) {
+        if (v === undefined) delete process.env[key];
+        else process.env[key] = v;
+      }
     }
   }
 
@@ -488,6 +500,7 @@ describe('DEBUG_CLAUDE_AGENT_SDK', () => {
       expect(second).toContain('--debug');
       expect(first).not.toContain('--debug-to-stderr');
       // Created up front so the CLI can open the file in a fresh config dir
+      expect(dirname(file)).toBe(join(configDir, 'debug'));
       expect(existsSync(dirname(file))).toBe(true);
     });
   });

@@ -302,3 +302,30 @@ describe('exit error waits for stderr to drain', () => {
     }, 10000);
   }
 });
+
+describe('a stderr pipe held by a forked child does not keep the host alive', () => {
+  // The CLI exits, but a background child keeps stderr open for 6s
+  const script = fakeCli(`(sleep 6) >&2 &\nexit 2\n`);
+
+  test('open: the host process exits soon after the query rejects', async () => {
+    const host = `
+      import { query } from ${JSON.stringify(`${process.cwd()}/src/api/query.ts`)};
+      try {
+        for await (const _ of query({ prompt: 'hi', options: {
+          pathToClaudeCodeExecutable: ${JSON.stringify(script)}, settingSources: [] } })) {}
+      } catch (e) { console.log('rejected:', e.message); }
+    `;
+    const start = Date.now();
+    const child = spawn(process.execPath, ['-e', host], { stdio: ['ignore', 'pipe', 'inherit'] });
+    let out = '';
+    child.stdout.on('data', (d) => {
+      out += d;
+    });
+    await new Promise((resolve) => child.once('exit', resolve));
+    const elapsed = Date.now() - start;
+
+    expect(out).toContain('rejected: Claude Code process exited with code 2');
+    // Rejects after the ~2s stderr drain window; must not wait for the 6s child
+    expect(elapsed).toBeLessThan(4500);
+  }, 15000);
+});
