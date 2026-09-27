@@ -1649,3 +1649,49 @@ describe('stdin message compatibility', () => {
     { timeout: 60000 }
   );
 });
+
+describe('control method arguments match official SDK', () => {
+  const cases: Array<[string, string, (q: Query) => Promise<unknown>]> = [
+    [
+      'setMaxThinkingTokens(n, display)',
+      'set_max_thinking_tokens',
+      (q) => q.setMaxThinkingTokens(2048, 'omitted'),
+    ],
+    [
+      'usage_EXPERIMENTAL({ skipBehaviors })',
+      'get_usage',
+      (q) => q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true }),
+    ],
+    ['rewindFiles(id)', 'rewind_files', (q) => q.rewindFiles('msg-uuid-1')],
+    [
+      'rewindFiles(id, { dryRun })',
+      'rewind_files',
+      (q) => q.rewindFiles('msg-uuid-1', { dryRun: true }),
+    ],
+  ];
+
+  for (const [name, subtype, call] of cases) {
+    test.concurrent(
+      `${name} sends the same ${subtype} request`,
+      async () => {
+        const [open, official] = await Promise.all([
+          captureWithQuery(openQuery, 'test', async (q) => {
+            await call(q).catch(() => {});
+          }),
+          captureWithQuery(officialQuery, 'test', async (q) => {
+            await call(q as unknown as Query).catch(() => {});
+          }),
+        ]);
+
+        const openReq = open.stdin.find((m) => m.request?.subtype === subtype);
+        const officialReq = official.stdin.find((m) => m.request?.subtype === subtype);
+        expect(officialReq).toBeTruthy();
+        expect(openReq).toBeTruthy();
+        if (openReq && officialReq) {
+          expect(normalizeMessage(openReq)).toEqual(normalizeMessage(officialReq));
+        }
+      },
+      { timeout: 60000 }
+    );
+  }
+});

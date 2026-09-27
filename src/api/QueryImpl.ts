@@ -10,6 +10,7 @@
  */
 
 import type { ChildProcess } from 'node:child_process';
+import { StringDecoder } from 'node:string_decoder';
 import { AbortError } from '../constants.ts';
 import { ControlProtocolHandler, ControlRequests } from '../core/control.ts';
 import { connectMcpBridges, setSdkMcpServers } from '../core/mcpBridge.ts';
@@ -87,6 +88,16 @@ const KILL_GRACE_MS = 2000;
 const SIGKILL_DELAY_MS = 5000;
 /** How long to wait for stdout to drain after the process exits. */
 const STDOUT_DRAIN_MS = 2000;
+/** Characters of stderr kept for exit error messages (matches official SDK). */
+const STDERR_TAIL_CHARS = 2048;
+
+/** Mask credentials the CLI may print before they end up in an error message. */
+function redactSecrets(text: string): string {
+  return text
+    .replace(/\bsk-ant-[A-Za-z0-9_-]+/g, 'sk-ant-[REDACTED]')
+    .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi, '$1 [REDACTED]')
+    .replace(/(\/\/[^\s/:@]+):[^\s/@]+@/g, '$1:[REDACTED]@');
+}
 
 export class QueryImpl implements Query {
   private closed = false;
@@ -108,6 +119,9 @@ export class QueryImpl implements Query {
    * kill the child before it can flush session state (matches official SDK).
    */
   private forwardedAbort = new AbortController();
+  /** Latest list from a `system/commands_changed` push, if any. */
+  private latestCommands: SlashCommand[] | undefined;
+  private stderrTail = '';
 
   private constructor(
     private process: ChildProcess,
@@ -229,6 +243,18 @@ export class QueryImpl implements Query {
   // ============================================================================
 
   private setupProcessHandlers(): void {
+    // Keep the end of stderr for exit errors; spawnClaude already drains the pipe
+    const stderr = this.process.stderr;
+    if (stderr) {
+      const decoder = new StringDecoder('utf8');
+      stderr.on('data', (chunk: Buffer) => {
+        this.stderrTail += decoder.write(chunk);
+        if (this.stderrTail.length > 2 * STDERR_TAIL_CHARS) {
+          this.stderrTail = this.stderrTail.slice(-STDERR_TAIL_CHARS);
+        }
+      });
+    }
+
     this.process.on('exit', (code, signal) => {
       this.exitInfo = { code, signal };
       if (this.readerDone) {
@@ -270,6 +296,13 @@ export class QueryImpl implements Query {
       this.markFirstResult();
       // For single-turn queries, close stdin on result to signal CLI to exit
       if (this.isSingleUserTurn) this.endInput();
+    } else if (
+      msg.type === 'system' &&
+      msg.subtype === 'commands_changed' &&
+      Array.isArray(msg.commands)
+    ) {
+      this.latestCommands = msg.commands;
+      this.lastErrorResultText = undefined;
     } else if (!(msg.type === 'system' && msg.subtype === 'session_state_changed')) {
       this.lastErrorResultText = undefined;
     }
@@ -305,9 +338,13 @@ export class QueryImpl implements Query {
     } else if (this.readerError) {
       error = this.readerError;
     } else if (this.exitInfo && this.exitInfo.code !== 0 && this.exitInfo.code !== null) {
-      error = new Error(`Claude Code process exited with code ${this.exitInfo.code}`);
+      error = new Error(
+        `Claude Code process exited with code ${this.exitInfo.code}${this.formatStderrTail()}`
+      );
     } else if (this.exitInfo?.signal) {
-      error = new Error(`Claude Code process terminated by signal ${this.exitInfo.signal}`);
+      error = new Error(
+        `Claude Code process terminated by signal ${this.exitInfo.signal}${this.formatStderrTail()}`
+      );
     }
     if (error && !(error instanceof AbortError) && this.lastErrorResultText !== undefined) {
       error = new Error(`Claude Code returned an error result: ${this.lastErrorResultText}`);
@@ -319,6 +356,11 @@ export class QueryImpl implements Query {
     // (abort listener, control handler, stdout reader, in-process MCP servers)
     this.shutdown();
     this.releaseResources();
+  }
+
+  private formatStderrTail(): string {
+    const tail = redactSecrets(this.stderrTail.slice(-STDERR_TAIL_CHARS)).trim();
+    return tail ? `. stderr: ${tail}` : '';
   }
 
   /**
@@ -501,9 +543,12 @@ export class QueryImpl implements Query {
     await this.controlManager.sendControlRequestWithResponse(ControlRequests.setModel(model));
   }
 
-  async setMaxThinkingTokens(maxThinkingTokens: number | null): Promise<void> {
+  async setMaxThinkingTokens(
+    maxThinkingTokens: number | null,
+    thinkingDisplay?: 'summarized' | 'omitted' | null
+  ): Promise<void> {
     await this.controlManager.sendControlRequestWithResponse(
-      ControlRequests.setMaxThinkingTokens(maxThinkingTokens)
+      ControlRequests.setMaxThinkingTokens(maxThinkingTokens, thinkingDisplay)
     );
   }
 
@@ -603,7 +648,7 @@ export class QueryImpl implements Query {
 
   async supportedCommands(): Promise<SlashCommand[]> {
     const init = await this.controlManager.waitForInit();
-    return init.commands;
+    return this.latestCommands ?? init.commands;
   }
 
   async supportedAgents(): Promise<AgentInfo[]> {
@@ -646,9 +691,11 @@ export class QueryImpl implements Query {
     );
   }
 
-  async usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET(): Promise<SDKControlGetUsageResponse> {
+  async usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET(opts?: {
+    skipBehaviors?: boolean;
+  }): Promise<SDKControlGetUsageResponse> {
     return this.controlManager.sendControlRequestWithResponse<SDKControlGetUsageResponse>(
-      ControlRequests.getUsage()
+      ControlRequests.getUsage(opts)
     );
   }
 
@@ -703,11 +750,14 @@ export class QueryImpl implements Query {
     );
   }
 
+  /** Requires `enableFileCheckpointing` for the CLI to have snapshots to restore. */
   async rewindFiles(
-    _userMessageId: string,
-    _options?: { dryRun?: boolean }
+    userMessageId: string,
+    options?: { dryRun?: boolean }
   ): Promise<RewindFilesResult> {
-    throw new Error('rewindFiles() not yet implemented');
+    return this.controlManager.sendControlRequestWithResponse<RewindFilesResult>(
+      ControlRequests.rewindFiles(userMessageId, options?.dryRun)
+    );
   }
 
   async reconnectMcpServer(serverName: string): Promise<void> {
@@ -740,9 +790,10 @@ export class QueryImpl implements Query {
     serverName: string,
     mode: 'default' | 'auto' | null
   ): Promise<{ warning?: string }> {
-    return this.controlManager.sendControlRequestWithResponse(
-      ControlRequests.setMcpPermissionModeOverride(serverName, mode)
-    );
+    const response = await this.controlManager.sendControlRequestWithResponse<{
+      warning?: string;
+    }>(ControlRequests.setMcpPermissionModeOverride(serverName, mode));
+    return response ?? {};
   }
 
   // ============================================================================

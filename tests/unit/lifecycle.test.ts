@@ -228,3 +228,52 @@ describe('CLI command construction', () => {
     expect(String(ours.signal.reason ?? '')).not.toContain('Timeout');
   }, 15000);
 });
+
+describe('exit error includes the stderr tail', () => {
+  const script = fakeCli(
+    `echo "fatal: config broken (key sk-ant-api03-abcdef123456)" >&2\nsleep 0.1\nexit 3\n`
+  );
+
+  for (const [name, query] of both) {
+    test(`${name}: message carries stderr, secrets masked`, async () => {
+      let error: Error | undefined;
+      try {
+        for await (const _ of query({
+          prompt: 'hi',
+          options: { pathToClaudeCodeExecutable: script, settingSources: [] },
+        })) {
+        }
+      } catch (e) {
+        error = e as Error;
+      }
+      expect(error?.message).toStartWith('Claude Code process exited with code 3. stderr: ');
+      expect(error?.message).toContain('fatal: config broken');
+      expect(error?.message).not.toContain('abcdef123456');
+    }, 10000);
+  }
+});
+
+describe('supportedCommands() tracks commands_changed', () => {
+  // Answers the initialize request, then pushes a new command list
+  const script = fakeCli(`read -r line
+id=$(echo "$line" | sed -E 's/.*"request_id":"([^"]+)".*/\\1/')
+echo '{"type":"control_response","response":{"subtype":"success","request_id":"'"$id"'","response":{"commands":[{"name":"old","description":"","argumentHint":""}],"agents":[],"models":[],"output_style":"default","available_output_styles":[],"account":{}}}}'
+echo '{"type":"system","subtype":"commands_changed","commands":[{"name":"new","description":"","argumentHint":""}],"session_id":"s","uuid":"u"}'
+echo '${RESULT}'
+cat > /dev/null
+`);
+
+  for (const [name, query] of both) {
+    test(`${name}: returns the latest pushed list`, async () => {
+      const q = query({
+        prompt: 'hi',
+        options: { pathToClaudeCodeExecutable: script, settingSources: [] },
+      });
+      for await (const msg of q) {
+        if (msg.type === 'result') break;
+      }
+      const commands = await q.supportedCommands();
+      expect(commands.map((c) => c.name)).toEqual(['new']);
+    }, 10000);
+  }
+});

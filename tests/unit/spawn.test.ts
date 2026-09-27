@@ -462,3 +462,41 @@ describe('buildCliArgs', () => {
     process.env.NODE_ENV = originalEnv;
   });
 });
+
+describe('DEBUG_CLAUDE_AGENT_SDK', () => {
+  function withDebugEnv(value: string | undefined, fn: () => void) {
+    const saved = process.env.DEBUG_CLAUDE_AGENT_SDK;
+    if (value === undefined) delete process.env.DEBUG_CLAUDE_AGENT_SDK;
+    else process.env.DEBUG_CLAUDE_AGENT_SDK = value;
+    try {
+      fn();
+    } finally {
+      if (saved === undefined) delete process.env.DEBUG_CLAUDE_AGENT_SDK;
+      else process.env.DEBUG_CLAUDE_AGENT_SDK = saved;
+    }
+  }
+
+  test('truthy value points the CLI at one sdk-<uuid>.txt debug file per process', () => {
+    withDebugEnv('1', () => {
+      const first = buildCliArgs({});
+      const second = buildCliArgs({ debug: true });
+      const file = first[first.indexOf('--debug-file') + 1];
+      expect(file).toMatch(/[/\\]debug[/\\]sdk-[0-9a-f-]{36}\.txt$/);
+      expect(second[second.indexOf('--debug-file') + 1]).toBe(file);
+      expect(second).toContain('--debug');
+      expect(first).not.toContain('--debug-to-stderr');
+    });
+  });
+
+  test('falsy value, explicit debugFile, or custom spawn add nothing', () => {
+    withDebugEnv('0', () => {
+      expect(buildCliArgs({})).not.toContain('--debug-file');
+    });
+    withDebugEnv('1', () => {
+      const own = buildCliArgs({ debugFile: '/tmp/mine.txt' });
+      expect(own.filter((a) => a === '--debug-file')).toHaveLength(1);
+      const custom = buildCliArgs({ spawnClaudeCodeProcess: () => ({}) as never });
+      expect(custom).not.toContain('--debug-file');
+    });
+  });
+});

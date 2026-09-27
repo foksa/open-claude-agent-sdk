@@ -32,6 +32,7 @@ import {
   type ReloadSkillsRequest,
   RequestSubtype,
   ResponseSubtype,
+  type RewindFilesRequest,
   type SeedReadStateRequest,
   type SetMaxThinkingTokensRequest,
   type SetMcpPermissionModeOverrideRequest,
@@ -75,6 +76,7 @@ export type OutboundControlRequest =
   | ReloadSkillsRequest
   | ReloadOutputStylesRequest
   | SeedReadStateRequest
+  | RewindFilesRequest
   | GetContextUsageRequest
   | GetUsageRequest
   | ReadFileRequest
@@ -105,9 +107,13 @@ export const ControlRequests = {
     model,
   }),
 
-  setMaxThinkingTokens: (tokens: number | null): SetMaxThinkingTokensRequest => ({
+  setMaxThinkingTokens: (
+    tokens: number | null,
+    thinkingDisplay?: 'summarized' | 'omitted' | null
+  ): SetMaxThinkingTokensRequest => ({
     subtype: RequestSubtype.SET_MAX_THINKING_TOKENS,
     max_thinking_tokens: tokens,
+    thinking_display: thinkingDisplay,
   }),
 
   mcpStatus: (): McpStatusRequest => ({
@@ -177,13 +183,20 @@ export const ControlRequests = {
     mtime,
   }),
 
+  rewindFiles: (userMessageId: string, dryRun?: boolean): RewindFilesRequest => ({
+    subtype: RequestSubtype.REWIND_FILES,
+    user_message_id: userMessageId,
+    dry_run: dryRun,
+  }),
+
   getContextUsage: (opts?: { detail?: 'summary' | 'full' }): GetContextUsageRequest => ({
     subtype: RequestSubtype.GET_CONTEXT_USAGE,
     ...(opts?.detail !== undefined && { detail: opts.detail }),
   }),
 
-  getUsage: (): GetUsageRequest => ({
+  getUsage: (opts?: { skipBehaviors?: boolean }): GetUsageRequest => ({
     subtype: RequestSubtype.GET_USAGE,
+    ...(opts?.skipBehaviors && { skip_behaviors: true }),
   }),
 
   listPermissionRules: (): ListPermissionRulesRequest => ({

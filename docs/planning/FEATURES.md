@@ -30,19 +30,19 @@
 | `close()` | ✅ | Tested in abort.test.ts |
 | `setPermissionMode()` | 🔌 | Sends control request, no behavioral verification |
 | `setModel()` | 🔌 | Sends control request, no behavioral verification |
-| `setMaxThinkingTokens()` | 🔌 | Sends control request, no behavioral verification |
+| `setMaxThinkingTokens()` | 🔌 | Sends control request incl. optional `thinkingDisplay` → `thinking_display`; protocol parity tested (v0.50.0) |
 | `streamInput()` | ✅ | Tested in multi-turn.test.ts; closes stdin when the stream ends (after the first result when callbacks are active), so AsyncIterable prompts no longer hang — parity tested in lifecycle.test.ts (v0.50.0) |
-| `supportedCommands()` | ✅ | Returns array with name/description |
+| `supportedCommands()` | ✅ | Returns array with name/description; tracks `system/commands_changed` pushes like official (v0.50.0) |
 | `supportedModels()` | ✅ | Returns array with value/displayName |
 | `mcpServerStatus()` | ✅ | Returns status with and without SDK MCP servers |
 | `accountInfo()` | ✅ | Returns account data with expected shape |
 | `reconnectMcpServer()` | ✅ | Tested with minimal stdio MCP server |
 | `toggleMcpServer()` | ✅ | Disable and re-enable tested with stdio MCP server |
 | `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs; in-process servers are connected/disconnected locally and sent as `{type:'sdk', name, timeout?}` (v0.50.0, stdin parity tested) — previously a newly added SDK server was never registered |
-| `setMcpPermissionModeOverride()` | 🔌 | Sends set_mcp_permission_mode_override control request; protocol parity tested (v0.3.187) |
+| `setMcpPermissionModeOverride()` | 🔌 | Sends set_mcp_permission_mode_override control request; resolves `{}` on an empty response like official; protocol parity tested (v0.3.187) |
 | `supportedAgents()` | ✅ | Returns array of AgentInfo from init response |
 | `readFile()` | 🔌 | Sends control request matching official SDK (v0.2.119); returns null on error |
-| `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
+| `rewindFiles()` | 🔌 | Sends `rewind_files` control request (`user_message_id`, `dry_run`); protocol parity tested (v0.50.0). Needs `enableFileCheckpointing` |
 | `reloadPlugins()` | 🔌 | Sends control request matching official SDK (v0.2.85); `holdOnCacheImpact` option added (v0.3.268), stdin parity tested |
 | `reloadSkills()` | 🔌 | Sends reload_skills control request; protocol parity tested (v0.3.165) |
 | `reloadOutputStyles()` | 🔌 | Sends reload_output_styles control request; protocol parity tested (v0.3.263) |
@@ -52,13 +52,13 @@
 | `updateSettings()` | 🔌 | Sends `update_settings` control request `{source, settings}` matching official SDK (v0.3.259); no behavioral test |
 | `getContextUsage()` | ✅ | Returns context usage breakdown; E2E tested (v0.2.86); `detail: 'summary' \| 'full'` option added (v0.3.257) |
 | `backgroundTasks()` | 🔌 | Sends background_tasks control request; protocol parity tested (v0.3.142) |
-| `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()` | 🔌 | Sends get_usage control request; protocol parity tested (v0.3.169) |
+| `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()` | 🔌 | Sends get_usage control request (`skipBehaviors` → `skip_behaviors`); protocol parity tested (v0.3.169, v0.50.0) |
 | `listPermissionRules()` | 🔌 | Sends `list_permission_rules` control request; not part of official SDK's public `Query` type but present on its runtime Query class (v0.3.270), stdin parity tested |
 | **Query Options** |
 | `prompt` | ✅ | String and AsyncIterable |
 | `permissionMode` | ✅ | Multiple modes tested behaviorally |
 | `model` | ✅ | Verified in protocol comparison |
-| `maxTurns` | ✅ | Verified query stops at limit |
+| `maxTurns` | ✅ | Verified query stops at limit; `0` is omitted from the CLI args like official (v0.50.0) |
 | `maxBudgetUsd` | 🔌 | CLI flag passed, no budget-exceeded test |
 | `includePartialMessages` | ✅ | Streaming test verifies partial messages appear |
 | `cwd` | ✅ | Verified working directory is used |
@@ -105,6 +105,7 @@
 | `agentProgressSummaries` | 🔌 | Init message verified to match official SDK (v0.2.72) |
 | `debug` | 🔌 | CLI flag passed |
 | `debugFile` | 🔌 | CLI flag passed |
+| `DEBUG_CLAUDE_AGENT_SDK` env | 🔌 | Truthy (`1`/`true`/`yes`/`on`) → `--debug-file <configDir>/debug/sdk-<uuid>.txt`, one per process, announced on stderr; skipped with `debugFile` or `spawnClaudeCodeProcess` (matches official, v0.50.0) |
 | `resumeSessionAt` | ⚠️ | Unit tested, needs integration test; emits `--resume-session-at=<value>` equals-form (matches official SDK behavior since v0.3.212) |
 | `resumeDropsTurn` | 🔌 | CLI flag `--resume-drops-turn=<value>` verified to match official SDK (v0.3.223); used with `resumeSessionAt` to guard truncating resumes |
 | `enableFileCheckpointing` | ⚠️ | Unit tested (env var), needs integration test |
@@ -112,7 +113,7 @@
 | `executable` | ⚠️ | Ignored for native binaries like official (v0.50.0; previously wrapped the native binary and failed); parity tested in lifecycle.test.ts |
 | `executableArgs` | ⚠️ | Unit tested, needs integration test |
 | `env` | ⚠️ | Unit tested, needs integration test |
-| `stderr` | ⚠️ | stderr is always drained (v0.50.0) — previously an unread pipe could block the CLI with `debug`/`DEBUG_CLAUDE_AGENT_SDK`; parity tested in lifecycle.test.ts |
+| `stderr` | ⚠️ | stderr is always drained (v0.50.0) — previously an unread pipe could block the CLI with `debug`/`DEBUG_CLAUDE_AGENT_SDK`. Exit errors end with `. stderr: <last 2KB>` (common credential shapes masked) like official; parity tested in lifecycle.test.ts |
 | `spawnClaudeCodeProcess` | ⚠️ | Unit tested, needs integration test |
 | **Hooks (7 of 26 E2E tested)** |
 | `PreToolUse` | ✅ | 4 behavioral tests (intercept, modify, cancel) |
@@ -289,7 +290,6 @@
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| `rewindFiles()` | LOW | Stub throws; CLI has no protocol for this |
 | Context compaction trigger | LOW | CLI compacts automatically |
 | Agent teams | LOW | Experimental (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) |
 

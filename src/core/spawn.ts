@@ -124,7 +124,7 @@ export function spawnClaude(
     signal: options?.signal,
   });
 
-  // Always drain stderr: an unread pipe fills up (e.g. with --debug-to-stderr)
+  // Always drain stderr: an unread pipe fills up (e.g. with --debug output)
   // and blocks the CLI on write
   if (proc.stderr) {
     const decoder = new StringDecoder('utf8');

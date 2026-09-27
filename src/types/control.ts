@@ -200,6 +200,7 @@ export type SetModelRequest = {
 export type SetMaxThinkingTokensRequest = {
   subtype: typeof RequestSubtype.SET_MAX_THINKING_TOKENS;
   max_thinking_tokens: number | null;
+  thinking_display?: 'summarized' | 'omitted' | null;
 };
 
 export type McpStatusRequest = {
@@ -289,6 +290,7 @@ export type GetContextUsageRequest = {
 
 export type GetUsageRequest = {
   subtype: typeof RequestSubtype.GET_USAGE;
+  skip_behaviors?: boolean;
 };
 
 export type ListPermissionRulesRequest = {
