@@ -113,7 +113,7 @@
 | `executable` | ⚠️ | Ignored for native binaries like official (v0.50.0; previously wrapped the native binary and failed); parity tested in lifecycle.test.ts |
 | `executableArgs` | ⚠️ | Unit tested, needs integration test |
 | `env` | ⚠️ | Unit tested, needs integration test |
-| `stderr` | ⚠️ | stderr is always drained (v0.50.0) — previously an unread pipe could block the CLI with `debug`/`DEBUG_CLAUDE_AGENT_SDK`. Exit errors end with `. stderr: <last 2KB>` (common credential shapes masked) like official; parity tested in lifecycle.test.ts |
+| `stderr` | ⚠️ | stderr is always drained (v0.50.0) — previously an unread pipe could block the CLI with `debug`/`DEBUG_CLAUDE_AGENT_SDK`. Exit errors end with `. stderr: <last 2KB>` like official, masked with the official redaction set plus URL userinfo and secret query params (`src/core/redact.ts`). Unlike official, the error waits (≤2s) for stderr to close so output written after `exit` is included; tested in lifecycle.test.ts / redact.test.ts |
 | `spawnClaudeCodeProcess` | ⚠️ | Unit tested, needs integration test |
 | **Hooks (7 of 26 E2E tested)** |
 | `PreToolUse` | ✅ | 4 behavioral tests (intercept, modify, cancel) |

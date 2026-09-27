@@ -14,6 +14,7 @@ import { StringDecoder } from 'node:string_decoder';
 import { AbortError } from '../constants.ts';
 import { ControlProtocolHandler, ControlRequests } from '../core/control.ts';
 import { connectMcpBridges, setSdkMcpServers } from '../core/mcpBridge.ts';
+import { redactSecrets } from '../core/redact.ts';
 import type {
   AccountInfo,
   AgentInfo,
@@ -91,14 +92,6 @@ const STDOUT_DRAIN_MS = 2000;
 /** Characters of stderr kept for exit error messages (matches official SDK). */
 const STDERR_TAIL_CHARS = 2048;
 
-/** Mask credentials the CLI may print before they end up in an error message. */
-function redactSecrets(text: string): string {
-  return text
-    .replace(/\bsk-ant-[A-Za-z0-9_-]+/g, 'sk-ant-[REDACTED]')
-    .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi, '$1 [REDACTED]')
-    .replace(/(\/\/[^\s/:@]+):[^\s/@]+@/g, '$1:[REDACTED]@');
-}
-
 export class QueryImpl implements Query {
   private closed = false;
   private aborted = false;
@@ -122,6 +115,9 @@ export class QueryImpl implements Query {
   /** Latest list from a `system/commands_changed` push, if any. */
   private latestCommands: SlashCommand[] | undefined;
   private stderrTail = '';
+  /** Set once stderr has closed and its decoder is flushed (or there is no stderr). */
+  private stderrDone = false;
+  private stderrTimer: ReturnType<typeof setTimeout> | null = null;
 
   private constructor(
     private process: ChildProcess,
@@ -247,12 +243,21 @@ export class QueryImpl implements Query {
     const stderr = this.process.stderr;
     if (stderr) {
       const decoder = new StringDecoder('utf8');
-      stderr.on('data', (chunk: Buffer) => {
-        this.stderrTail += decoder.write(chunk);
+      const append = (text: string) => {
+        this.stderrTail += text;
         if (this.stderrTail.length > 2 * STDERR_TAIL_CHARS) {
           this.stderrTail = this.stderrTail.slice(-STDERR_TAIL_CHARS);
         }
+      };
+      stderr.on('data', (chunk: Buffer) => append(decoder.write(chunk)));
+      // 'exit' can fire before stderr's last chunk; finish() waits for this
+      stderr.once('close', () => {
+        append(decoder.end());
+        this.stderrDone = true;
+        if (this.stderrTimer) this.finish();
       });
+    } else {
+      this.stderrDone = true;
     }
 
     this.process.on('exit', (code, signal) => {
@@ -329,6 +334,22 @@ export class QueryImpl implements Query {
     }
     this.markFirstResult();
     if (this.messageQueue.isDone()) return;
+    // The exit error quotes the stderr tail: 'exit' can precede stderr's last
+    // chunk, so wait for it to close, bounded by the stdout drain window
+    if (!this.stderrDone && !this.aborted) {
+      if (!this.stderrTimer) {
+        this.stderrTimer = setTimeout(() => {
+          this.stderrDone = true;
+          this.finish();
+        }, STDOUT_DRAIN_MS);
+        this.stderrTimer.unref?.();
+      }
+      return;
+    }
+    if (this.stderrTimer) {
+      clearTimeout(this.stderrTimer);
+      this.stderrTimer = null;
+    }
 
     let error: Error | undefined;
     if (this.aborted) {

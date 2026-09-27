@@ -3,6 +3,8 @@
  */
 
 import { describe, expect, test } from 'bun:test';
+import { existsSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { buildCliArgs } from '../../src/core/argBuilder.ts';
 import type { Options } from '../../src/types/index.ts';
 
@@ -485,6 +487,8 @@ describe('DEBUG_CLAUDE_AGENT_SDK', () => {
       expect(second[second.indexOf('--debug-file') + 1]).toBe(file);
       expect(second).toContain('--debug');
       expect(first).not.toContain('--debug-to-stderr');
+      // Created up front so the CLI can open the file in a fresh config dir
+      expect(existsSync(dirname(file))).toBe(true);
     });
   });
 

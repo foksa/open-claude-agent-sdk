@@ -277,3 +277,28 @@ cat > /dev/null
     }, 10000);
   }
 });
+
+describe('exit error waits for stderr to drain', () => {
+  // The CLI exits at once, but a child still holding stderr writes afterwards.
+  // Ours only: the official SDK (0.3.276) reports the exit without this late
+  // output — waiting for stderr is a deliberate improvement.
+  const script = fakeCli(`( sleep 0.3; echo "late failure detail" >&2 ) > /dev/null &\nexit 2\n`);
+
+  for (const [name, query] of [both[0]]) {
+    test(`${name}: late stderr is in the message`, async () => {
+      let error: Error | undefined;
+      try {
+        for await (const _ of query({
+          prompt: 'hi',
+          options: { pathToClaudeCodeExecutable: script, settingSources: [] },
+        })) {
+        }
+      } catch (e) {
+        error = e as Error;
+      }
+      expect(error?.message).toBe(
+        'Claude Code process exited with code 2. stderr: late failure detail'
+      );
+    }, 10000);
+  }
+});

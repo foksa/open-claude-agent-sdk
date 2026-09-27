@@ -11,6 +11,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { getConfigDir } from '../sessions/paths.ts';
 import type { Options } from '../types/index.ts';
@@ -157,7 +158,12 @@ let sdkDebugFile: string | undefined;
 function getSdkDebugFile(): string | undefined {
   if (!isEnvTruthy(process.env.DEBUG_CLAUDE_AGENT_SDK)) return undefined;
   if (!sdkDebugFile) {
-    sdkDebugFile = join(getConfigDir(), 'debug', `sdk-${randomUUID()}.txt`);
+    const dir = join(getConfigDir(), 'debug');
+    // A fresh config dir has no debug/ yet; create it up front like the official SDK
+    try {
+      mkdirSync(dir, { recursive: true });
+    } catch {}
+    sdkDebugFile = join(dir, `sdk-${randomUUID()}.txt`);
     process.stderr.write(`SDK debug logs: ${sdkDebugFile}\n`);
   }
   return sdkDebugFile;
