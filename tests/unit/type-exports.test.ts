@@ -2084,3 +2084,56 @@ describe('v0.3.276 type re-exports', () => {
     expect(report.rate_limits).toBeNull();
   });
 });
+
+describe('v0.3.283 type re-exports', () => {
+  test('SDKControlMcpReadResourceResponse is importable', () => {
+    const res: import('../../src/types/index.ts').SDKControlMcpReadResourceResponse = {
+      contents: [{ uri: 'ui://widget/main.html', mimeType: 'text/html', text: '<div/>' }],
+    };
+    expect(res.contents[0].uri).toBe('ui://widget/main.html');
+  });
+
+  test('ClaimOptions / SpareProcess are importable (prewarm types)', () => {
+    const claim: import('../../src/types/index.ts').ClaimOptions = { cwd: '/tmp', title: 'x' };
+    const spare: import('../../src/types/index.ts').SpareProcess | undefined = undefined;
+    expect(claim.cwd).toBe('/tmp');
+    expect(spare).toBeUndefined();
+  });
+
+  test('new fields on existing types', () => {
+    const command: import('../../src/types/index.ts').SlashCommand = {
+      name: 'clear',
+      description: 'Clear the conversation',
+      argumentHint: '',
+      builtin: true,
+    };
+    const user: import('../../src/types/index.ts').SDKUserMessage = {
+      type: 'user',
+      session_id: '',
+      parent_tool_use_id: null,
+      message: { role: 'user', content: 'see below' },
+      pasted_content: ['pasted text'],
+      client_composed: true,
+    };
+    const errors: NonNullable<
+      Extract<
+        import('../../src/types/index.ts').SDKSystemMessage,
+        { subtype: 'init' }
+      >['plugin_errors']
+    > = [{ plugin: 'inline[0]', type: 'path-not-found', message: 'missing', path: '/nope' }];
+    const reset: Pick<
+      import('../../src/types/index.ts').SDKConversationResetMessage,
+      'trigger' | 'user_message_uuid' | 'timestamp'
+    > = { trigger: 'clear', user_message_uuid: 'u1', timestamp: '2026-01-01T00:00:00Z' };
+
+    expect(command.builtin).toBe(true);
+    expect(user.client_composed).toBe(true);
+    expect(errors[0].path).toBe('/nope');
+    expect(reset.trigger).toBe('clear');
+  });
+
+  test('verbatimPrompts is an Options field', () => {
+    const options: import('../../src/types/index.ts').Options = { verbatimPrompts: true };
+    expect(options.verbatimPrompts).toBe(true);
+  });
+});

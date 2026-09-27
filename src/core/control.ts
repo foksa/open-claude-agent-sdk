@@ -21,6 +21,7 @@ import {
   type InternalHookCallback,
   type InterruptRequest,
   type ListPermissionRulesRequest,
+  type McpReadResourceRequest,
   type McpReconnectRequest,
   type McpSetServersRequest,
   type McpStatusRequest,
@@ -67,6 +68,7 @@ export type OutboundControlRequest =
   | McpStatusRequest
   | McpReconnectRequest
   | McpToggleRequest
+  | McpReadResourceRequest
   | SetMcpPermissionModeOverrideRequest
   | McpSetServersRequest
   | StopTaskRequest
@@ -109,7 +111,7 @@ export const ControlRequests = {
 
   setMaxThinkingTokens: (
     tokens: number | null,
-    thinkingDisplay?: 'summarized' | 'omitted' | null
+    thinkingDisplay?: 'summarized' | 'omitted' | 'highlights' | null
   ): SetMaxThinkingTokensRequest => ({
     subtype: RequestSubtype.SET_MAX_THINKING_TOKENS,
     max_thinking_tokens: tokens,
@@ -129,6 +131,12 @@ export const ControlRequests = {
     subtype: RequestSubtype.MCP_TOGGLE,
     serverName,
     enabled,
+  }),
+
+  mcpReadResource: (serverName: string, uri: string): McpReadResourceRequest => ({
+    subtype: RequestSubtype.MCP_READ_RESOURCE,
+    serverName,
+    uri,
   }),
 
   setMcpPermissionModeOverride: (
@@ -156,7 +164,7 @@ export const ControlRequests = {
   }),
 
   updateSettings: (
-    source: 'localSettings',
+    source: 'localSettings' | 'userSettings',
     settings: Record<string, unknown>
   ): UpdateSettingsRequest => ({
     subtype: RequestSubtype.UPDATE_SETTINGS,

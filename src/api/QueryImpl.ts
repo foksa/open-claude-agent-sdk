@@ -31,6 +31,7 @@ import type {
   SDKControlInitializeResponse,
   SDKControlInterruptResponse,
   SDKControlListPermissionRulesResponse,
+  SDKControlMcpReadResourceResponse,
   SDKControlReadFileResponse,
   SDKControlReloadOutputStylesResponse,
   SDKControlReloadPluginsResponse,
@@ -202,7 +203,7 @@ export class QueryImpl implements Query {
 
     // 8. Handle input
     if (typeof prompt === 'string') {
-      sendInitialPrompt(controlManager, prompt);
+      sendInitialPrompt(controlManager, prompt, options.verbatimPrompts);
     } else {
       instance.consumeInputGenerator(prompt);
     }
@@ -583,7 +584,7 @@ export class QueryImpl implements Query {
 
   async setMaxThinkingTokens(
     maxThinkingTokens: number | null,
-    thinkingDisplay?: 'summarized' | 'omitted' | null
+    thinkingDisplay?: 'summarized' | 'omitted' | 'highlights' | null
   ): Promise<void> {
     await this.controlManager.sendControlRequestWithResponse(
       ControlRequests.setMaxThinkingTokens(maxThinkingTokens, thinkingDisplay)
@@ -596,7 +597,10 @@ export class QueryImpl implements Query {
     );
   }
 
-  async updateSettings(source: 'localSettings', settings: Record<string, unknown>): Promise<void> {
+  async updateSettings(
+    source: 'localSettings' | 'userSettings',
+    settings: Record<string, unknown>
+  ): Promise<void> {
     await this.controlManager.sendControlRequestWithResponse(
       ControlRequests.updateSettings(source, settings)
     );
@@ -612,7 +616,9 @@ export class QueryImpl implements Query {
       for await (const msg of stream) {
         count++;
         if (this.aborted || this.closed) break;
-        this.controlManager.writeToStdin(msg);
+        this.controlManager.writeToStdin(
+          this.options.verbatimPrompts ? { ...msg, client_composed: true } : msg
+        );
       }
       if (count > 0 && this.hasBidirectionalNeeds()) await this.waitForFirstResult();
       this.endInput();
@@ -807,6 +813,16 @@ export class QueryImpl implements Query {
   async toggleMcpServer(serverName: string, enabled: boolean): Promise<void> {
     await this.controlManager.sendControlRequestWithResponse(
       ControlRequests.mcpToggle(serverName, enabled)
+    );
+  }
+
+  /** Read an MCP Apps `ui://` resource from a server the CLI connected (alpha). */
+  async readMcpResource(
+    serverName: string,
+    uri: string
+  ): Promise<SDKControlMcpReadResourceResponse> {
+    return this.controlManager.sendControlRequestWithResponse<SDKControlMcpReadResourceResponse>(
+      ControlRequests.mcpReadResource(serverName, uri)
     );
   }
 

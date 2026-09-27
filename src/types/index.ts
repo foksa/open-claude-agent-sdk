@@ -299,6 +299,7 @@ export type {
   SDKControlGetContextUsageResponse,
   SDKControlGetUsageResponse,
   SDKControlListPermissionRulesResponse,
+  SDKControlMcpReadResourceResponse,
   SDKControlPermissionRulesState,
   SDKControlReadFileResponse,
   SDKControlReloadOutputStylesResponse,
@@ -367,6 +368,9 @@ export interface SessionMetadata extends SessionInfo {
 // ============================================================================
 
 export type {
+  // Types for prewarm() / SpareProcess (v0.3.282) — the functions are not supported
+  ClaimOptions,
+  SpareProcess,
   SpawnedProcess,
   SpawnOptions,
   Transport,
