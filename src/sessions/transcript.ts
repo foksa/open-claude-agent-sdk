@@ -229,34 +229,73 @@ export function buildConversationChain(entries: TranscriptEntry[]): TranscriptEn
 
   // Leaf nodes = entries not referenced as parentUuid by anything
   const leaves = [...byUuid.values()].filter((e) => !parentUuids.has(e.uuid));
+  const fileIndex = (e: TranscriptEntry) => indexByUuid.get(e.uuid) ?? -1;
 
-  // From each leaf, walk up to find nearest user/assistant entry
-  const candidates: TranscriptEntry[] = [];
-  for (const leaf of leaves) {
-    let current: TranscriptEntry | undefined = leaf;
+  // v0.3.283: the conversation ends at the newest main-thread leaf, even when
+  // that branch ends at a meta row or a local command's rows. Picking the
+  // newest non-meta user/assistant instead could land on a rewound-away branch.
+  const isMainThread = (e: TranscriptEntry) =>
+    !e.isSidechain &&
+    !e.teamName &&
+    e.type !== 'progress' &&
+    !(
+      e.type === 'attachment' &&
+      (e.attachment as { type?: unknown } | undefined)?.type === 'fork_briefing'
+    );
+  const mainParents = new Set<string>();
+  for (const entry of byUuid.values()) {
+    if (entry.parentUuid && isMainThread(entry)) mainParents.add(entry.parentUuid);
+  }
+  const mainLeaves = [...byUuid.values()]
+    .filter((e) => isMainThread(e) && !mainParents.has(e.uuid))
+    .sort((a, b) => fileIndex(b) - fileIndex(a));
+
+  // Newest leaf first: its nearest user/assistant ancestor ends the chain.
+  // Rows already walked from a newer leaf lead nowhere, so skip them.
+  let best: TranscriptEntry | undefined;
+  const walked = new Set<string>();
+  for (const leaf of mainLeaves) {
+    const path: string[] = [];
     const seen = new Set<string>();
-    while (current) {
-      if (seen.has(current.uuid)) break;
-      seen.add(current.uuid);
+    let current: TranscriptEntry | undefined = leaf;
+    while (current && !walked.has(current.uuid) && !seen.has(current.uuid)) {
       if (current.type === 'user' || current.type === 'assistant') {
-        candidates.push(current);
+        best = current;
         break;
       }
+      seen.add(current.uuid);
+      path.push(current.uuid);
       current = current.parentUuid ? byUuid.get(current.parentUuid) : undefined;
     }
+    if (best) break;
+    for (const uuid of path) walked.add(uuid);
   }
 
-  if (candidates.length === 0) return [];
+  // Fallback (no main-thread leaf reaches a message): the newest message
+  // reachable from any leaf, preferring non-sidechain, non-team, non-meta
+  if (!best) {
+    const candidates: TranscriptEntry[] = [];
+    for (const leaf of leaves) {
+      let current: TranscriptEntry | undefined = leaf;
+      const seen = new Set<string>();
+      while (current) {
+        if (seen.has(current.uuid)) break;
+        seen.add(current.uuid);
+        if (current.type === 'user' || current.type === 'assistant') {
+          candidates.push(current);
+          break;
+        }
+        current = current.parentUuid ? byUuid.get(current.parentUuid) : undefined;
+      }
+    }
 
-  // Prefer non-sidechain, non-team, non-meta candidates
-  const good = candidates.filter((e) => !e.isSidechain && !e.teamName && !e.isMeta);
+    if (candidates.length === 0) return [];
 
-  // Pick the one with the highest index (latest in file)
-  const pickBest = (list: TranscriptEntry[]) =>
-    list.reduce((best, item) =>
-      (indexByUuid.get(item.uuid) ?? -1) > (indexByUuid.get(best.uuid) ?? -1) ? item : best
-    );
-  const best = good.length > 0 ? pickBest(good) : pickBest(candidates);
+    const good = candidates.filter((e) => !e.isSidechain && !e.teamName && !e.isMeta);
+    const pickBest = (list: TranscriptEntry[]) =>
+      list.reduce((top, item) => (fileIndex(item) > fileIndex(top) ? item : top));
+    best = good.length > 0 ? pickBest(good) : pickBest(candidates);
+  }
 
   // Walk from best back to root
   const chain: TranscriptEntry[] = [];

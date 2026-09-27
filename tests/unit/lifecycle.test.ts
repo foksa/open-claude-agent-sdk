@@ -228,3 +228,104 @@ describe('CLI command construction', () => {
     expect(String(ours.signal.reason ?? '')).not.toContain('Timeout');
   }, 15000);
 });
+
+describe('exit error includes the stderr tail', () => {
+  const script = fakeCli(
+    `echo "fatal: config broken (key sk-ant-api03-abcdef123456)" >&2\nsleep 0.1\nexit 3\n`
+  );
+
+  for (const [name, query] of both) {
+    test(`${name}: message carries stderr, secrets masked`, async () => {
+      let error: Error | undefined;
+      try {
+        for await (const _ of query({
+          prompt: 'hi',
+          options: { pathToClaudeCodeExecutable: script, settingSources: [] },
+        })) {
+        }
+      } catch (e) {
+        error = e as Error;
+      }
+      expect(error?.message).toStartWith('Claude Code process exited with code 3. stderr: ');
+      expect(error?.message).toContain('fatal: config broken');
+      expect(error?.message).not.toContain('abcdef123456');
+    }, 10000);
+  }
+});
+
+describe('supportedCommands() tracks commands_changed', () => {
+  // Answers the initialize request, then pushes a new command list
+  const script = fakeCli(`read -r line
+id=$(echo "$line" | sed -E 's/.*"request_id":"([^"]+)".*/\\1/')
+echo '{"type":"control_response","response":{"subtype":"success","request_id":"'"$id"'","response":{"commands":[{"name":"old","description":"","argumentHint":""}],"agents":[],"models":[],"output_style":"default","available_output_styles":[],"account":{}}}}'
+echo '{"type":"system","subtype":"commands_changed","commands":[{"name":"new","description":"","argumentHint":""}],"session_id":"s","uuid":"u"}'
+echo '${RESULT}'
+cat > /dev/null
+`);
+
+  for (const [name, query] of both) {
+    test(`${name}: returns the latest pushed list`, async () => {
+      const q = query({
+        prompt: 'hi',
+        options: { pathToClaudeCodeExecutable: script, settingSources: [] },
+      });
+      for await (const msg of q) {
+        if (msg.type === 'result') break;
+      }
+      const commands = await q.supportedCommands();
+      expect(commands.map((c) => c.name)).toEqual(['new']);
+    }, 10000);
+  }
+});
+
+describe('exit error waits for stderr to drain', () => {
+  // The CLI exits at once, but a child still holding stderr writes afterwards.
+  // Ours only: the official SDK (0.3.276) reports the exit without this late
+  // output — waiting for stderr is a deliberate improvement.
+  const script = fakeCli(`( sleep 0.3; echo "late failure detail" >&2 ) > /dev/null &\nexit 2\n`);
+
+  for (const [name, query] of [both[0]]) {
+    test(`${name}: late stderr is in the message`, async () => {
+      let error: Error | undefined;
+      try {
+        for await (const _ of query({
+          prompt: 'hi',
+          options: { pathToClaudeCodeExecutable: script, settingSources: [] },
+        })) {
+        }
+      } catch (e) {
+        error = e as Error;
+      }
+      expect(error?.message).toBe(
+        'Claude Code process exited with code 2. stderr: late failure detail'
+      );
+    }, 10000);
+  }
+});
+
+describe('a stderr pipe held by a forked child does not keep the host alive', () => {
+  // The CLI exits, but a background child keeps stderr open for 6s
+  const script = fakeCli(`(sleep 6) >&2 &\nexit 2\n`);
+
+  test('open: the host process exits soon after the query rejects', async () => {
+    const host = `
+      import { query } from ${JSON.stringify(`${process.cwd()}/src/api/query.ts`)};
+      try {
+        for await (const _ of query({ prompt: 'hi', options: {
+          pathToClaudeCodeExecutable: ${JSON.stringify(script)}, settingSources: [] } })) {}
+      } catch (e) { console.log('rejected:', e.message); }
+    `;
+    const start = Date.now();
+    const child = spawn(process.execPath, ['-e', host], { stdio: ['ignore', 'pipe', 'inherit'] });
+    let out = '';
+    child.stdout.on('data', (d) => {
+      out += d;
+    });
+    await new Promise((resolve) => child.once('exit', resolve));
+    const elapsed = Date.now() - start;
+
+    expect(out).toContain('rejected: Claude Code process exited with code 2');
+    // Rejects after the ~2s stderr drain window; must not wait for the 6s child
+    expect(elapsed).toBeLessThan(4500);
+  }, 15000);
+});

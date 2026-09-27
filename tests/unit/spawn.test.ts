@@ -2,7 +2,10 @@
  * Unit tests for spawn.ts - CLI argument building
  */
 
-import { describe, expect, test } from 'bun:test';
+import { afterAll, describe, expect, test } from 'bun:test';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { buildCliArgs } from '../../src/core/argBuilder.ts';
 import type { Options } from '../../src/types/index.ts';
 
@@ -460,5 +463,57 @@ describe('buildCliArgs', () => {
 
     // Restore
     process.env.NODE_ENV = originalEnv;
+  });
+});
+
+describe('DEBUG_CLAUDE_AGENT_SDK', () => {
+  // A scratch config dir, so the debug/ directory is never created under the
+  // real ~/.claude (which may be read-only or absent where tests run)
+  const configDir = mkdtempSync(join(tmpdir(), 'sdk-debug-config-'));
+  afterAll(() => rmSync(configDir, { recursive: true, force: true }));
+
+  function withDebugEnv(value: string | undefined, fn: () => void) {
+    const saved = {
+      DEBUG_CLAUDE_AGENT_SDK: process.env.DEBUG_CLAUDE_AGENT_SDK,
+      CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR,
+    };
+    if (value === undefined) delete process.env.DEBUG_CLAUDE_AGENT_SDK;
+    else process.env.DEBUG_CLAUDE_AGENT_SDK = value;
+    process.env.CLAUDE_CONFIG_DIR = configDir;
+    try {
+      fn();
+    } finally {
+      for (const [key, v] of Object.entries(saved)) {
+        if (v === undefined) delete process.env[key];
+        else process.env[key] = v;
+      }
+    }
+  }
+
+  test('truthy value points the CLI at one sdk-<uuid>.txt debug file per process', () => {
+    withDebugEnv('1', () => {
+      const first = buildCliArgs({});
+      const second = buildCliArgs({ debug: true });
+      const file = first[first.indexOf('--debug-file') + 1];
+      expect(file).toMatch(/[/\\]debug[/\\]sdk-[0-9a-f-]{36}\.txt$/);
+      expect(second[second.indexOf('--debug-file') + 1]).toBe(file);
+      expect(second).toContain('--debug');
+      expect(first).not.toContain('--debug-to-stderr');
+      // Created up front so the CLI can open the file in a fresh config dir
+      expect(dirname(file)).toBe(join(configDir, 'debug'));
+      expect(existsSync(dirname(file))).toBe(true);
+    });
+  });
+
+  test('falsy value, explicit debugFile, or custom spawn add nothing', () => {
+    withDebugEnv('0', () => {
+      expect(buildCliArgs({})).not.toContain('--debug-file');
+    });
+    withDebugEnv('1', () => {
+      const own = buildCliArgs({ debugFile: '/tmp/mine.txt' });
+      expect(own.filter((a) => a === '--debug-file')).toHaveLength(1);
+      const custom = buildCliArgs({ spawnClaudeCodeProcess: () => ({}) as never });
+      expect(custom).not.toContain('--debug-file');
+    });
   });
 });

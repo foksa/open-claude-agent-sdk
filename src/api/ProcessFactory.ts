@@ -8,7 +8,7 @@
 
 import type { ChildProcess } from 'node:child_process';
 import { COMPATIBLE_SDK_VERSION } from '../constants.ts';
-import { buildCliArgs } from '../core/argBuilder.ts';
+import { buildCliArgs, isEnvTruthy } from '../core/argBuilder.ts';
 import { detectClaudeBinary, spawnClaude } from '../core/spawn.ts';
 import type { Options } from '../types/index.ts';
 
@@ -39,12 +39,6 @@ function isNativeBinary(path: string): boolean {
  */
 function getDefaultExecutable(): string {
   return typeof process.versions.bun !== 'undefined' ? 'bun' : 'node';
-}
-
-/** Truthy env flag the way the official SDK parses it ("1", "true", "yes", "on"). */
-function isEnvTruthy(value: string | undefined): boolean {
-  if (!value) return false;
-  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase().trim());
 }
 
 /**

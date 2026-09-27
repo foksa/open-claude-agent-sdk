@@ -7,7 +7,7 @@
 
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { encodePath } from '../../src/storage/paths.ts';
 import {
@@ -31,9 +31,12 @@ describe('getProjectStoragePath / encodePath', () => {
     expect(encodePath('/home/user/code/org/repo')).toBe('-home-user-code-org-repo');
   });
 
-  test('getProjectStoragePath returns full path under ~/.claude/projects/', () => {
-    const result = getProjectStoragePath('/Users/foo/bar');
-    expect(result).toContain('.claude/projects/-Users-foo-bar');
+  test('getProjectStoragePath returns <configDir>/projects/<encoded>', () => {
+    // The config dir is ~/.claude unless CLAUDE_CONFIG_DIR is set
+    const configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude');
+    expect(getProjectStoragePath('/Users/foo/bar')).toBe(
+      join(configDir, 'projects', '-Users-foo-bar')
+    );
   });
 });
 

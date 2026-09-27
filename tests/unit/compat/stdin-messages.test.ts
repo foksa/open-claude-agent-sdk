@@ -1649,3 +1649,135 @@ describe('stdin message compatibility', () => {
     { timeout: 60000 }
   );
 });
+
+describe('control method arguments match official SDK', () => {
+  const cases: Array<[string, string, (q: Query) => Promise<unknown>]> = [
+    [
+      'setMaxThinkingTokens(n, display)',
+      'set_max_thinking_tokens',
+      (q) => q.setMaxThinkingTokens(2048, 'omitted'),
+    ],
+    [
+      'usage_EXPERIMENTAL({ skipBehaviors })',
+      'get_usage',
+      (q) => q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true }),
+    ],
+    [
+      "setMaxThinkingTokens(n, 'highlights')",
+      'set_max_thinking_tokens',
+      (q) => q.setMaxThinkingTokens(4096, 'highlights'),
+    ],
+    [
+      "updateSettings('userSettings')",
+      'update_settings',
+      (q) => q.updateSettings('userSettings', { effortLevel: 'high' }),
+    ],
+    [
+      'readMcpResource(server, uri)',
+      'mcp_read_resource',
+      (q) => q.readMcpResource('apps', 'ui://widget/main.html'),
+    ],
+    ['rewindFiles(id)', 'rewind_files', (q) => q.rewindFiles('msg-uuid-1')],
+    [
+      'rewindFiles(id, { dryRun })',
+      'rewind_files',
+      (q) => q.rewindFiles('msg-uuid-1', { dryRun: true }),
+    ],
+  ];
+
+  for (const [name, subtype, call] of cases) {
+    test.concurrent(
+      `${name} sends the same ${subtype} request`,
+      async () => {
+        const [open, official] = await Promise.all([
+          captureWithQuery(openQuery, 'test', async (q) => {
+            await call(q).catch(() => {});
+          }),
+          captureWithQuery(officialQuery, 'test', async (q) => {
+            await call(q as unknown as Query).catch(() => {});
+          }),
+        ]);
+
+        const openReq = open.stdin.find((m) => m.request?.subtype === subtype);
+        const officialReq = official.stdin.find((m) => m.request?.subtype === subtype);
+        expect(officialReq).toBeTruthy();
+        expect(openReq).toBeTruthy();
+        if (openReq && officialReq) {
+          expect(normalizeMessage(openReq)).toEqual(normalizeMessage(officialReq));
+        }
+      },
+      { timeout: 60000 }
+    );
+  }
+});
+
+describe('verbatimPrompts', () => {
+  async function* twoMessages() {
+    for (const text of ['first', '@README.md second']) {
+      yield {
+        type: 'user' as const,
+        session_id: '',
+        parent_tool_use_id: null,
+        message: { role: 'user' as const, content: text },
+      };
+    }
+  }
+
+  const userMessages = (stdin: { type: string }[]) =>
+    stdin.filter((m) => m.type === 'user').map((m) => normalizeMessage(m as never));
+
+  test.concurrent(
+    'string prompt is marked client_composed like official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { verbatimPrompts: true }),
+        capture(officialQuery, 'test', { verbatimPrompts: true }),
+      ]);
+      expect(userMessages(official.stdin)[0]).toMatchObject({ client_composed: true });
+      expect(userMessages(open.stdin)).toEqual(userMessages(official.stdin));
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'streamed prompts are each marked client_composed like official SDK',
+    async () => {
+      const [open, official] = await Promise.all([
+        captureWithQuery(
+          openQuery,
+          'unused',
+          async (q) => {
+            await q.streamInput(twoMessages());
+          },
+          { verbatimPrompts: true }
+        ),
+        captureWithQuery(
+          officialQuery,
+          'unused',
+          async (q) => {
+            await q.streamInput(twoMessages() as never);
+          },
+          { verbatimPrompts: true }
+        ),
+      ]);
+      const theirs = userMessages(official.stdin);
+      expect(theirs.length).toBeGreaterThanOrEqual(3);
+      expect(theirs.every((m) => (m as { client_composed?: boolean }).client_composed)).toBe(true);
+      expect(userMessages(open.stdin)).toEqual(theirs);
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'without verbatimPrompts nothing is marked (matches official SDK)',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', {}),
+        capture(officialQuery, 'test', {}),
+      ]);
+      expect(JSON.stringify(official.stdin)).not.toContain('client_composed');
+      expect(JSON.stringify(open.stdin)).not.toContain('client_composed');
+    },
+    { timeout: 60000 }
+  );
+});

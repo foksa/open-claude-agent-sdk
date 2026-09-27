@@ -162,8 +162,15 @@ export function sendProtocolInit(
 
 /**
  * Send the initial user prompt message to CLI stdin.
+ *
+ * With `verbatimPrompts` the message is marked `client_composed`, so the CLI
+ * delivers it as written (no `@path` expansion or slash-command dispatch).
  */
-export function sendInitialPrompt(manager: ControlRequestManager, prompt: string): void {
+export function sendInitialPrompt(
+  manager: ControlRequestManager,
+  prompt: string,
+  verbatimPrompts?: boolean
+): void {
   const initialMessage: SDKUserMessage = {
     type: 'user',
     message: {
@@ -172,6 +179,7 @@ export function sendInitialPrompt(manager: ControlRequestManager, prompt: string
     },
     session_id: '',
     parent_tool_use_id: null,
+    ...(verbatimPrompts && { client_composed: true as const }),
   };
 
   manager.writeToStdin(initialMessage);

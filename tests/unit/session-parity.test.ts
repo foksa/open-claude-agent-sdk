@@ -509,6 +509,93 @@ describe('forkSession parity', () => {
   }
 });
 
+describe('rewound branch parity (v0.3.283)', () => {
+  /**
+   * A conversation rewound to its first reply: the abandoned branch comes
+   * first in the file, then the newer branch, which ends in `tail` rows —
+   * the case where older SDKs returned the rewound-away branch.
+   */
+  function buildRewoundFixture(tail: 'meta' | 'local-command' | 'system') {
+    const project = makeProject(`rewound-${tail}-${uuid()}`);
+    const id = uuid();
+    const base = { sessionId: id, cwd: project, timestamp: '2020-01-01T00:00:00.000Z' };
+    const [u1, a1, oldU, oldA, newU, newA, t1, t2] = Array.from({ length: 8 }, uuid);
+    const reply = (uuidValue: string, parentUuid: string, text: string): Line => ({
+      ...base,
+      type: 'assistant',
+      uuid: uuidValue,
+      parentUuid,
+      message: { id: `msg_${uuidValue}`, role: 'assistant', content: [{ type: 'text', text }] },
+    });
+    const prompt = (uuidValue: string, parentUuid: string | null, content: string): Line => ({
+      ...base,
+      type: 'user',
+      uuid: uuidValue,
+      parentUuid,
+      message: { role: 'user', content },
+    });
+    const tails: Record<typeof tail, Line[]> = {
+      meta: [{ ...prompt(t1, newA, 'meta reminder'), isMeta: true }],
+      'local-command': [
+        { ...prompt(t1, newA, '<command-name>/cost</command-name>'), isMeta: true },
+        prompt(t2, t1, '<local-command-stdout>$0.01</local-command-stdout>'),
+      ],
+      system: [
+        {
+          ...base,
+          type: 'system',
+          subtype: 'informational',
+          uuid: t1,
+          parentUuid: newA,
+          content: 'notice',
+        },
+      ],
+    };
+    const lines: Line[] = [
+      prompt(u1, null, 'Start'),
+      reply(a1, u1, 'first'),
+      prompt(oldU, a1, 'Abandoned branch'),
+      reply(oldA, oldU, 'abandoned reply'),
+      prompt(newU, a1, 'Kept branch'),
+      reply(newA, newU, 'kept reply'),
+      ...tails[tail],
+    ];
+    writeSession(project, id, lines);
+    return { project, id, known: new Set([id, u1, a1, oldU, oldA, newU, newA, t1, t2]) };
+  }
+
+  for (const tail of ['meta', 'local-command', 'system'] as const) {
+    test(`${tail} tail: getSessionMessages matches official`, async () => {
+      const { project, id } = buildRewoundFixture(tail);
+      for (const includeSystemMessages of [false, true]) {
+        const opts = { dir: project, includeSystemMessages };
+        const ours = await open.getSessionMessages(id, opts);
+        const theirs = await official.getSessionMessages(id, opts);
+        expect(ours).toEqual(theirs);
+        const texts = JSON.stringify(theirs);
+        expect(texts).toContain('Kept branch');
+        expect(texts).not.toContain('Abandoned branch');
+      }
+    });
+
+    test(`${tail} tail: forkSession copies the same branch as official`, async () => {
+      const { project, id, known } = buildRewoundFixture(tail);
+      const read = (result: { ok: official.ForkSessionResult } | { error: string }) =>
+        'ok' in result
+          ? normalizeFork(
+              readFileSync(join(projectDir(project), `${result.ok.sessionId}.jsonl`), 'utf8'),
+              known
+            )
+          : result;
+      const ours = read(await settle(() => open.forkSession(id, { dir: project })));
+      const theirs = read(await settle(() => official.forkSession(id, { dir: project })));
+      expect(typeof theirs).toBe('string');
+      // A full copy keeps every branch; the chain it continues from must match
+      expect(ours).toEqual(theirs);
+    });
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Subagents
 // ---------------------------------------------------------------------------

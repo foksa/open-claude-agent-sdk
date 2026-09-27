@@ -69,6 +69,20 @@ describe('CLI arguments compatibility', () => {
   );
 
   test.concurrent(
+    'maxTurns: 0 is omitted like official SDK (full arg list)',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { maxTurns: 0 }),
+        capture(officialQuery, 'test', { maxTurns: 0 }),
+      ]);
+
+      expect(official.args).not.toContain('--max-turns');
+      expect([...open.args].sort()).toEqual([...official.args].sort());
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'permissionMode option args match official SDK',
     async () => {
       const [open, official] = await Promise.all([

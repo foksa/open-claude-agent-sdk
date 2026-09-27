@@ -49,6 +49,7 @@ export const RequestSubtype = {
   MCP_SET_SERVERS: 'mcp_set_servers',
   MCP_RECONNECT: 'mcp_reconnect',
   MCP_TOGGLE: 'mcp_toggle',
+  MCP_READ_RESOURCE: 'mcp_read_resource',
   SET_MCP_PERMISSION_MODE_OVERRIDE: 'set_mcp_permission_mode_override',
   APPLY_FLAG_SETTINGS: 'apply_flag_settings',
   UPDATE_SETTINGS: 'update_settings',
@@ -120,6 +121,7 @@ export type ControlRequestInner =
   | McpSetServersRequest
   | McpReconnectRequest
   | McpToggleRequest
+  | McpReadResourceRequest
   | SetMcpPermissionModeOverrideRequest
   | ApplyFlagSettingsRequest
   | UpdateSettingsRequest
@@ -200,6 +202,7 @@ export type SetModelRequest = {
 export type SetMaxThinkingTokensRequest = {
   subtype: typeof RequestSubtype.SET_MAX_THINKING_TOKENS;
   max_thinking_tokens: number | null;
+  thinking_display?: 'summarized' | 'omitted' | 'highlights' | null;
 };
 
 export type McpStatusRequest = {
@@ -239,6 +242,12 @@ export type McpToggleRequest = {
   enabled: boolean;
 };
 
+export type McpReadResourceRequest = {
+  subtype: typeof RequestSubtype.MCP_READ_RESOURCE;
+  serverName: string;
+  uri: string;
+};
+
 export type SetMcpPermissionModeOverrideRequest = {
   subtype: typeof RequestSubtype.SET_MCP_PERMISSION_MODE_OVERRIDE;
   serverName: string;
@@ -252,7 +261,7 @@ export type ApplyFlagSettingsRequest = {
 
 export type UpdateSettingsRequest = {
   subtype: typeof RequestSubtype.UPDATE_SETTINGS;
-  source: 'localSettings';
+  source: 'localSettings' | 'userSettings';
   settings: Record<string, unknown>;
 };
 
@@ -289,6 +298,7 @@ export type GetContextUsageRequest = {
 
 export type GetUsageRequest = {
   subtype: typeof RequestSubtype.GET_USAGE;
+  skip_behaviors?: boolean;
 };
 
 export type ListPermissionRulesRequest = {

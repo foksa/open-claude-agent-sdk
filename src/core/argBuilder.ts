@@ -10,6 +10,10 @@
  * @internal
  */
 
+import { randomUUID } from 'node:crypto';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { getConfigDir } from '../sessions/paths.ts';
 import type { Options } from '../types/index.ts';
 
 // ============================================================================
@@ -36,6 +40,7 @@ type FlagMapping =
   | { key: keyof Options; flag: string; type: 'string' }
   | { key: keyof Options; flag: string; type: 'equals-string' }
   | { key: keyof Options; flag: string; type: 'number' }
+  | { key: keyof Options; flag: string; type: 'positive-number' }
   | { key: keyof Options; flag: string; type: 'boolean' }
   | { key: keyof Options; flag: string; type: 'boolean-inverted' }
   | { key: keyof Options; flag: string; type: 'csv' }
@@ -54,8 +59,8 @@ const FLAG_MAP: FlagMapping[] = [
   { key: 'resumeSessionAt', flag: '--resume-session-at', type: 'equals-string' },
   { key: 'resumeDropsTurn', flag: '--resume-drops-turn', type: 'equals-string' },
 
-  // Number → string
-  { key: 'maxTurns', flag: '--max-turns', type: 'number' },
+  // Number → string (maxTurns: 0 is omitted, like the official SDK)
+  { key: 'maxTurns', flag: '--max-turns', type: 'positive-number' },
   { key: 'maxBudgetUsd', flag: '--max-budget-usd', type: 'number' },
 
   // Boolean flags (present when truthy)
@@ -138,6 +143,32 @@ function validateSkillName(name: unknown): string {
   return name;
 }
 
+/** Truthy env flag the way the official SDK parses it ("1", "true", "yes", "on"). */
+export function isEnvTruthy(value: string | undefined): boolean {
+  if (!value) return false;
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase().trim());
+}
+
+let sdkDebugFile: string | undefined;
+
+/**
+ * With DEBUG_CLAUDE_AGENT_SDK set in this process, the official SDK points the
+ * CLI at one `<configDir>/debug/sdk-<uuid>.txt` per process and announces it once.
+ */
+function getSdkDebugFile(): string | undefined {
+  if (!isEnvTruthy(process.env.DEBUG_CLAUDE_AGENT_SDK)) return undefined;
+  if (!sdkDebugFile) {
+    const dir = join(getConfigDir(), 'debug');
+    // A fresh config dir has no debug/ yet; create it up front like the official SDK
+    try {
+      mkdirSync(dir, { recursive: true });
+    } catch {}
+    sdkDebugFile = join(dir, `sdk-${randomUUID()}.txt`);
+    process.stderr.write(`SDK debug logs: ${sdkDebugFile}\n`);
+  }
+  return sdkDebugFile;
+}
+
 function isJsonObjectString(value: string): boolean {
   const trimmed = value.trim();
   return trimmed.startsWith('{') && trimmed.endsWith('}');
@@ -155,6 +186,9 @@ function applyFlagMap(args: string[], options: Options): void {
         break;
       case 'number':
         if (value !== undefined) args.push(mapping.flag, String(value));
+        break;
+      case 'positive-number':
+        if (value) args.push(mapping.flag, String(value));
         break;
       case 'boolean':
         if (value) args.push(mapping.flag);
@@ -295,8 +329,9 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   if (!options.debugFile && options.debug) {
     args.push('--debug');
   }
-  if (process.env.DEBUG_CLAUDE_AGENT_SDK) {
-    args.push('--debug-to-stderr');
+  if (!options.debugFile && !options.spawnClaudeCodeProcess) {
+    const debugFile = getSdkDebugFile();
+    if (debugFile) args.push('--debug-file', debugFile);
   }
 
   // Tools — array → csv, preset → "default"

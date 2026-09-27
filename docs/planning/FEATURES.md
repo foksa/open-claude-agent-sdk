@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-09-18
+**Last Updated:** 2026-09-27
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -30,35 +30,37 @@
 | `close()` | ✅ | Tested in abort.test.ts |
 | `setPermissionMode()` | 🔌 | Sends control request, no behavioral verification |
 | `setModel()` | 🔌 | Sends control request, no behavioral verification |
-| `setMaxThinkingTokens()` | 🔌 | Sends control request, no behavioral verification |
+| `setMaxThinkingTokens()` | 🔌 | Sends control request incl. optional `thinkingDisplay` → `thinking_display` (`'highlights'` added v0.3.283); protocol parity tested (v0.50.0) |
 | `streamInput()` | ✅ | Tested in multi-turn.test.ts; closes stdin when the stream ends (after the first result when callbacks are active), so AsyncIterable prompts no longer hang — parity tested in lifecycle.test.ts (v0.50.0) |
-| `supportedCommands()` | ✅ | Returns array with name/description |
+| `supportedCommands()` | ✅ | Returns array with name/description; tracks `system/commands_changed` pushes like official (v0.50.0) |
 | `supportedModels()` | ✅ | Returns array with value/displayName |
 | `mcpServerStatus()` | ✅ | Returns status with and without SDK MCP servers |
 | `accountInfo()` | ✅ | Returns account data with expected shape |
 | `reconnectMcpServer()` | ✅ | Tested with minimal stdio MCP server |
 | `toggleMcpServer()` | ✅ | Disable and re-enable tested with stdio MCP server |
 | `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs; in-process servers are connected/disconnected locally and sent as `{type:'sdk', name, timeout?}` (v0.50.0, stdin parity tested) — previously a newly added SDK server was never registered |
-| `setMcpPermissionModeOverride()` | 🔌 | Sends set_mcp_permission_mode_override control request; protocol parity tested (v0.3.187) |
+| `readMcpResource()` | 🔌 | Sends `mcp_read_resource` `{serverName, uri}` to read an MCP Apps `ui://` resource (alpha, v0.3.280); stdin parity tested |
+| `setMcpPermissionModeOverride()` | 🔌 | Sends set_mcp_permission_mode_override control request; resolves `{}` on an empty response like official; protocol parity tested (v0.3.187) |
 | `supportedAgents()` | ✅ | Returns array of AgentInfo from init response |
 | `readFile()` | 🔌 | Sends control request matching official SDK (v0.2.119); returns null on error |
-| `rewindFiles()` | ❌ | Stub — throws "not yet implemented" |
+| `rewindFiles()` | 🔌 | Sends `rewind_files` control request (`user_message_id`, `dry_run`); protocol parity tested (v0.50.0). Needs `enableFileCheckpointing` |
 | `reloadPlugins()` | 🔌 | Sends control request matching official SDK (v0.2.85); `holdOnCacheImpact` option added (v0.3.268), stdin parity tested |
 | `reloadSkills()` | 🔌 | Sends reload_skills control request; protocol parity tested (v0.3.165) |
 | `reloadOutputStyles()` | 🔌 | Sends reload_output_styles control request; protocol parity tested (v0.3.263) |
 | `reinitialize()` | ✅ | Resends the `initialize` control request with a fresh request_id, reusing the same request shape as the initial handshake (v0.3.195); E2E tested in control-methods.test.ts, stdin parity tested |
 | `seedReadState()` | 🔌 | Sends control request matching official SDK (v0.2.83) |
 | `applyFlagSettings()` | 🔌 | Sends control request matching official SDK; no behavioral test |
-| `updateSettings()` | 🔌 | Sends `update_settings` control request `{source, settings}` matching official SDK (v0.3.259); no behavioral test |
+| `updateSettings()` | 🔌 | Sends `update_settings` control request `{source, settings}` matching official SDK (v0.3.259); `'userSettings'` source (only `effortLevel`) added in v0.3.277, stdin parity tested; no behavioral test |
 | `getContextUsage()` | ✅ | Returns context usage breakdown; E2E tested (v0.2.86); `detail: 'summary' \| 'full'` option added (v0.3.257) |
 | `backgroundTasks()` | 🔌 | Sends background_tasks control request; protocol parity tested (v0.3.142) |
-| `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()` | 🔌 | Sends get_usage control request; protocol parity tested (v0.3.169) |
+| `usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET()` | 🔌 | Sends get_usage control request (`skipBehaviors` → `skip_behaviors`); protocol parity tested (v0.3.169, v0.50.0) |
 | `listPermissionRules()` | 🔌 | Sends `list_permission_rules` control request; not part of official SDK's public `Query` type but present on its runtime Query class (v0.3.270), stdin parity tested |
 | **Query Options** |
 | `prompt` | ✅ | String and AsyncIterable |
+| `verbatimPrompts` | 🔌 | Marks every user message written to stdin (string prompt, streamed prompts, `streamInput()`) `client_composed: true`, so the CLI skips `@path` expansion and slash-command dispatch (v0.3.280); stdin parity tested, no E2E test |
 | `permissionMode` | ✅ | Multiple modes tested behaviorally |
 | `model` | ✅ | Verified in protocol comparison |
-| `maxTurns` | ✅ | Verified query stops at limit |
+| `maxTurns` | ✅ | Verified query stops at limit; `0` is omitted from the CLI args like official (v0.50.0) |
 | `maxBudgetUsd` | 🔌 | CLI flag passed, no budget-exceeded test |
 | `includePartialMessages` | ✅ | Streaming test verifies partial messages appear |
 | `cwd` | ✅ | Verified working directory is used |
@@ -105,6 +107,7 @@
 | `agentProgressSummaries` | 🔌 | Init message verified to match official SDK (v0.2.72) |
 | `debug` | 🔌 | CLI flag passed |
 | `debugFile` | 🔌 | CLI flag passed |
+| `DEBUG_CLAUDE_AGENT_SDK` env | 🔌 | Truthy (`1`/`true`/`yes`/`on`) → `--debug-file <configDir>/debug/sdk-<uuid>.txt`, one per process, announced on stderr; skipped with `debugFile` or `spawnClaudeCodeProcess` (matches official, v0.50.0) |
 | `resumeSessionAt` | ⚠️ | Unit tested, needs integration test; emits `--resume-session-at=<value>` equals-form (matches official SDK behavior since v0.3.212) |
 | `resumeDropsTurn` | 🔌 | CLI flag `--resume-drops-turn=<value>` verified to match official SDK (v0.3.223); used with `resumeSessionAt` to guard truncating resumes |
 | `enableFileCheckpointing` | ⚠️ | Unit tested (env var), needs integration test |
@@ -112,7 +115,7 @@
 | `executable` | ⚠️ | Ignored for native binaries like official (v0.50.0; previously wrapped the native binary and failed); parity tested in lifecycle.test.ts |
 | `executableArgs` | ⚠️ | Unit tested, needs integration test |
 | `env` | ⚠️ | Unit tested, needs integration test |
-| `stderr` | ⚠️ | stderr is always drained (v0.50.0) — previously an unread pipe could block the CLI with `debug`/`DEBUG_CLAUDE_AGENT_SDK`; parity tested in lifecycle.test.ts |
+| `stderr` | ⚠️ | stderr is always drained (v0.50.0) — previously an unread pipe could block the CLI with `debug`/`DEBUG_CLAUDE_AGENT_SDK`. Exit errors end with `. stderr: <last 2KB>` like official, masked with the official redaction set plus URL userinfo and secret query params (`src/core/redact.ts`). Unlike official, the error waits (≤2s) for stderr to close so output written after `exit` is included; tested in lifecycle.test.ts / redact.test.ts |
 | `spawnClaudeCodeProcess` | ⚠️ | Unit tested, needs integration test |
 | **Hooks (7 of 26 E2E tested)** |
 | `PreToolUse` | ✅ | 4 behavioral tests (intercept, modify, cancel) |
@@ -149,8 +152,8 @@
 | Session management | ✅ | Resume, fork, continue, sessionId all E2E tested |
 | Session storage API | ✅ | listSessions, getSessionMetadata, renameSession, deleteSession, getProjectStoragePath — via `./storage` subpath (our own API, not official-compatible); now respects `CLAUDE_CONFIG_DIR` and the long-path hash suffix |
 | `listSessions()` (SDK API) | ✅ | Ported from the official SDK (v0.50.0): `offset`, `includeWorktrees`, `includeProgrammatic`, `tag`/`createdAt`/`aiTitle`/`lastPrompt`, sidecar titles, continued-in and colliding-project filtering, long-path hash matching the CLI; works under Node (was `Bun.file`-only); parity tested in session-parity.test.ts |
-| `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; `includeSystemMessages` supported (v0.2.89); `parent_agent_id` field added (v0.3.202, always `null` — main-transcript reads only); messages queued while a tool ran (`queued_command` attachments) surface as user messages with `isQueuedCommand`/`origin`, plus `timestamp`/`is_meta`/`isCompletedLocalCommand` output fields (v0.3.274–v0.3.275), unit tested byte-equal against official SDK; works under Node; known gap: transcripts over 5MB are parsed whole (official skips pre-compaction content while streaming); chain reconstruction now also merges parallel tool-use sibling entries and re-links compaction-preserved messages (`preservedMessages`/`preservedSegment`), parity tested against official SDK |
-| `forkSession()` (SDK API) | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts — forked transcripts compared entry-by-entry incl. `upToMessageId`, queued-command ids, title fallback |
+| `getSessionMessages()` (SDK API) | ✅ | Matches official SDK signature; `includeSystemMessages` supported (v0.2.89); `parent_agent_id` field added (v0.3.202, always `null` — main-transcript reads only); messages queued while a tool ran (`queued_command` attachments) surface as user messages with `isQueuedCommand`/`origin`, plus `timestamp`/`is_meta`/`isCompletedLocalCommand` output fields (v0.3.274–v0.3.275), unit tested byte-equal against official SDK; works under Node; known gap: transcripts over 5MB are parsed whole (official skips pre-compaction content while streaming); the conversation ends at the newest main-thread leaf even when it is a meta row or a local command's rows, so a rewound-away branch is no longer returned (v0.3.283, parity tested); chain reconstruction now also merges parallel tool-use sibling entries and re-links compaction-preserved messages (`preservedMessages`/`preservedSegment`), parity tested against official SDK |
+| `forkSession()` (SDK API) | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts — forked transcripts compared entry-by-entry incl. `upToMessageId`, queued-command ids, title fallback, and rewound branches ending in meta / local-command / system rows (v0.3.283) |
 | `renameSession()` (SDK API) | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts — file bytes and error messages compared |
 | `tagSession()` (SDK API) | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts — incl. unicode sanitization |
 | `getSessionInfo()` (SDK API) | ✅ | Our implementation (v0.50.0; was a runtime re-export of the official SDK, which broke clean installs); parity tested against the official SDK on shared fixtures in session-parity.test.ts |
@@ -189,6 +192,8 @@
 | `systemPrompt` accepts `string[]` | 🔌 | Cache boundary support (v0.2.110); init message verified |
 | `mcp_set_servers` per-tool `permission_policy` | ⚠️ | `McpServerToolPolicy` type re-exported; `McpHttpServerConfig`/`McpSSEServerConfig` `tools` field (v0.2.111) |
 | `WarmQuery` interface | ⚠️ | Type re-exported only; `startup()` is not supported |
+| `prewarm()` / `SpareProcess.claim()` | ❌ | Not supported (alpha, v0.3.282); `ClaimOptions` / `SpareProcess` types re-exported. Same reason as `startup()` |
+| `@anthropic-ai/claude-agent-sdk/core` entry point | ❌ | Not mirrored (v0.3.282); our package is already small and uses the installed zod / MCP SDK |
 | `startup()` function | ❌ | Not supported (v0.50.0). It was a runtime re-export that ran the official SDK's own query code, and broke clean installs |
 | `title` option | ✅ | Init message field verified + customTitle confirmed via getSessionInfo (v0.2.113) |
 | `options.env` replaces `process.env` | 🔌 | v0.2.113 behavior: user env replaces instead of overlays process.env |
@@ -255,6 +260,7 @@
 | Output-field additions (v0.3.227–v0.3.233) | ⚠️ | `terminal_slash_commands` on `system/init` (v0.3.229), `AgentOutput.usage.output_tokens_details`, `vcs_state_changed.branch` for pushes (v0.3.232) — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | Output-field additions (v0.3.234–v0.3.238) | ⚠️ | `SDKSystemMessage.effort` (applied effort level, v0.3.234), `ApiKeySource` value set corrected, `ExitReason` dropped unused `bypass_permissions_disabled`, `SDKMessageOrigin` peer `fromMode` (v0.3.234), `PostToolUseHookSpecificOutput.classifierContext` (v0.3.236), `SDKTaskStartedMessage.is_backgrounded`/`spawn_depth` (v0.3.238), `UserPromptExpansionHookSpecificOutput.suppressOriginalPrompt` (v0.3.238) — all type-only, forwarded via existing re-exports (hook outputs pass through unmodified, inbound NDJSON is cast, not reshaped); no SDK changes needed |
 | `perTaskStopAffordance` option | 🔌 | Added in v0.3.246; `Options.perTaskStopAffordance` → `perTaskStopAffordance` init message field; capture-verified byte-identical against official SDK in stdin-messages.test.ts; declares that this consumer wires `stop_task` for per-task stopping, so `interrupt()` on an open-input session spares running background agents/workflows |
+| MCP: in-process manifest capture (`sdkMcpServerManifests`) | ❌ | Official SDK (v0.3.281) runs each in-process server's `initialize` + `tools/list` itself and sends the results in the init message (waits ≤250 ms) to speed up start-up. Not implemented: we omit the field and the CLI handshakes those servers over `mcp_message`, as before. Performance only |
 | MCP: `createSdkMcpServer({ timeout })` | 🔌 | Added in v0.3.248; per-server tool-call timeout (ms), sent as `sdkMcpServerConfigs: { [name]: { timeout } }` in the init message alongside `sdkMcpServers`; invalid values (non-positive-integer) silently omitted, matching official SDK's validation; capture-verified in mcp-servers.test.ts (valid + invalid cases) |
 | Output-field additions (v0.3.239–v0.3.250) | ⚠️ | `ModelUsage.costBasis` (v0.3.246), `Settings.modelPricing` for managed-settings orgs (v0.3.246), `SDKAssistantMessage.user_message_uuid` (v0.3.246), `ambient` flag on `SDKTaskStartedMessage`, `SDKTaskNotificationMessage`, and `SDKBackgroundTasksChangedMessage.tasks[]` (v0.3.247) — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | `PreModelSwitchHookInput` / `PostModelSwitchHookInput` / `*HookSpecificOutput` types | ⚠️ | Re-exported from official SDK (v0.3.257); `HookInput`/hook-output union members for the model-switch lifecycle event |
@@ -289,7 +295,6 @@
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| `rewindFiles()` | LOW | Stub throws; CLI has no protocol for this |
 | Context compaction trigger | LOW | CLI compacts automatically |
 | Agent teams | LOW | Experimental (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) |
 

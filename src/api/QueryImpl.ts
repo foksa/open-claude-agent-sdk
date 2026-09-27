@@ -10,9 +10,11 @@
  */
 
 import type { ChildProcess } from 'node:child_process';
+import { StringDecoder } from 'node:string_decoder';
 import { AbortError } from '../constants.ts';
 import { ControlProtocolHandler, ControlRequests } from '../core/control.ts';
 import { connectMcpBridges, setSdkMcpServers } from '../core/mcpBridge.ts';
+import { redactSecrets } from '../core/redact.ts';
 import type {
   AccountInfo,
   AgentInfo,
@@ -29,6 +31,7 @@ import type {
   SDKControlInitializeResponse,
   SDKControlInterruptResponse,
   SDKControlListPermissionRulesResponse,
+  SDKControlMcpReadResourceResponse,
   SDKControlReadFileResponse,
   SDKControlReloadOutputStylesResponse,
   SDKControlReloadPluginsResponse,
@@ -87,6 +90,8 @@ const KILL_GRACE_MS = 2000;
 const SIGKILL_DELAY_MS = 5000;
 /** How long to wait for stdout to drain after the process exits. */
 const STDOUT_DRAIN_MS = 2000;
+/** Characters of stderr kept for exit error messages (matches official SDK). */
+const STDERR_TAIL_CHARS = 2048;
 
 export class QueryImpl implements Query {
   private closed = false;
@@ -108,6 +113,12 @@ export class QueryImpl implements Query {
    * kill the child before it can flush session state (matches official SDK).
    */
   private forwardedAbort = new AbortController();
+  /** Latest list from a `system/commands_changed` push, if any. */
+  private latestCommands: SlashCommand[] | undefined;
+  private stderrTail = '';
+  /** Set once stderr has closed and its decoder is flushed (or there is no stderr). */
+  private stderrDone = false;
+  private stderrTimer: ReturnType<typeof setTimeout> | null = null;
 
   private constructor(
     private process: ChildProcess,
@@ -192,7 +203,7 @@ export class QueryImpl implements Query {
 
     // 8. Handle input
     if (typeof prompt === 'string') {
-      sendInitialPrompt(controlManager, prompt);
+      sendInitialPrompt(controlManager, prompt, options.verbatimPrompts);
     } else {
       instance.consumeInputGenerator(prompt);
     }
@@ -229,6 +240,28 @@ export class QueryImpl implements Query {
   // ============================================================================
 
   private setupProcessHandlers(): void {
+    // Keep the end of stderr for exit errors; spawnClaude already drains the pipe
+    const stderr = this.process.stderr;
+    if (stderr) {
+      const decoder = new StringDecoder('utf8');
+      const append = (text: string) => {
+        if (this.stderrDone) return;
+        this.stderrTail += text;
+        if (this.stderrTail.length > 2 * STDERR_TAIL_CHARS) {
+          this.stderrTail = this.stderrTail.slice(-STDERR_TAIL_CHARS);
+        }
+      };
+      stderr.on('data', (chunk: Buffer) => append(decoder.write(chunk)));
+      // 'exit' can fire before stderr's last chunk; finish() waits for this
+      stderr.once('close', () => {
+        append(decoder.end());
+        this.stderrDone = true;
+        if (this.stderrTimer) this.finish();
+      });
+    } else {
+      this.stderrDone = true;
+    }
+
     this.process.on('exit', (code, signal) => {
       this.exitInfo = { code, signal };
       if (this.readerDone) {
@@ -270,6 +303,13 @@ export class QueryImpl implements Query {
       this.markFirstResult();
       // For single-turn queries, close stdin on result to signal CLI to exit
       if (this.isSingleUserTurn) this.endInput();
+    } else if (
+      msg.type === 'system' &&
+      msg.subtype === 'commands_changed' &&
+      Array.isArray(msg.commands)
+    ) {
+      this.latestCommands = msg.commands;
+      this.lastErrorResultText = undefined;
     } else if (!(msg.type === 'system' && msg.subtype === 'session_state_changed')) {
       this.lastErrorResultText = undefined;
     }
@@ -296,6 +336,23 @@ export class QueryImpl implements Query {
     }
     this.markFirstResult();
     if (this.messageQueue.isDone()) return;
+    // The exit error quotes the stderr tail: 'exit' can precede stderr's last
+    // chunk, so wait for it to close, bounded by the stdout drain window
+    if (!this.stderrDone && !this.aborted) {
+      if (!this.stderrTimer) {
+        this.stderrTimer = setTimeout(() => {
+          this.stderrDone = true;
+          this.releaseStderr();
+          this.finish();
+        }, STDOUT_DRAIN_MS);
+        this.stderrTimer.unref?.();
+      }
+      return;
+    }
+    if (this.stderrTimer) {
+      clearTimeout(this.stderrTimer);
+      this.stderrTimer = null;
+    }
 
     let error: Error | undefined;
     if (this.aborted) {
@@ -305,9 +362,13 @@ export class QueryImpl implements Query {
     } else if (this.readerError) {
       error = this.readerError;
     } else if (this.exitInfo && this.exitInfo.code !== 0 && this.exitInfo.code !== null) {
-      error = new Error(`Claude Code process exited with code ${this.exitInfo.code}`);
+      error = new Error(
+        `Claude Code process exited with code ${this.exitInfo.code}${this.formatStderrTail()}`
+      );
     } else if (this.exitInfo?.signal) {
-      error = new Error(`Claude Code process terminated by signal ${this.exitInfo.signal}`);
+      error = new Error(
+        `Claude Code process terminated by signal ${this.exitInfo.signal}${this.formatStderrTail()}`
+      );
     }
     if (error && !(error instanceof AbortError) && this.lastErrorResultText !== undefined) {
       error = new Error(`Claude Code returned an error result: ${this.lastErrorResultText}`);
@@ -319,6 +380,26 @@ export class QueryImpl implements Query {
     // (abort listener, control handler, stdout reader, in-process MCP servers)
     this.shutdown();
     this.releaseResources();
+  }
+
+  /**
+   * Stop waiting on a stderr pipe that outlived the CLI (a forked child still
+   * holds it): later output is ignored and the pipe must not keep the host
+   * alive — unref it, or destroy it when it cannot be unref'd (official SDK).
+   */
+  private releaseStderr(): void {
+    const stderr = this.process?.stderr as
+      | (NonNullable<ChildProcess['stderr']> & { unref?: () => void })
+      | null
+      | undefined;
+    if (!stderr) return;
+    if (typeof stderr.unref === 'function') stderr.unref();
+    else stderr.destroy();
+  }
+
+  private formatStderrTail(): string {
+    const tail = redactSecrets(this.stderrTail.slice(-STDERR_TAIL_CHARS)).trim();
+    return tail ? `. stderr: ${tail}` : '';
   }
 
   /**
@@ -501,9 +582,12 @@ export class QueryImpl implements Query {
     await this.controlManager.sendControlRequestWithResponse(ControlRequests.setModel(model));
   }
 
-  async setMaxThinkingTokens(maxThinkingTokens: number | null): Promise<void> {
+  async setMaxThinkingTokens(
+    maxThinkingTokens: number | null,
+    thinkingDisplay?: 'summarized' | 'omitted' | 'highlights' | null
+  ): Promise<void> {
     await this.controlManager.sendControlRequestWithResponse(
-      ControlRequests.setMaxThinkingTokens(maxThinkingTokens)
+      ControlRequests.setMaxThinkingTokens(maxThinkingTokens, thinkingDisplay)
     );
   }
 
@@ -513,7 +597,10 @@ export class QueryImpl implements Query {
     );
   }
 
-  async updateSettings(source: 'localSettings', settings: Record<string, unknown>): Promise<void> {
+  async updateSettings(
+    source: 'localSettings' | 'userSettings',
+    settings: Record<string, unknown>
+  ): Promise<void> {
     await this.controlManager.sendControlRequestWithResponse(
       ControlRequests.updateSettings(source, settings)
     );
@@ -529,7 +616,9 @@ export class QueryImpl implements Query {
       for await (const msg of stream) {
         count++;
         if (this.aborted || this.closed) break;
-        this.controlManager.writeToStdin(msg);
+        this.controlManager.writeToStdin(
+          this.options.verbatimPrompts ? { ...msg, client_composed: true } : msg
+        );
       }
       if (count > 0 && this.hasBidirectionalNeeds()) await this.waitForFirstResult();
       this.endInput();
@@ -603,7 +692,7 @@ export class QueryImpl implements Query {
 
   async supportedCommands(): Promise<SlashCommand[]> {
     const init = await this.controlManager.waitForInit();
-    return init.commands;
+    return this.latestCommands ?? init.commands;
   }
 
   async supportedAgents(): Promise<AgentInfo[]> {
@@ -646,9 +735,11 @@ export class QueryImpl implements Query {
     );
   }
 
-  async usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET(): Promise<SDKControlGetUsageResponse> {
+  async usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET(opts?: {
+    skipBehaviors?: boolean;
+  }): Promise<SDKControlGetUsageResponse> {
     return this.controlManager.sendControlRequestWithResponse<SDKControlGetUsageResponse>(
-      ControlRequests.getUsage()
+      ControlRequests.getUsage(opts)
     );
   }
 
@@ -703,11 +794,14 @@ export class QueryImpl implements Query {
     );
   }
 
+  /** Requires `enableFileCheckpointing` for the CLI to have snapshots to restore. */
   async rewindFiles(
-    _userMessageId: string,
-    _options?: { dryRun?: boolean }
+    userMessageId: string,
+    options?: { dryRun?: boolean }
   ): Promise<RewindFilesResult> {
-    throw new Error('rewindFiles() not yet implemented');
+    return this.controlManager.sendControlRequestWithResponse<RewindFilesResult>(
+      ControlRequests.rewindFiles(userMessageId, options?.dryRun)
+    );
   }
 
   async reconnectMcpServer(serverName: string): Promise<void> {
@@ -719,6 +813,16 @@ export class QueryImpl implements Query {
   async toggleMcpServer(serverName: string, enabled: boolean): Promise<void> {
     await this.controlManager.sendControlRequestWithResponse(
       ControlRequests.mcpToggle(serverName, enabled)
+    );
+  }
+
+  /** Read an MCP Apps `ui://` resource from a server the CLI connected (alpha). */
+  async readMcpResource(
+    serverName: string,
+    uri: string
+  ): Promise<SDKControlMcpReadResourceResponse> {
+    return this.controlManager.sendControlRequestWithResponse<SDKControlMcpReadResourceResponse>(
+      ControlRequests.mcpReadResource(serverName, uri)
     );
   }
 
@@ -740,9 +844,10 @@ export class QueryImpl implements Query {
     serverName: string,
     mode: 'default' | 'auto' | null
   ): Promise<{ warning?: string }> {
-    return this.controlManager.sendControlRequestWithResponse(
-      ControlRequests.setMcpPermissionModeOverride(serverName, mode)
-    );
+    const response = await this.controlManager.sendControlRequestWithResponse<{
+      warning?: string;
+    }>(ControlRequests.setMcpPermissionModeOverride(serverName, mode));
+    return response ?? {};
   }
 
   // ============================================================================
