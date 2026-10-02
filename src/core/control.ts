@@ -9,13 +9,13 @@
  * @internal
  */
 
-import type { Writable } from 'node:stream';
 import {
   type ApplyFlagSettingsRequest,
   type BackgroundTasksRequest,
   type ControlRequest,
   type ControlResponse,
   type GetContextUsageRequest,
+  type GetTaskOutputRequest,
   type GetUsageRequest,
   type InitializeRequest,
   type InternalHookCallback,
@@ -51,6 +51,7 @@ import type {
   UserDialogResult,
 } from '../types/index.ts';
 import type { McpServerBridge } from './mcpBridge.ts';
+import type { StdinLike } from './stdinGate.ts';
 
 // ============================================================================
 // Outbound request builders (SDK → CLI)
@@ -83,7 +84,8 @@ export type OutboundControlRequest =
   | GetUsageRequest
   | ReadFileRequest
   | BackgroundTasksRequest
-  | ListPermissionRulesRequest;
+  | ListPermissionRulesRequest
+  | GetTaskOutputRequest;
 
 /**
  * Type-safe control request builder functions
@@ -211,6 +213,11 @@ export const ControlRequests = {
     subtype: RequestSubtype.LIST_PERMISSION_RULES,
   }),
 
+  getTaskOutput: (taskId: string): GetTaskOutputRequest => ({
+    subtype: RequestSubtype.GET_TASK_OUTPUT,
+    task_id: taskId,
+  }),
+
   readFile: (path: string, maxBytes?: number): ReadFileRequest => ({
     subtype: RequestSubtype.READ_FILE,
     path,
@@ -236,9 +243,13 @@ export class ControlProtocolHandler {
   /** In-flight inbound requests, cancellable by `control_cancel_request` */
   private inflight = new Map<string, AbortController>();
   private closed = false;
+  /** Set once the `initialize` request has been written to stdin. */
+  initializeWritten = false;
+  /** In-process servers that sent `tools/list_changed` before `initialize`. */
+  readonly toolsChangedBeforeInitialize = new Set<string>();
 
   constructor(
-    private stdin: Writable,
+    private stdin: StdinLike,
     private options: Options
   ) {}
 
@@ -278,6 +289,15 @@ export class ControlProtocolHandler {
    */
   sendMcpMessageToCli(serverName: string, message: Record<string, unknown>): void {
     if (this.closed) return;
+    // A tool list that changed before `initialize` was written makes a
+    // captured tools/list stale (see mcpManifests.ts)
+    if (
+      !this.initializeWritten &&
+      !('id' in message) &&
+      message.method === 'notifications/tools/list_changed'
+    ) {
+      this.toolsChangedBeforeInitialize.add(serverName);
+    }
     this.write({
       type: MessageType.CONTROL_REQUEST,
       request_id: Math.random().toString(36).substring(2, 15),

@@ -7,6 +7,8 @@
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { normalizeObjectSchema } from '@modelcontextprotocol/sdk/server/zod-compat.js';
+import { toJsonSchemaCompat } from '@modelcontextprotocol/sdk/server/zod-json-schema-compat.js';
 import type { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 
 // ============================================================================
@@ -86,6 +88,81 @@ function validTimeout(value: number | undefined): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
+/** Warning code for a tool left out because its schema can't be converted (official SDK). */
+const SCHEMA_UNCONVERTIBLE_CODE = 'CLAUDE_SDK_MCP_TOOL_SCHEMA_UNCONVERTIBLE';
+
+const UNDEFINED_SCHEMA_HINT =
+  'a schema this tool uses is not defined yet, or a zod 3 schema is nested inside a zod 4 one. Define every schema this tool uses before passing the server to query(), startup() or setMcpServers(). Build the whole schema with zod 3 or with zod 4, not a mix of the two. A zod 4 z.lazy whose function has thrown once stays broken, so create the schema, its tool and the server again to get the tool back.';
+
+/**
+ * Hint appended to the unconvertible-schema warning (official SDK text; its
+ * zod-version-mismatch hint is omitted since we don't bundle our own zod).
+ */
+function schemaErrorHint(error: unknown): string {
+  if (error instanceof ReferenceError) {
+    return "Something this tool's schema reads, such as a z.lazy target or a default value, is not defined yet. Define every schema this tool uses before passing the server to query(), startup() or setMcpServers(). A zod 4 z.lazy whose function has thrown once stays broken, so create the schema, its tool and the server again to get the tool back.";
+  }
+  if (error instanceof TypeError) return `This can mean ${UNDEFINED_SCHEMA_HINT}`;
+  return "Change this tool's schema so that every field can be converted.";
+}
+
+/**
+ * Make a registered tool report itself disabled while its input schema can't
+ * be converted to JSON Schema, so one bad tool drops out of `tools/list`
+ * (with a single warning naming it) instead of failing the whole listing.
+ * Mirrors the official SDK (v0.3.286).
+ */
+function guardSchemaConversion(
+  registered: { enabled: boolean; inputSchema?: unknown },
+  toolName: string,
+  serverName: string
+): void {
+  if (
+    !Object.getOwnPropertyDescriptor(registered, 'enabled')?.configurable ||
+    !Object.isExtensible(registered)
+  ) {
+    return;
+  }
+  let enabled = registered.enabled;
+  let convertedSchema: unknown;
+  let warnedSchema: unknown;
+  Object.defineProperty(registered, 'enabled', {
+    configurable: true,
+    enumerable: true,
+    get() {
+      if (!enabled || convertedSchema === registered.inputSchema) return enabled;
+      try {
+        // Same conversion McpServer's tools/list handler runs
+        const obj = normalizeObjectSchema(registered.inputSchema as never);
+        if (obj) toJsonSchemaCompat(obj, { strictUnions: true, pipeStrategy: 'input' });
+        convertedSchema = registered.inputSchema;
+        return true;
+      } catch (error) {
+        if (warnedSchema !== registered.inputSchema) {
+          warnedSchema = registered.inputSchema;
+          const reason = (error instanceof Error ? error.message : String(error)).replace(
+            /\.$/,
+            ''
+          );
+          const message = [
+            `Tool "${toolName}" on SDK MCP server "${serverName}" was left out of the server's tool list, because its input schema cannot be converted to JSON Schema${reason ? `: ${reason}` : ''}. The server's other tools are unaffected.`,
+            schemaErrorHint(error),
+          ].join(' ');
+          if (typeof process !== 'undefined' && typeof process.emitWarning === 'function') {
+            process.emitWarning(message, { code: SCHEMA_UNCONVERTIBLE_CODE });
+          } else {
+            console.warn(message);
+          }
+        }
+        return false;
+      }
+    },
+    set(value: boolean) {
+      enabled = value;
+    },
+  });
+}
+
 // ============================================================================
 // Functions
 // ============================================================================
@@ -126,7 +203,7 @@ export function createSdkMcpServer(
 
   if (options.tools) {
     for (const t of options.tools) {
-      server.registerTool(
+      const registered = server.registerTool(
         t.name,
         {
           description: t.description,
@@ -136,6 +213,7 @@ export function createSdkMcpServer(
         },
         t.handler
       );
+      guardSchemaConversion(registered, t.name, options.name);
     }
   }
 

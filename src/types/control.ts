@@ -64,6 +64,7 @@ export const RequestSubtype = {
   BACKGROUND_TASKS: 'background_tasks',
   REQUEST_USER_DIALOG: 'request_user_dialog',
   LIST_PERMISSION_RULES: 'list_permission_rules',
+  GET_TASK_OUTPUT: 'get_task_output',
 } as const;
 
 /** Control response subtypes */
@@ -135,7 +136,8 @@ export type ControlRequestInner =
   | ReloadOutputStylesRequest
   | RequestUserDialogRequest
   | GetUsageRequest
-  | ListPermissionRulesRequest;
+  | ListPermissionRulesRequest
+  | GetTaskOutputRequest;
 
 export type CanUseToolRequest = {
   subtype: typeof RequestSubtype.CAN_USE_TOOL;
@@ -162,6 +164,12 @@ export type HookCallbackRequest = {
   tool_use_id?: string;
 };
 
+/** One in-process server's captured MCP handshake (official SDK shape). */
+export type SdkMcpServerManifest = {
+  initializeResult: Record<string, unknown>;
+  toolsListResult?: Record<string, unknown>;
+};
+
 export type InitializeRequest = {
   subtype: typeof RequestSubtype.INITIALIZE;
   systemPrompt?: string[];
@@ -169,6 +177,8 @@ export type InitializeRequest = {
   systemPromptSnapshot?: boolean;
   sdkMcpServers?: string[];
   sdkMcpServerConfigs?: Record<string, { timeout?: number }>;
+  /** Handshake results of in-process servers, captured before initialize. */
+  sdkMcpServerManifests?: Record<string, SdkMcpServerManifest>;
   jsonSchema?: Record<string, unknown>;
   planModeInstructions?: string;
   toolAliases?: Record<string, string>;
@@ -303,6 +313,24 @@ export type GetUsageRequest = {
 
 export type ListPermissionRulesRequest = {
   subtype: typeof RequestSubtype.LIST_PERMISSION_RULES;
+};
+
+export type GetTaskOutputRequest = {
+  subtype: typeof RequestSubtype.GET_TASK_OUTPUT;
+  task_id: string;
+};
+
+/**
+ * Success payload answering get_task_output. Mirrors the official SDK's
+ * SDKControlGetTaskOutputResponse, which sdk.d.ts declares but does not export.
+ */
+export type GetTaskOutputResponse = {
+  /** The end of the output (at most the last 8 KiB), decoded as UTF-8. */
+  output: string;
+  /** The size of the whole output in bytes. */
+  total_bytes: number;
+  /** Whether `output` is only the tail of the whole output. */
+  truncated: boolean;
 };
 
 export type ReadFileRequest = {

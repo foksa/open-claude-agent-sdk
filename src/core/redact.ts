@@ -36,7 +36,11 @@ const SLACK_CHARS = '[A-Za-z0-9+/=%_-]';
 
 const RULES: Rule[] = [
   // HTTP auth headers
-  [/\bBearer\s+[A-Za-z0-9._~+/=-]{8,}/gi, 'Bearer <token>'],
+  // Percent-encoded characters count toward the token (v0.3.287)
+  [
+    /\bBearer\s+(?=[A-Za-z0-9._~+/=-](?:[A-Za-z0-9._~+/=-]|%[0-9A-Fa-f]{2}){7})[A-Za-z0-9._~+/=-](?:[A-Za-z0-9._~+/=-]+|%[0-9A-Fa-f]{2})*/gi,
+    'Bearer <token>',
+  ],
   [/(:\s*)Basic\s+[A-Za-z0-9+/=]{8,}/gi, '$1Basic <token>'],
   // Anthropic / OpenAI-style keys
   [token('sk-ant-', '[A-Za-z0-9_-]', 8, mixedAlnum(8)), '<token>'],

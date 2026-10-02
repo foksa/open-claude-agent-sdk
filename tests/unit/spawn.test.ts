@@ -19,8 +19,14 @@ describe('buildCliArgs', () => {
     expect(args).toContain('--verbose');
   });
 
-  test('includes default permission mode', () => {
+  test('omits --permission-mode when permissionMode is not set (v0.3.286)', () => {
     const args = buildCliArgs({});
+
+    expect(args).not.toContain('--permission-mode');
+  });
+
+  test('passes explicit default permission mode', () => {
+    const args = buildCliArgs({ permissionMode: 'default' });
 
     expect(args).toContain('--permission-mode');
     expect(args).toContain('default');

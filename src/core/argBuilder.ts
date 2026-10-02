@@ -20,9 +20,6 @@ import type { Options } from '../types/index.ts';
 // Defaults — match official SDK behavior (discovered via proxy analysis)
 // ============================================================================
 
-/** Official SDK passes --permission-mode default explicitly */
-const DEFAULT_PERMISSION_MODE = 'default';
-
 /** Required CLI flags for stream-json protocol */
 const REQUIRED_CLI_FLAGS = [
   '--output-format',
@@ -219,8 +216,11 @@ function applyFlagMap(args: string[], options: Options): void {
 export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   const args: string[] = [...REQUIRED_CLI_FLAGS];
 
-  // Permission mode — always pass explicitly (official SDK behavior)
-  args.push('--permission-mode', options.permissionMode ?? DEFAULT_PERMISSION_MODE);
+  // Permission mode — only when set; an omitted mode is left to the CLI so a
+  // settings `defaultMode` applies (official SDK behavior since v0.3.286)
+  if (options.permissionMode !== undefined) {
+    args.push('--permission-mode', options.permissionMode);
+  }
 
   // All simple flag mappings
   applyFlagMap(args, options);

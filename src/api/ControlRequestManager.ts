@@ -8,8 +8,8 @@
  * @internal
  */
 
-import type { Writable } from 'node:stream';
 import type { OutboundControlRequest } from '../core/control.ts';
+import type { StdinLike } from '../core/stdinGate.ts';
 import { MessageType, ResponseSubtype } from '../types/control.ts';
 import type { SDKControlInitializeResponse } from '../types/index.ts';
 import type { ControlResponsePayload } from './MessageRouter.ts';
@@ -27,7 +27,7 @@ export class ControlRequestManager {
   private initResponsePromise: Promise<SDKControlInitializeResponse>;
   private _initRequestId = '';
 
-  constructor(private stdin: Writable | null) {
+  constructor(private stdin: StdinLike | null) {
     this.initResponsePromise = new Promise<SDKControlInitializeResponse>((resolve, reject) => {
       this.initResolve = resolve;
       this.initReject = reject;

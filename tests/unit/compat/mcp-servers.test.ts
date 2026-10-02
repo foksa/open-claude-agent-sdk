@@ -170,4 +170,95 @@ describe('mcpServers init message compatibility', () => {
     },
     { timeout: 60000 }
   );
+
+  test.concurrent(
+    'sdkMcpServerManifests in init message match official SDK byte for byte',
+    async () => {
+      const makeServers = () => ({
+        tools: createSdkMcpServer({
+          name: 'tools',
+          version: '2.0.0',
+          instructions: 'Use these',
+          tools: [
+            tool('get_time', 'Get current time', {}, async () => ({ content: [] }), {
+              annotations: { readOnlyHint: true },
+              searchHint: 'clock',
+            }),
+          ],
+        }),
+        empty: createSdkMcpServer({ name: 'empty' }),
+      });
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { mcpServers: makeServers() }),
+        capture(officialQuery, 'test', { mcpServers: makeServers() }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+      expect(officialInit?.request?.sdkMcpServerManifests).toBeDefined();
+      expect(JSON.stringify(openInit?.request?.sdkMcpServerManifests)).toBe(
+        JSON.stringify(officialInit?.request?.sdkMcpServerManifests)
+      );
+      // The prompt still follows initialize
+      expect(open.stdin.map((m) => m.request?.subtype ?? m.type)).toEqual(
+        official.stdin.map((m) => m.request?.subtype ?? m.type)
+      );
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'servers that miss the 250ms deadline or fail initialize are left out like official',
+    async () => {
+      // Hand-rolled in-process servers: one answers after 400ms, one with an error
+      const fake = (mode: 'slow' | 'error') => ({
+        type: 'sdk' as const,
+        name: mode,
+        instance: {
+          async connect(transport: {
+            onmessage?: (m: { id?: unknown }) => void;
+            send(m: unknown): Promise<void>;
+          }) {
+            transport.onmessage = (m) => {
+              if (m.id === undefined) return;
+              const reply =
+                mode === 'error'
+                  ? { jsonrpc: '2.0', id: m.id, error: { code: -1, message: 'no' } }
+                  : {
+                      jsonrpc: '2.0',
+                      id: m.id,
+                      result: {
+                        protocolVersion: '2025-11-25',
+                        capabilities: {},
+                        serverInfo: { name: 'slow', version: '1' },
+                      },
+                    };
+              setTimeout(() => transport.send(reply).catch(() => {}), mode === 'slow' ? 400 : 0);
+            };
+          },
+          async close() {},
+        },
+      });
+      const makeServers = () =>
+        ({
+          slow: fake('slow'),
+          failing: fake('error'),
+          good: createSdkMcpServer({ name: 'good' }),
+        }) as never;
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { mcpServers: makeServers() }),
+        capture(officialQuery, 'test', { mcpServers: makeServers() }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+      expect(Object.keys(officialInit?.request?.sdkMcpServerManifests ?? {})).toEqual(['good']);
+      expect(JSON.stringify(openInit?.request?.sdkMcpServerManifests)).toBe(
+        JSON.stringify(officialInit?.request?.sdkMcpServerManifests)
+      );
+    },
+    { timeout: 60000 }
+  );
 });

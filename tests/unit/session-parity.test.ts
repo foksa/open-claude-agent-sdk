@@ -596,6 +596,284 @@ describe('rewound branch parity (v0.3.283)', () => {
   }
 });
 
+describe('session reader parity (v0.3.284–v0.3.287)', () => {
+  function session(name: string) {
+    const project = makeProject(`${name}-${uuid()}`);
+    const id = uuid();
+    const base = { sessionId: id, cwd: project, timestamp: '2020-01-01T00:00:00.000Z' };
+    let tick = 0;
+    const at = () => ({
+      ...base,
+      timestamp: `2020-01-01T00:00:${String(tick++).padStart(2, '0')}.000Z`,
+    });
+    const prompt = (
+      u: string,
+      parentUuid: string | null,
+      content: unknown,
+      extra: Line = {}
+    ): Line => ({
+      ...at(),
+      type: 'user',
+      uuid: u,
+      parentUuid,
+      message: { role: 'user', content },
+      ...extra,
+    });
+    const reply = (u: string, parentUuid: string, text: string): Line => ({
+      ...at(),
+      type: 'assistant',
+      uuid: u,
+      parentUuid,
+      message: { id: `msg_${u}`, role: 'assistant', content: [{ type: 'text', text }] },
+    });
+    const queued = (u: string, parentUuid: string, attachment: Line): Line => ({
+      ...at(),
+      type: 'attachment',
+      uuid: u,
+      parentUuid,
+      attachment: { type: 'queued_command', ...attachment },
+    });
+    return { project, id, base, at, prompt, reply, queued };
+  }
+
+  async function expectMessagesMatch(project: string, id: string) {
+    for (const includeSystemMessages of [false, true]) {
+      const opts = { dir: project, includeSystemMessages };
+      const theirs = await official.getSessionMessages(id, opts);
+      expect(await open.getSessionMessages(id, opts)).toEqual(theirs);
+    }
+    return official.getSessionMessages(id, { dir: project });
+  }
+
+  test('a message sent while Claude worked, with no reply before the process stopped', async () => {
+    const { project, id, at, prompt, reply, queued } = session('trailing');
+    const [u1, a1, p1, q1, q2] = Array.from({ length: 5 }, uuid);
+    writeSession(project, id, [
+      prompt(u1, null, 'Start'),
+      reply(a1, u1, 'working'),
+      { ...at(), type: 'progress', uuid: p1, parentUuid: a1, data: {} },
+      queued(q1, p1, { prompt: 'sent mid-turn' }),
+      queued(q2, a1, { prompt: 'also sent' }),
+    ]);
+    const theirs = JSON.stringify(await expectMessagesMatch(project, id));
+    expect(theirs).toContain('sent mid-turn');
+  });
+
+  for (const key of ['commandUuid', 'deliveryId'] as const) {
+    test(`a message absorbed mid-turn (${key}) and followed by another prompt`, async () => {
+      const { project, id, prompt, reply, queued } = session(`absorbed-${key}`);
+      const [u1, a1, q1, u2, a2] = Array.from({ length: 5 }, uuid);
+      const attachment =
+        key === 'commandUuid'
+          ? { prompt: 'absorbed', source_uuid: 'client-1' }
+          : { prompt: 'absorbed', delivery_id: 'dlv-1' };
+      writeSession(project, id, [
+        prompt(u1, null, 'Start'),
+        reply(a1, u1, 'working'),
+        queued(q1, a1, attachment),
+        {
+          type: 'queue-operation',
+          operation: 'remove',
+          reason: 'absorbed_mid_turn',
+          [key]: key === 'commandUuid' ? 'client-1' : 'dlv-1',
+          sessionId: id,
+        },
+        prompt(u2, q1, 'Next prompt'),
+        reply(a2, u2, 'done'),
+      ]);
+      const theirs = JSON.stringify(await expectMessagesMatch(project, id));
+      expect(theirs).toContain('absorbed');
+    });
+  }
+
+  test('meta messages from shown origins, task-notification producer, toolDenialUnanswered', async () => {
+    const { project, id, prompt, reply, queued } = session('origins');
+    const [u1, a1, m1, a2, q1, a3, q2, a4, u2, u3, a5] = Array.from({ length: 11 }, uuid);
+    writeSession(project, id, [
+      prompt(u1, null, 'Start'),
+      reply(a1, u1, 'ok'),
+      prompt(m1, a1, 'channel push', { isMeta: true, origin: { kind: 'channel', server: 's' } }),
+      reply(a2, m1, 'seen'),
+      queued(q1, a2, { prompt: 'from a peer', isMeta: true, origin: { kind: 'peer', from: 'x' } }),
+      reply(a3, q1, 'peer seen'),
+      queued(q2, a3, {
+        prompt: 'task done',
+        origin: { kind: 'task-notification', subkind: 'bg', producer: 'monitor', extra: 1 },
+      }),
+      reply(a4, q2, 'noted'),
+      prompt(u2, a4, 'denied', { toolDenialUnanswered: 'stream-closed' }),
+      prompt(u3, u2, 'other', { toolDenialUnanswered: 'something-else' }),
+      reply(a5, u3, 'fin'),
+    ]);
+    const theirs = JSON.stringify(await expectMessagesMatch(project, id));
+    expect(theirs).toContain('channel push');
+    expect(theirs).toContain('"producer":"monitor"');
+    expect(theirs).toContain('"toolDenialUnanswered":"stream-closed"');
+  });
+
+  function forkFixture(name: string, build: (s: ReturnType<typeof session>) => Line[]) {
+    const s = session(name);
+    const lines = build(s);
+    writeSession(s.project, s.id, lines);
+    const known = new Set([s.id, ...lines.map((l) => l.uuid).filter((u) => typeof u === 'string')]);
+    return { ...s, known: known as Set<string> };
+  }
+
+  async function expectForkMatches(
+    fixture: { project: string; id: string; known: Set<string> },
+    options: official.ForkSessionOptions = {}
+  ) {
+    const { project, id, known } = fixture;
+    const opts = { dir: project, ...options };
+    const forked: Record<string, string> = {};
+    const read = (
+      which: string,
+      result: { ok: official.ForkSessionResult } | { error: string }
+    ) => {
+      if (!('ok' in result)) return result;
+      forked[which] = result.ok.sessionId;
+      return normalizeFork(
+        readFileSync(join(projectDir(project), `${result.ok.sessionId}.jsonl`), 'utf8'),
+        known
+      );
+    };
+    const ours = read('ours', await settle(() => open.forkSession(id, opts)));
+    const theirs = read('theirs', await settle(() => official.forkSession(id, opts)));
+    expect(typeof theirs).toBe('string');
+    expect(ours).toEqual(theirs);
+    // The fork reads back the same history
+    const readBack = async (sid: string) =>
+      normalizeFork(
+        JSON.stringify(await official.getSessionMessages(sid, { dir: project })),
+        known
+      );
+    expect(await readBack(forked.ours as string)).toEqual(await readBack(forked.theirs as string));
+    return official.getSessionMessages(forked.theirs as string, { dir: project });
+  }
+
+  test('forkSession remaps a compact boundary’s preserved message ids', async () => {
+    const fixture = forkFixture('fork-compact', ({ at, prompt, reply }) => {
+      const [u1, a1, b, sum, u2, a2] = Array.from({ length: 6 }, uuid);
+      return [
+        prompt(u1, null, 'Old'),
+        reply(a1, u1, 'old reply'),
+        {
+          ...at(),
+          type: 'system',
+          subtype: 'compact_boundary',
+          uuid: b,
+          parentUuid: null,
+          logicalParentUuid: a1,
+          compactMetadata: {
+            trigger: 'auto',
+            preservedMessages: { uuids: [u1, a1], anchorUuid: sum, allUuids: [u1, a1] },
+          },
+        },
+        prompt(sum, b, 'Summary', { isCompactSummary: true }),
+        prompt(u2, a1, 'After compaction'),
+        reply(a2, u2, 'new reply'),
+      ];
+    });
+    await expectForkMatches(fixture);
+  });
+
+  for (const tail of ['progress', 'fork_briefing'] as const) {
+    test(`forkSession cut at a ${tail} row written at the rewind point`, async () => {
+      let cut = '';
+      const fixture = forkFixture(`fork-cut-${tail}`, ({ at, prompt, reply }) => {
+        const [u1, a1, oldU, oldA, t] = Array.from({ length: 5 }, uuid);
+        cut = t;
+        return [
+          prompt(u1, null, 'Start'),
+          reply(a1, u1, 'first'),
+          prompt(oldU, a1, 'Abandoned branch'),
+          reply(oldA, oldU, 'abandoned reply'),
+          tail === 'progress'
+            ? { ...at(), type: 'progress', uuid: t, parentUuid: a1, data: {} }
+            : {
+                ...at(),
+                type: 'attachment',
+                uuid: t,
+                parentUuid: a1,
+                attachment: { type: 'fork_briefing', text: 'b' },
+              },
+        ];
+      });
+      await expectForkMatches(fixture, { upToMessageId: cut });
+      const copied = readFileSync(
+        join(
+          projectDir(fixture.project),
+          `${(await open.forkSession(fixture.id, { dir: fixture.project, upToMessageId: cut })).sessionId}.jsonl`
+        ),
+        'utf8'
+      );
+      expect(copied).not.toContain('Abandoned branch');
+    });
+  }
+
+  test('forkSession leaves out a compaction of a rewound-away branch', async () => {
+    let cut = '';
+    const fixture = forkFixture('fork-dead-compact', ({ at, prompt, reply }) => {
+      const [u1, a1, oldU, oldA, b, sum, newU, newA] = Array.from({ length: 8 }, uuid);
+      cut = newA;
+      return [
+        prompt(u1, null, 'Start'),
+        reply(a1, u1, 'first'),
+        prompt(oldU, a1, 'Abandoned branch'),
+        reply(oldA, oldU, 'abandoned reply'),
+        {
+          ...at(),
+          type: 'system',
+          subtype: 'compact_boundary',
+          uuid: b,
+          parentUuid: null,
+          logicalParentUuid: oldA,
+          compactMetadata: {
+            preservedSegment: { headUuid: oldU, anchorUuid: sum, tailUuid: oldA },
+          },
+        },
+        prompt(sum, b, 'Summary of abandoned', { isCompactSummary: true }),
+        prompt(newU, a1, 'Kept branch'),
+        reply(newA, newU, 'kept reply'),
+      ];
+    });
+    await expectForkMatches(fixture, { upToMessageId: cut });
+  });
+
+  test('getSubagentMessages returns a message the subagent read', async () => {
+    const { project, id, base, prompt, reply } = session('subagent-read');
+    writeSession(project, id, conversation(id, project, 'Parent'));
+    const subDir = join(projectDir(project), id, 'subagents');
+    mkdirSync(subDir, { recursive: true });
+    const [u, a1, q, a2] = Array.from({ length: 4 }, uuid);
+    const lines: Line[] = [
+      { ...prompt(u, null, 'Task'), isSidechain: true },
+      { ...reply(a1, u, 'working'), isSidechain: true },
+      {
+        ...base,
+        type: 'attachment',
+        uuid: q,
+        parentUuid: a1,
+        isSidechain: true,
+        attachment: { type: 'queued_command', prompt: 'message sent to the agent', isMeta: true },
+      },
+      { ...reply(a2, q, 'got it'), isSidechain: true },
+    ];
+    writeFileSync(
+      join(subDir, 'agent-r1.jsonl'),
+      lines.map((l) => `${JSON.stringify(l)}\n`).join('')
+    );
+    for (const page of [{}, { limit: 2 }, { offset: 2 }]) {
+      const opts = { dir: project, ...page };
+      const theirs = await official.getSubagentMessages(id, 'r1', opts);
+      expect(await open.getSubagentMessages(id, 'r1', opts)).toEqual(theirs);
+    }
+    expect(
+      JSON.stringify(await official.getSubagentMessages(id, 'r1', { dir: project }))
+    ).toContain('message sent to the agent');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Subagents
 // ---------------------------------------------------------------------------

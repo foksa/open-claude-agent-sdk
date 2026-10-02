@@ -13,6 +13,7 @@ import {
 import { z } from 'zod';
 import { ControlProtocolHandler } from '../../src/core/control.ts';
 import { connectMcpBridges, McpServerBridge } from '../../src/core/mcpBridge.ts';
+import { captureSdkMcpManifests, manifestCaptureEnabled } from '../../src/core/mcpManifests.ts';
 import { createSdkMcpServer, tool } from '../../src/mcp.ts';
 
 function capturingStdin() {
@@ -24,6 +25,32 @@ function capturingStdin() {
     },
   });
   return { stream, writes };
+}
+
+async function listTools(instance: unknown) {
+  const bridge = new McpServerBridge(instance as never, () => {});
+  await bridge.connect();
+  const init = (await bridge.handleMessage({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'initialize',
+    params: {
+      protocolVersion: '2025-06-18',
+      capabilities: {},
+      clientInfo: { name: 't', version: '1' },
+    },
+  })) as { result: { instructions?: string } };
+  const tools = (await bridge.handleMessage({
+    jsonrpc: '2.0',
+    id: 2,
+    method: 'tools/list',
+  })) as {
+    result: { tools: { name: string; _meta?: unknown }[] };
+  };
+  return {
+    instructions: init.result.instructions,
+    tools: tools.result.tools.map((t) => ({ name: t.name, _meta: t._meta })),
+  };
 }
 
 const ping = tool('ping', 'Ping', {}, async () => ({ content: [{ type: 'text', text: 'pong' }] }));
@@ -163,32 +190,6 @@ describe('tool() / createSdkMcpServer() metadata parity', () => {
     const ours = createSdkMcpServer(options);
     const theirs = officialCreateSdkMcpServer(options as never);
 
-    const listTools = async (instance: unknown) => {
-      const bridge = new McpServerBridge(instance as never, () => {});
-      await bridge.connect();
-      const init = (await bridge.handleMessage({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'initialize',
-        params: {
-          protocolVersion: '2025-06-18',
-          capabilities: {},
-          clientInfo: { name: 't', version: '1' },
-        },
-      })) as { result: { instructions?: string } };
-      const tools = (await bridge.handleMessage({
-        jsonrpc: '2.0',
-        id: 2,
-        method: 'tools/list',
-      })) as {
-        result: { tools: { name: string; _meta?: unknown }[] };
-      };
-      return {
-        instructions: init.result.instructions,
-        tools: tools.result.tools.map((t) => ({ name: t.name, _meta: t._meta })),
-      };
-    };
-
     const [oursListed, theirsListed] = [
       await listTools(ours.instance),
       await listTools(theirs.instance),
@@ -198,5 +199,82 @@ describe('tool() / createSdkMcpServer() metadata parity', () => {
       tools: [{ name: 'ping', _meta: { 'anthropic/alwaysLoad': true } }],
     });
     expect(oursListed).toEqual(theirsListed);
+  });
+});
+
+describe('createSdkMcpServer() unconvertible tool schemas (v0.3.286)', () => {
+  test('leaves out only the tool whose schema cannot be converted, warning once like official', async () => {
+    const options = () => ({
+      name: 'schemas',
+      tools: [
+        tool('good', 'Good', { a: z.string() }, async () => ({ content: [] })),
+        tool('bad', 'Bad', { a: z.custom<string>() }, async () => ({ content: [] })),
+      ],
+    });
+    const warnings: { code?: string; message: string }[] = [];
+    const onWarning = (w: Error & { code?: string }) => warnings.push(w);
+    process.on('warning', onWarning);
+    try {
+      const ours = await listTools(createSdkMcpServer(options()).instance);
+      await listTools(createSdkMcpServer(options()).instance);
+      const theirs = await listTools(officialCreateSdkMcpServer(options() as never).instance);
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(ours.tools.map((t) => t.name)).toEqual(['good']);
+      expect(theirs.tools.map((t) => t.name)).toEqual(['good']);
+
+      const oursWarned = warnings.filter(
+        (w) =>
+          w.code === 'CLAUDE_SDK_MCP_TOOL_SCHEMA_UNCONVERTIBLE' && !w.message.includes('zod 4.')
+      );
+      // One warning per server instance (two of ours), not one per listing
+      expect(oursWarned).toHaveLength(2);
+      expect(oursWarned[0]?.message).toStartWith(
+        'Tool "bad" on SDK MCP server "schemas" was left out of the server\'s tool list, because its input schema cannot be converted to JSON Schema: '
+      );
+    } finally {
+      process.off('warning', onWarning);
+    }
+  });
+});
+
+describe('in-process MCP manifest capture', () => {
+  test('a server whose tools changed before initialize keeps only its handshake', async () => {
+    const { stream } = capturingStdin();
+    const handler = new ControlProtocolHandler(stream, {});
+    const server = createSdkMcpServer({ name: 'live', tools: [ping] });
+    connectMcpBridges({ mcpServers: { live: server } }, handler);
+
+    handler.sendMcpMessageToCli('live', {
+      jsonrpc: '2.0',
+      method: 'notifications/tools/list_changed',
+    });
+    const manifests = await captureSdkMcpManifests(handler, new Promise(() => {}));
+    expect(manifests?.live?.initializeResult).toBeDefined();
+    expect(manifests?.live && 'toolsListResult' in manifests.live).toBe(false);
+  });
+
+  test('a list change after initialize is written does not count', async () => {
+    const { stream } = capturingStdin();
+    const handler = new ControlProtocolHandler(stream, {});
+    handler.initializeWritten = true;
+    handler.sendMcpMessageToCli('live', {
+      jsonrpc: '2.0',
+      method: 'notifications/tools/list_changed',
+    });
+    expect(handler.toolsChangedBeforeInitialize.size).toBe(0);
+  });
+
+  test('CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS turns capture off', () => {
+    const saved = process.env.CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS;
+    try {
+      process.env.CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS = '1';
+      expect(manifestCaptureEnabled()).toBe(false);
+      delete process.env.CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS;
+      expect(manifestCaptureEnabled()).toBe(true);
+    } finally {
+      if (saved === undefined) delete process.env.CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS;
+      else process.env.CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS = saved;
+    }
   });
 });

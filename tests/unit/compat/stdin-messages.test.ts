@@ -1452,6 +1452,34 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'getTaskOutput sends get_task_output control request matching official SDK (v0.3.287)',
+    async () => {
+      // Runtime-only on the official Query class, like listPermissionRules
+      const call = (q: Query) =>
+        (q as unknown as { getTaskOutput(id: string): Promise<unknown> }).getTaskOutput('task-1');
+
+      const [open, official] = await Promise.all([
+        captureWithQuery(openQuery, 'test', async (q) => {
+          await call(q);
+        }),
+        captureWithQuery(officialQuery, 'test', async (q) => {
+          await call(q);
+        }),
+      ]);
+
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'get_task_output');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'get_task_output');
+
+      expect(openReq).toBeTruthy();
+      expect(officialReq).toBeTruthy();
+      if (openReq && officialReq) {
+        expect(normalizeMessage(openReq)).toEqual(normalizeMessage(officialReq));
+      }
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'listPermissionRules sends list_permission_rules control request matching official SDK (v0.3.270)',
     async () => {
       // Not part of the official SDK's public `Query` type (see QueryImpl.ts
