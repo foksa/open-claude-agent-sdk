@@ -42,26 +42,19 @@ We're wrapping a CLI we don't control. Guessing at flags or protocol means our i
 
 **Before implementing any feature:**
 
-1. **Capture official SDK's CLI args + stdin** using `src/tools/capture-cli.cjs`:
+1. **Capture official SDK's CLI args, env + stdin** (wraps `src/tools/capture-cli.cjs`):
    ```bash
-   bun -e "
-   import { query } from '@anthropic-ai/claude-agent-sdk';
-   for await (const msg of query({
-     prompt: 'test',
-     options: {
-       pathToClaudeCodeExecutable: './tests/utils/capture-cli.cjs',
-       // ... your options
-     }
-   })) { if (msg.type === 'result') break; }
-   "
-   cat /tmp/capture-*.json
+   bun .claude/skills/sdk-parity/scripts/capture-official.ts '{"newOption":"value"}'
+   bun .claude/skills/sdk-parity/scripts/capture-official.ts --both '{"newOption":"value"}'  # diff ours vs official
    ```
 
-2. **Add a unit test** in `tests/unit/sdk-compatibility.test.ts` — CLI args and stdin messages must match the official SDK exactly.
+2. **Add a compat test** in `tests/unit/compat/` (`cli-args.test.ts`, `stdin-messages.test.ts`, …) — CLI args, env and stdin messages must match the official SDK exactly. For logic we reimplement, add a parity test that runs both SDKs (`session-parity.test.ts`, `lifecycle.test.ts`, `mcp-bridge.test.ts`), and confirm it fails on the old code.
 
 3. **Add an integration test** that runs the same query through both SDKs and compares behavior.
 
-**Proxy CLI for protocol debugging** — when behavior differs from the official SDK, set `pathToClaudeCodeExecutable: './src/tools/proxy-cli.cjs'` on both SDKs and diff the logs.
+**Proxy CLI for protocol debugging** — when behavior differs from the official SDK, set `pathToClaudeCodeExecutable: './src/tools/proxy-cli.cjs'` on both SDKs (with `env: { ...process.env, PROXY_LOG_LABEL: 'open' | 'official' }`) and diff the logs in `tests/research/logs/`. It runs the official SDK's bundled native binary.
+
+**Runtime behavior** — for logic we reimplement (query lifecycle, session helpers, in-process MCP, redaction), diff the official runtime between versions with `bun .claude/skills/sdk-parity/scripts/diff-runtime.ts` (see the `sdk-parity` skill).
 
 **Official SDK source** lives at `node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs` (minified) — read it to confirm how the official SDK does something.
 

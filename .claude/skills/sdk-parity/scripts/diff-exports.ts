@@ -1,82 +1,107 @@
 #!/usr/bin/env bun
 /**
- * Diff exports between the official @anthropic-ai/claude-agent-sdk and
- * our re-export barrel at src/types/index.ts.
+ * Diff exports between the official @anthropic-ai/claude-agent-sdk and ours.
  *
- * Output: three sections
- *   - Missing: exported by official, NOT re-exported by us
- *   - Extra:   re-exported by us, but no longer in official (renamed/removed)
- *   - Local:   defined locally in our barrel (informational, not a parity issue)
+ * Types come from our re-export barrel (src/types/index.ts); runtime values
+ * from src/index.ts, where we implement them ourselves (never re-exported —
+ * the official SDK is only an optional peer).
+ *
+ * Output sections:
+ *   - MISSING:     exported by official, neither re-exported nor implemented by us — act on these
+ *   - EXTRA:       re-exported by us, but no longer in official (renamed/removed) — investigate
+ *   - UNSUPPORTED: official runtime values we deliberately leave out (informational)
+ *   - LOCAL:       defined locally in our barrel (with --verbose)
  *
  * Usage:
  *   bun .claude/skills/sdk-parity/scripts/diff-exports.ts
  *   bun .claude/skills/sdk-parity/scripts/diff-exports.ts --json
+ *   bun .claude/skills/sdk-parity/scripts/diff-exports.ts --verbose
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const REPO_ROOT = resolve(import.meta.dir, '../../../..');
-const OFFICIAL_DTS = resolve(
-  REPO_ROOT,
-  'node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts',
-);
+const OFFICIAL_DTS = resolve(REPO_ROOT, 'node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts');
 const OUR_BARREL = resolve(REPO_ROOT, 'src/types/index.ts');
+const OUR_ENTRY = resolve(REPO_ROOT, 'src/index.ts');
+
+/**
+ * Official runtime values we deliberately don't provide. Keep in sync with
+ * docs/planning/FEATURES.md ("Not Implemented" / "What We Don't Need").
+ */
+const UNSUPPORTED = new Set([
+  'startup',
+  'prewarm',
+  'resolveSettings',
+  'filterEscalatingDefaultMode',
+  'InMemorySessionStore',
+  'importSessionToStore',
+  'foldSessionSummary',
+]);
+
+/** Drop `//` and block comments so they don't glue onto the next name. */
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+}
+
+function namesInBlock(block: string): string[] {
+  return stripComments(block)
+    .split(',')
+    .map((raw) => raw.trim().replace(/^type\s+/, '').split(/\s+as\s+/).at(-1)?.trim() ?? '')
+    .filter(Boolean);
+}
 
 function parseOfficialExports(source: string): Set<string> {
   const out = new Set<string>();
-  // Matches: export declare (type|interface|class|function|const) NAME
+  // export declare (type|interface|class|function|const) NAME
   const re = /^export declare (?:type|interface|class|function|const)\s+([A-Za-z0-9_]+)/gm;
   for (const m of source.matchAll(re)) out.add(m[1]);
   return out;
 }
 
-function parseBarrelReExports(source: string): {
-  reExported: Set<string>;
-  localOrInternal: Set<string>;
-} {
+function parseBarrel(source: string): { reExported: Set<string>; local: Set<string> } {
   const reExported = new Set<string>();
-  const localOrInternal = new Set<string>();
+  const local = new Set<string>();
 
-  // Block re-exports from official: `export type? { A, B } from '@anthropic-ai/claude-agent-sdk'`
+  // export type? { A, B } from '@anthropic-ai/claude-agent-sdk'
   const blockRe =
     /export\s+(?:type\s+)?\{([^}]+)\}\s+from\s+['"]@anthropic-ai\/claude-agent-sdk['"]/g;
-  for (const m of source.matchAll(blockRe)) {
-    for (const raw of m[1].split(',')) {
-      const name = raw.trim().split(/\s+as\s+/)[0].trim();
-      if (name) reExported.add(name);
-    }
-  }
+  for (const m of source.matchAll(blockRe)) for (const n of namesInBlock(m[1])) reExported.add(n);
 
-  // Local declarations (informational): `export type/interface/class/const/function NAME`
-  // and re-exports from non-official paths (e.g. '../mcp.ts').
-  const localRe =
-    /^export\s+(?:type|interface|class|const|function)\s+([A-Za-z0-9_]+)/gm;
-  for (const m of source.matchAll(localRe)) localOrInternal.add(m[1]);
-
+  // Local declarations and re-exports from our own modules (informational)
+  const localRe = /^export\s+(?:type|interface|class|const|function)\s+([A-Za-z0-9_]+)/gm;
+  for (const m of source.matchAll(localRe)) local.add(m[1]);
   const otherBlockRe =
     /export\s+(?:type\s+)?\{([^}]+)\}\s+from\s+['"](?!@anthropic-ai\/claude-agent-sdk)[^'"]+['"]/g;
-  for (const m of source.matchAll(otherBlockRe)) {
-    for (const raw of m[1].split(',')) {
-      const name = raw.trim().split(/\s+as\s+/)[0].trim();
-      if (name) localOrInternal.add(name);
-    }
-  }
+  for (const m of source.matchAll(otherBlockRe)) for (const n of namesInBlock(m[1])) local.add(n);
 
-  return { reExported, localOrInternal };
+  return { reExported, local };
 }
 
-const officialSrc = readFileSync(OFFICIAL_DTS, 'utf8');
-const barrelSrc = readFileSync(OUR_BARREL, 'utf8');
+/** Runtime values src/index.ts exports (our own implementations). */
+function parseRuntimeExports(source: string): Set<string> {
+  const out = new Set<string>();
+  const clean = stripComments(source);
+  for (const m of clean.matchAll(/export\s+\{([^}]+)\}/g)) {
+    for (const n of namesInBlock(m[1])) out.add(n);
+  }
+  for (const m of clean.matchAll(/^export\s+(?:const|function|class|async function)\s+([A-Za-z0-9_]+)/gm)) {
+    out.add(m[1]);
+  }
+  return out;
+}
 
-const official = parseOfficialExports(officialSrc);
-const { reExported, localOrInternal } = parseBarrelReExports(barrelSrc);
+const official = parseOfficialExports(readFileSync(OFFICIAL_DTS, 'utf8'));
+const { reExported, local } = parseBarrel(readFileSync(OUR_BARREL, 'utf8'));
+const runtime = parseRuntimeExports(readFileSync(OUR_ENTRY, 'utf8'));
 
-const missing = [...official].filter((n) => !reExported.has(n)).sort();
+const provided = (n: string) => reExported.has(n) || runtime.has(n) || local.has(n);
+const missing = [...official].filter((n) => !provided(n) && !UNSUPPORTED.has(n)).sort();
+const unsupported = [...official].filter((n) => !provided(n) && UNSUPPORTED.has(n)).sort();
 const extra = [...reExported].filter((n) => !official.has(n)).sort();
-const local = [...localOrInternal].sort();
 
 if (process.argv.includes('--json')) {
-  console.log(JSON.stringify({ missing, extra, local }, null, 2));
+  console.log(JSON.stringify({ missing, extra, unsupported, local: [...local].sort() }, null, 2));
   process.exit(missing.length > 0 || extra.length > 0 ? 1 : 0);
 }
 
@@ -89,13 +114,13 @@ const fmt = (label: string, items: string[]) => {
   for (const n of items) console.log(`  - ${n}`);
 };
 
-console.log(`Official exports:    ${official.size}`);
-console.log(`Re-exported by us:   ${reExported.size}`);
-console.log(`Local in our barrel: ${local.length}`);
+console.log(`Official exports:          ${official.size}`);
+console.log(`Re-exported types:         ${reExported.size}`);
+console.log(`Runtime values we provide: ${[...runtime].filter((n) => official.has(n)).length}`);
 
-fmt('MISSING (in official, not re-exported)', missing);
+fmt('MISSING (in official, not provided by us)', missing);
 fmt('EXTRA (we re-export, but not in official)', extra);
-
-if (process.argv.includes('--verbose')) fmt('LOCAL (defined in our barrel)', local);
+fmt('UNSUPPORTED (deliberately left out)', unsupported);
+if (process.argv.includes('--verbose')) fmt('LOCAL (defined in our barrel)', [...local].sort());
 
 process.exit(missing.length > 0 || extra.length > 0 ? 1 : 0);
