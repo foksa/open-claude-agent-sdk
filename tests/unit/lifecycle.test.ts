@@ -73,6 +73,79 @@ describe('streamed prompt closes stdin when the generator ends', () => {
   }
 });
 
+describe('single-turn stdin stays open until the run ends (v0.3.284)', () => {
+  const state = (s: string) =>
+    JSON.stringify({
+      type: 'system',
+      subtype: 'session_state_changed',
+      state: s,
+      sdk_host_only: true,
+      session_id: 's',
+    });
+  const resultSaying = (text: string) => JSON.stringify({ ...JSON.parse(RESULT), result: text });
+
+  // Reports whether stdin was still open half a second after the first result
+  // (as when a finished background agent wakes a follow-up turn), then goes idle
+  const script = fakeCli(`marker=$(mktemp -u)
+(cat > /dev/null; touch "$marker") <&0 &
+echo '${state('running')}'
+echo '${RESULT}'
+sleep 0.5
+if [ -e "$marker" ]; then s=closed; else s=open; fi
+echo '${resultSaying('STDIN_STATE')}' | sed "s/STDIN_STATE/$s/"
+echo '${state('idle')}'
+wait
+rm -f "$marker"
+`);
+
+  for (const [name, query] of both) {
+    test(`${name}: stdin is open for the follow-up turn and closes on idle`, async () => {
+      const results: string[] = [];
+      const types: string[] = [];
+      for await (const msg of query({
+        prompt: 'hi',
+        options: {
+          pathToClaudeCodeExecutable: script,
+          settingSources: [],
+          canUseTool: async () => ({ behavior: 'allow', updatedInput: {} }),
+        },
+      })) {
+        types.push(msg.type);
+        if (msg.type === 'result' && msg.subtype === 'success') results.push(msg.result);
+      }
+      expect(results).toEqual(['ok', 'open']);
+      // sdk_host_only session_state_changed messages are not yielded
+      expect(types).toEqual(['result', 'result']);
+    }, 10000);
+  }
+
+  // Never goes idle: only the ceiling after the result can close stdin
+  const neverIdle = fakeCli(`echo '${state('running')}'
+echo '${RESULT}'
+cat > /dev/null
+`);
+
+  for (const [name, query] of both) {
+    test(`${name}: CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS ends the run without idle`, async () => {
+      const started = Date.now();
+      const types: string[] = [];
+      for await (const msg of query({
+        prompt: 'hi',
+        options: {
+          pathToClaudeCodeExecutable: neverIdle,
+          settingSources: [],
+          canUseTool: async () => ({ behavior: 'allow', updatedInput: {} }),
+          env: { ...process.env, CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '300' },
+        },
+      })) {
+        types.push(msg.type);
+      }
+      expect(types).toEqual(['result']);
+      expect(Date.now() - started).toBeGreaterThanOrEqual(300);
+    }, 10000);
+  }
+});
+
 describe('abort', () => {
   const script = fakeCli(
     `echo '{"type":"system","subtype":"init","session_id":"a","tools":[],"mcp_servers":[]}'\nsleep 30\n`

@@ -12,7 +12,7 @@ import type {
   SessionMessage,
 } from '../types/index.ts';
 import { findSessionFile, validateUuid } from './paths.ts';
-import { paginate, type TranscriptEntry, toSessionMessage } from './transcript.ts';
+import { normalizeChain, paginate, type TranscriptEntry, toSessionMessage } from './transcript.ts';
 
 const TOOL_USE_ID_RE = /^[A-Za-z0-9_.:-]{1,128}$/;
 const AGENT_ID_RE = /^[\w-]{1,128}$/;
@@ -129,7 +129,8 @@ export async function getSubagentMessages(
     typeof parentAgentId === 'string' && AGENT_ID_RE.test(parentAgentId)
       ? parentAgentId
       : undefined;
-  const messages = subagentChain(parseSubagentTranscript(buf))
+  // keepMeta: messages the subagent read (e.g. one sent to it) show up too (v0.3.285)
+  const messages = normalizeChain(subagentChain(parseSubagentTranscript(buf)), { keepMeta: true })
     .filter((e) => e.type === 'user' || e.type === 'assistant')
     .map((e) => toSessionMessage(e, parentToolUseId, parentAgent));
   return paginate(messages, options);

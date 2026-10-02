@@ -39,6 +39,12 @@ describe('redactSecrets', () => {
     });
   }
 
+  test('masks a percent-encoded Bearer token whole (v0.3.287)', () => {
+    const token = `${alnum(6)}%2B${alnum(10)}%3D${alnum(8)}`;
+    const out = redactSecrets(`Authorization: Bearer ${token} (retrying)`);
+    expect(out).toBe('Authorization: Bearer <token> (retrying)');
+  });
+
   test('leaves ordinary diagnostics alone', () => {
     const text =
       'Error: ENOENT: no such file or directory, open /Users/me/project/settings.json at task-1234 (skeleton)';

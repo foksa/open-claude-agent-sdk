@@ -32,15 +32,16 @@ By intercepting all communication between SDK and CLI, we can:
 
 ### Implementation
 
-The proxy CLI (`tests/utils/proxy-cli.js`) is a simple Node.js script that:
+The proxy CLI (`src/tools/proxy-cli.cjs`) is a simple Node.js script that:
 
-1. **Spawns the real CLI** with the same arguments
+1. **Spawns the real CLI** with the same arguments and env — the native binary the official SDK ships in its platform package (`@anthropic-ai/claude-agent-sdk-<platform>-<arch>/claude`, musl/glibc and `.exe` handled like the official SDK). Override with `PROXY_REAL_CLI=/path/to/claude`
 2. **Forwards stdin** from SDK to real CLI (logging each message)
 3. **Forwards stdout** from real CLI to SDK (logging each message)
-4. **Logs to timestamped files** for comparison
+4. **Logs to timestamped files** for comparison — set `PROXY_LOG_LABEL` (e.g. via `options.env`) to name each SDK's log:
+   `proxy-<label>-<timestamp>-<pid>.log`
 
 ```javascript
-// Key parts of proxy-cli.js
+// Key parts of proxy-cli.cjs
 const realCli = spawn(REAL_CLI, process.argv.slice(2), {
   stdio: ['pipe', 'pipe', process.stderr]
 });
@@ -74,7 +75,7 @@ bun tests/research/multi-turn-comparison.ts
 ```typescript
 // tests/research/compare-with-proxy.ts
 const options = {
-  pathToClaudeCodeExecutable: './tests/utils/proxy-cli.js'
+  pathToClaudeCodeExecutable: './src/tools/proxy-cli.cjs'
 };
 
 // Run Official SDK
@@ -347,10 +348,10 @@ Build tests that:
 **Problem:** No log files in `tests/research/logs/`
 
 **Solutions:**
-1. Check proxy is executable: `chmod +x tests/research/proxy-cli.js`
+1. Check proxy is executable: `chmod +x src/tools/proxy-cli.cjs`
 2. Verify path is absolute: Use `resolve()` or full path
 3. Check directory exists: `mkdir -p tests/research/logs`
-4. Test proxy directly: `echo '{"test":true}' | ./tests/research/proxy-cli.js --help`
+4. Test proxy directly: `./src/tools/proxy-cli.cjs --version` (exits with an error naming the platform if no bundled binary is installed)
 
 ### SDK Not Using Proxy
 

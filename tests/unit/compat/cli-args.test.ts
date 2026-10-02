@@ -83,6 +83,41 @@ describe('CLI arguments compatibility', () => {
   );
 
   test.concurrent(
+    'omitted permissionMode leaves --permission-mode off like official SDK (v0.3.286)',
+    async () => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', {}),
+        capture(officialQuery, 'test', {}),
+      ]);
+
+      expect(official.args).not.toContain('--permission-mode');
+      expect(open.args).not.toContain('--permission-mode');
+      expect([...open.args].sort()).toEqual([...official.args].sort());
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'CLAUDE_CODE_SDK_READS_SESSION_STATE env matches official SDK (v0.3.284)',
+    async () => {
+      const userSet = { env: { ...process.env, claude_code_sdk_reads_session_state: '0' } };
+      const [open, official, openUserSet, officialUserSet] = await Promise.all([
+        capture(openQuery, 'test', {}),
+        capture(officialQuery, 'test', {}),
+        capture(openQuery, 'test', userSet),
+        capture(officialQuery, 'test', userSet),
+      ]);
+
+      expect(open.env?.CLAUDE_CODE_SDK_READS_SESSION_STATE).toBe('1');
+      expect(official.env?.CLAUDE_CODE_SDK_READS_SESSION_STATE).toBe('1');
+      // A caller's own setting, in any case, is left alone
+      expect(openUserSet.env?.CLAUDE_CODE_SDK_READS_SESSION_STATE).toBeUndefined();
+      expect(officialUserSet.env?.CLAUDE_CODE_SDK_READS_SESSION_STATE).toBeUndefined();
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'permissionMode option args match official SDK',
     async () => {
       const [open, official] = await Promise.all([

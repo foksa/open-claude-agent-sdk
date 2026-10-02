@@ -34,6 +34,7 @@ export interface TranscriptEntry {
   interruptedByShutdown?: boolean;
   isQueuedCommand?: boolean;
   isCompletedLocalCommand?: boolean;
+  toolDenialUnanswered?: unknown;
   teamName?: string;
 }
 
@@ -48,7 +49,7 @@ export type Origin = {
  * Parse JSONL content into transcript entries.
  * Only keeps entries that have a uuid and a relevant type.
  */
-export function parseTranscript(content: string): TranscriptEntry[] {
+export function parseTranscript(content: string, deliveries?: DeliveryState): TranscriptEntry[] {
   const entries: TranscriptEntry[] = [];
   let offset = 0;
   const len = content.length;
@@ -63,6 +64,9 @@ export function parseTranscript(content: string): TranscriptEntry[] {
 
     try {
       const entry = JSON.parse(line);
+      if (deliveries && typeof entry === 'object' && entry !== null) {
+        trackDelivery(entry, deliveries);
+      }
       const type = entry.type;
       if (
         (type === 'user' ||
@@ -79,6 +83,147 @@ export function parseTranscript(content: string): TranscriptEntry[] {
     }
   }
   return entries;
+}
+
+// ============================================================================
+// Mid-turn deliveries (v0.3.285)
+// ============================================================================
+
+/**
+ * Which queued messages the CLI absorbed into a running turn, gathered from
+ * `queue-operation` remove/absorbed_mid_turn rows while parsing. A message
+ * absorbed this way was read by Claude even if no reply follows it (the
+ * process stopped, or another prompt came next). Mirrors the official SDK.
+ */
+export type DeliveryState = {
+  counts: Map<string, number>;
+  copies: Map<string, string>;
+  mixed: Set<string>;
+  deliveryCopies: Map<string, string[]>;
+  deliveryCopyUuids: Set<string>;
+};
+
+export function createDeliveryState(): DeliveryState {
+  return {
+    counts: new Map(),
+    copies: new Map(),
+    mixed: new Set(),
+    deliveryCopies: new Map(),
+    deliveryCopyUuids: new Set(),
+  };
+}
+
+const deliveryKey = (id: string) => `delivery:${id}`;
+const uuidKey = (id: string) => `uuid:${id}`;
+const entryKey = (id: string) => `entry:${id}`;
+
+/** A non-empty string field of a queued-command attachment. */
+function queuedCommandField(
+  entry: { type?: unknown; attachment?: unknown },
+  field: 'delivery_id' | 'source_uuid'
+): string | undefined {
+  const att = entry.type === 'attachment' ? entry.attachment : undefined;
+  if (
+    typeof att !== 'object' ||
+    att === null ||
+    (att as { type?: unknown }).type !== 'queued_command'
+  )
+    return undefined;
+  const value = (att as Record<string, unknown>)[field];
+  return typeof value === 'string' && value ? value : undefined;
+}
+
+function trackDelivery(entry: Record<string, unknown>, state: DeliveryState): void {
+  if (
+    entry.type === 'queue-operation' &&
+    entry.operation === 'remove' &&
+    entry.reason === 'absorbed_mid_turn' &&
+    (typeof entry.deliveryId === 'string' || typeof entry.commandUuid === 'string')
+  ) {
+    const key =
+      typeof entry.deliveryId === 'string' && entry.deliveryId !== ''
+        ? deliveryKey(entry.deliveryId)
+        : typeof entry.commandUuid === 'string'
+          ? uuidKey(entry.commandUuid)
+          : undefined;
+    if (key !== undefined) state.counts.set(key, (state.counts.get(key) ?? 0) + 1);
+    return;
+  }
+  if (typeof entry.type !== 'string' || typeof entry.uuid !== 'string') return;
+  const deliveryId = queuedCommandField(entry, 'delivery_id');
+  if (deliveryId !== undefined) {
+    if (!state.deliveryCopyUuids.has(entry.uuid)) {
+      state.deliveryCopyUuids.add(entry.uuid);
+      const key = deliveryKey(deliveryId);
+      const copies = state.deliveryCopies.get(key);
+      if (copies) copies.push(entry.uuid);
+      else state.deliveryCopies.set(key, [entry.uuid]);
+    }
+    return;
+  }
+  const sourceUuid = queuedCommandField(entry, 'source_uuid');
+  if (sourceUuid === undefined) return;
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(entry.attachment);
+  } catch {
+    state.mixed.add(sourceUuid);
+    return;
+  }
+  const previous = state.copies.get(sourceUuid);
+  if (previous === undefined) state.copies.set(sourceUuid, serialized);
+  else if (previous !== serialized) state.mixed.add(sourceUuid);
+}
+
+/** Finish tracking: counts keyed by delivery/uuid, plus `entry:<uuid>` for delivered copies. */
+export function finishDeliveries(state: DeliveryState): Map<string, number> {
+  for (const uuid of state.mixed) state.counts.delete(uuidKey(uuid));
+  for (const [key, uuids] of state.deliveryCopies) {
+    const count = state.counts.get(key) ?? 0;
+    for (const uuid of uuids.slice(Math.max(0, uuids.length - count))) {
+      state.counts.set(entryKey(uuid), 1);
+    }
+  }
+  return state.counts;
+}
+
+/**
+ * Per chain index, whether a queued command was absorbed mid-turn. With a
+ * delivery id each copy is judged on its own; otherwise the last `count`
+ * copies of a source uuid count as delivered.
+ */
+function deliveredReads(
+  chain: TranscriptEntry[],
+  delivered: Map<string, number> | undefined
+): Map<number, boolean> {
+  const result = new Map<number, boolean>();
+  if (delivered === undefined || delivered.size === 0) return result;
+  const indicesByKey = new Map<string, number[]>();
+  chain.forEach((entry, i) => {
+    const deliveryId = queuedCommandField(entry, 'delivery_id');
+    const sourceUuid = queuedCommandField(entry, 'source_uuid');
+    const key =
+      deliveryId !== undefined
+        ? deliveryKey(deliveryId)
+        : sourceUuid !== undefined
+          ? uuidKey(sourceUuid)
+          : undefined;
+    if (key === undefined || !delivered.has(key)) return;
+    const indices = indicesByKey.get(key);
+    if (indices) indices.push(i);
+    else indicesByKey.set(key, [i]);
+  });
+  for (const [key, indices] of indicesByKey) {
+    if (key.startsWith('delivery:')) {
+      for (const i of indices) result.set(i, delivered.has(entryKey(chain[i].uuid)));
+      continue;
+    }
+    const count = delivered.get(key) as number;
+    indices.forEach((i, n) => {
+      result.set(i, n >= indices.length - count);
+    });
+  }
+  return result;
 }
 
 /**
@@ -213,7 +358,10 @@ function mergeParallelToolUses(
  * 5. Walk from best leaf back to root via parentUuid links
  * 6. Re-insert parallel tool-use siblings the walk skipped
  */
-export function buildConversationChain(entries: TranscriptEntry[]): TranscriptEntry[] {
+export function buildConversationChain(
+  entries: TranscriptEntry[],
+  found?: ChainEnds
+): TranscriptEntry[] {
   const byUuid = new Map<string, TranscriptEntry>();
   for (const entry of entries) byUuid.set(entry.uuid, entry);
   relinkCompactedMessages(byUuid);
@@ -253,6 +401,7 @@ export function buildConversationChain(entries: TranscriptEntry[]): TranscriptEn
   // Newest leaf first: its nearest user/assistant ancestor ends the chain.
   // Rows already walked from a newer leaf lead nowhere, so skip them.
   let best: TranscriptEntry | undefined;
+  let bestLeaf: TranscriptEntry | undefined;
   const walked = new Set<string>();
   for (const leaf of mainLeaves) {
     const path: string[] = [];
@@ -261,6 +410,7 @@ export function buildConversationChain(entries: TranscriptEntry[]): TranscriptEn
     while (current && !walked.has(current.uuid) && !seen.has(current.uuid)) {
       if (current.type === 'user' || current.type === 'assistant') {
         best = current;
+        bestLeaf = leaf;
         break;
       }
       seen.add(current.uuid);
@@ -273,6 +423,7 @@ export function buildConversationChain(entries: TranscriptEntry[]): TranscriptEn
 
   // Fallback (no main-thread leaf reaches a message): the newest message
   // reachable from any leaf, preferring non-sidechain, non-team, non-meta
+  const fromMainLeaf = best;
   if (!best) {
     const candidates: TranscriptEntry[] = [];
     for (const leaf of leaves) {
@@ -308,8 +459,91 @@ export function buildConversationChain(entries: TranscriptEntry[]): TranscriptEn
     current = current.parentUuid ? byUuid.get(current.parentUuid) : undefined;
   }
   chain.reverse();
+  if (found) {
+    found.terminal = best === fromMainLeaf ? bestLeaf : undefined;
+    found.leaf = best;
+  }
 
   return mergeParallelToolUses(byUuid, chain, inChain);
+}
+
+/**
+ * Where a chain ended: `leaf` is its last message, `terminal` the main-thread
+ * leaf row that led to it (unset when the fallback picked the message).
+ */
+export type ChainEnds = { terminal?: TranscriptEntry; leaf?: TranscriptEntry };
+
+function isQueuedCommandAttachment(entry: TranscriptEntry): boolean {
+  const att = entry.attachment;
+  return (
+    entry.type === 'attachment' &&
+    typeof att === 'object' &&
+    att !== null &&
+    (att as { type?: unknown }).type === 'queued_command'
+  );
+}
+
+/**
+ * Queued commands written after the chain's last message (under it, through
+ * non-message rows) that no later off-chain message builds on: messages sent
+ * while Claude was working that no reply followed. Oldest first (v0.3.285).
+ */
+export function trailingQueuedCommands(
+  entries: TranscriptEntry[],
+  chain: TranscriptEntry[],
+  leaf: TranscriptEntry | undefined
+): TranscriptEntry[] {
+  if (leaf === undefined) return [];
+  const childrenByParent = new Map<string, TranscriptEntry[]>();
+  for (const entry of entries) {
+    if (entry.parentUuid && entry.type !== 'user' && entry.type !== 'assistant') {
+      const children = childrenByParent.get(entry.parentUuid);
+      if (children) children.push(entry);
+      else childrenByParent.set(entry.parentUuid, [entry]);
+    }
+  }
+  const byTimestamp = (a: TranscriptEntry, b: TranscriptEntry) =>
+    (a.timestamp ?? '') < (b.timestamp ?? '')
+      ? -1
+      : (a.timestamp ?? '') > (b.timestamp ?? '')
+        ? 1
+        : 0;
+  const seen = new Set(chain.map((e) => e.uuid));
+  const byUuid = new Map(entries.map((e) => [e.uuid, e]));
+
+  // Rows an off-chain main-thread message descends from
+  const builtOn = new Set<string>();
+  for (const entry of entries) {
+    if (
+      (entry.type === 'user' || entry.type === 'assistant') &&
+      !entry.isSidechain &&
+      !entry.teamName &&
+      !seen.has(entry.uuid)
+    ) {
+      let parent = entry.parentUuid ? byUuid.get(entry.parentUuid) : undefined;
+      while (parent && !seen.has(parent.uuid) && !builtOn.has(parent.uuid)) {
+        builtOn.add(parent.uuid);
+        parent = parent.parentUuid ? byUuid.get(parent.parentUuid) : undefined;
+      }
+    }
+  }
+
+  const trailing: TranscriptEntry[] = [];
+  const stack: TranscriptEntry[] = [leaf];
+  while (stack.length > 0) {
+    const entry = stack.pop() as TranscriptEntry;
+    if (entry !== leaf) {
+      if (seen.has(entry.uuid)) continue;
+      seen.add(entry.uuid);
+      if (isQueuedCommandAttachment(entry) && !builtOn.has(entry.uuid)) trailing.push(entry);
+    }
+    const children = childrenByParent.get(entry.uuid) ?? [];
+    const ordered = children.length > 1 ? [...children].sort(byTimestamp) : children;
+    for (let i = ordered.length - 1; i >= 0; i--) {
+      if (!seen.has(ordered[i].uuid)) stack.push(ordered[i]);
+    }
+  }
+  return trailing;
 }
 
 /**
@@ -431,7 +665,24 @@ export function normalizeOrigin(origin: Origin | undefined): Origin | undefined 
     kind: 'task-notification',
     ...(origin.subkind !== undefined && { subkind: origin.subkind }),
     ...(origin.fireReason !== undefined && { fireReason: origin.fireReason }),
+    ...(origin.producer !== undefined && { producer: origin.producer }),
   };
+}
+
+/**
+ * Origins whose meta messages are still shown as conversation messages:
+ * channel, observer and Slack-ping pushes and peer messages (official SDK,
+ * with its UDS inbox enabled).
+ */
+function isShownMetaOrigin(origin: Origin | undefined): boolean {
+  const kind = origin?.kind;
+  return (
+    kind === 'channel' ||
+    kind === 'observer' ||
+    kind === 'observer-activity' ||
+    kind === 'slack-ping' ||
+    kind === 'peer'
+  );
 }
 
 /**
@@ -442,13 +693,20 @@ export function normalizeOrigin(origin: Origin | undefined): Origin | undefined 
 function queuedCommandToUser(
   entry: TranscriptEntry,
   readByClaude: boolean,
-  seenUuids: Set<string>
+  seenUuids: Set<string>,
+  keepMeta: boolean
 ): TranscriptEntry {
   if (!readByClaude || entry.type !== 'attachment') return entry;
   const att = entry.attachment as Record<string, unknown> | null | undefined;
   if (typeof att !== 'object' || att === null || att.type !== 'queued_command') return entry;
   const prompt = att.prompt;
-  if (att.isMeta) return entry;
+  const rawOrigin =
+    typeof att.origin === 'object' &&
+    att.origin !== null &&
+    typeof (att.origin as Origin).kind === 'string'
+      ? (att.origin as Origin)
+      : undefined;
+  if (att.isMeta && !keepMeta && !isShownMetaOrigin(rawOrigin)) return entry;
   if (typeof prompt !== 'string' && !Array.isArray(prompt)) return entry;
 
   // Forwarded intents (with a lineage) belong to another session's turn
@@ -467,9 +725,8 @@ function queuedCommandToUser(
   if (uuid !== entry.uuid && seenUuids.has(uuid)) return entry;
   seenUuids.add(uuid);
 
-  const rawOrigin = att.origin as Origin | undefined;
   const origin =
-    normalizeOrigin(typeof rawOrigin?.kind === 'string' ? rawOrigin : undefined) ??
+    normalizeOrigin(rawOrigin) ??
     (att.commandMode === 'task-notification' ? { kind: 'task-notification' } : undefined);
 
   return {
@@ -479,7 +736,7 @@ function queuedCommandToUser(
     sessionId: entry.sessionId,
     timestamp: entry.timestamp,
     message: { role: 'user', content: prompt },
-    isMeta: false,
+    isMeta: Boolean(att.isMeta),
     ...(origin !== undefined && { origin }),
     isQueuedCommand: true,
     isSidechain: entry.isSidechain,
@@ -487,14 +744,32 @@ function queuedCommandToUser(
   };
 }
 
-export function normalizeChain(chain: TranscriptEntry[]): TranscriptEntry[] {
+/**
+ * @param keepMeta convert meta queued commands too (subagent transcripts)
+ * @param trailingIds trailing queued commands (see trailingQueuedCommands), shown as read
+ * @param delivered result of finishDeliveries(): queued commands absorbed mid-turn
+ */
+export function normalizeChain(
+  chain: TranscriptEntry[],
+  options: {
+    keepMeta?: boolean;
+    trailingIds?: Set<string>;
+    delivered?: Map<string, number>;
+  } = {}
+): TranscriptEntry[] {
   const localCommands = findCompletedLocalCommands(chain);
   const read = findReadByClaude(chain, localCommands);
+  const delivered = deliveredReads(chain, options.delivered);
   const seenUuids = new Set(chain.map((e) => e.uuid));
   return chain.map((entry, i) =>
     localCommands.has(i)
       ? { ...entry, isCompletedLocalCommand: true }
-      : queuedCommandToUser(entry, read[i], seenUuids)
+      : queuedCommandToUser(
+          entry,
+          delivered.get(i) ?? (read[i] || (options.trailingIds?.has(entry.uuid) ?? false)),
+          seenUuids,
+          options.keepMeta ?? false
+        )
   );
 }
 
@@ -508,7 +783,7 @@ export function isConversationMessage(
 ): boolean {
   const isMessage = entry.type === 'user' || entry.type === 'assistant';
   if (!isMessage && !(entry.type === 'system' && includeSystemMessages)) return false;
-  if (entry.isMeta) return false;
+  if (entry.isMeta && !isShownMetaOrigin(entry.origin)) return false;
   if (entry.isSidechain) return false;
   if (entry.teamName) return false;
   return true;
@@ -531,6 +806,10 @@ export function toSessionMessage(
     parent_tool_use_id: parentToolUseId ?? null,
     parent_agent_id: parentAgentId ?? null,
     ...(entry.interruptedByShutdown === true && { interruptedByShutdown: true }),
+    // Only the values the official SDK knows ("stream-closed") pass through
+    ...(entry.toolDenialUnanswered === 'stream-closed' && {
+      toolDenialUnanswered: entry.toolDenialUnanswered,
+    }),
     ...(entry.isCompactSummary === true && { isCompactSummary: true }),
     ...((entry.isMeta === true ||
       entry.isCompactSummary === true ||

@@ -39,7 +39,7 @@ function connectBridge(
     validTimeout(config.timeout)
   );
   controlHandler.addMcpServerBridge(name, bridge);
-  bridge.connect().catch((err) => {
+  bridge.ready = bridge.connect().catch((err) => {
     controlHandler.removeMcpServerBridge(name, bridge);
     console.error(`[open-claude-agent-sdk] Failed to connect MCP server '${name}': ${err}`);
   });
@@ -112,6 +112,8 @@ export class McpServerBridge {
   private serverOnMessage: ((msg: any) => void) | null = null;
   private transport: Transport | null = null;
   private isClosed = false;
+  /** Settles once connect() has finished (or failed). */
+  ready: Promise<void> = Promise.resolve();
   private pendingRequests = new Map<
     number | string,
     { id: number | string; resolve: (value: Record<string, unknown>) => void }

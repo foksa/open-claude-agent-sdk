@@ -11,7 +11,7 @@ import type { ForkSessionOptions, ForkSessionResult } from '../types/index.ts';
 import { HEAD_TAIL_BYTES, projectDirsForMutation, validateUuid } from './paths.ts';
 import { readSidecarTitle } from './sessionInfo.ts';
 import { firstPromptFromHead, lastStringField } from './text.ts';
-import { buildConversationChain, type TranscriptEntry } from './transcript.ts';
+import { buildConversationChain, type ChainEnds, type TranscriptEntry } from './transcript.ts';
 
 type Entry = TranscriptEntry & Record<string, unknown>;
 
@@ -101,50 +101,144 @@ function indexOfMessage(entries: Entry[], uuid: string): number {
   return direct !== -1 ? direct : entries.findIndex((e) => queuedSourceUuid(e) === uuid);
 }
 
-function isVisibleMessage(e: Entry): boolean {
-  return (e.type === 'user' || e.type === 'assistant') && !e.isMeta && !e.teamName;
+/** Fields reset on every forked entry (official SDK). */
+const FORK_RESET = {
+  isSidechain: false,
+  teamName: undefined,
+  agentName: undefined,
+  sessionKind: undefined,
+  slug: undefined,
+  sourceToolAssistantUUID: undefined,
+};
+
+/** The message uuids a compact boundary preserved. */
+function preservedUuids(entry: Entry): unknown[] {
+  const meta = entry.compactMetadata as Record<string, unknown> | undefined;
+  if (typeof meta !== 'object' || meta === null) return [];
+  const messages = 'preservedMessages' in meta ? meta.preservedMessages : undefined;
+  const segment = 'preservedSegment' in meta ? meta.preservedSegment : undefined;
+  return [
+    ...(typeof messages === 'object' &&
+    messages !== null &&
+    'uuids' in messages &&
+    Array.isArray(messages.uuids)
+      ? messages.uuids
+      : []),
+    ...(typeof segment === 'object' && segment !== null
+      ? [
+          'headUuid' in segment ? segment.headUuid : undefined,
+          'tailUuid' in segment ? segment.tailUuid : undefined,
+        ]
+      : []),
+  ];
 }
 
 /**
- * When the slice ends mid-branch (after an abandoned retry, say), drop
- * visible messages from other branches that came after the chain started.
+ * Leave out of a sliced transcript what isn't on the way to its last entry
+ * and came after the chain started: compact boundaries whose preserved
+ * messages are all off that path, and branches that would otherwise still
+ * end the conversation (a rewound-away retry, a progress row or fork briefing
+ * after a rewind). Mirrors the official SDK (v0.3.284).
  */
-function pruneOtherBranches(
-  slice: Entry[],
-  chain: Entry[],
-  firstIndex: Map<string, number>
-): Entry[] {
+function leaveOutDeadBranches(slice: Entry[]): Entry[] {
   const last = slice.at(-1);
-  const chainStart = chain[0] && firstIndex.get(chain[0].uuid);
-  if (!last || isVisibleMessage(last) || chainStart === undefined) return slice;
+  if (!last) return slice;
+  const asMain = slice.map((e) => ({ ...e, ...FORK_RESET }));
+  const chain = buildConversationChain([
+    ...asMain,
+    {
+      type: 'system',
+      uuid: randomUUID(),
+      parentUuid: last.uuid,
+      sessionId: last.sessionId,
+      timestamp: last.timestamp,
+    },
+  ]);
+  const index = new Map<string, number>();
+  slice.forEach((e, i) => {
+    if (!index.has(e.uuid)) index.set(e.uuid, i);
+  });
+  const start = chain[0] && index.get(chain[0].uuid);
+  if (start === undefined) return slice;
 
+  const chainIds = new Set(chain.map((e) => e.uuid));
   const byUuid = new Map(slice.map((e) => [e.uuid, e]));
-  const keep = new Set(chain.map((e) => e.uuid));
-  for (
-    let e: Entry | undefined = last;
-    e && !keep.has(e.uuid);
-    e = e.parentUuid ? byUuid.get(e.parentUuid) : undefined
-  ) {
-    keep.add(e.uuid);
-  }
-  const lastKept = slice.findLastIndex((e) => isVisibleMessage(e) && keep.has(e.uuid));
-  const drop = new Set<string>();
-  for (const e of slice.slice(lastKept + 1)) {
-    if (!isVisibleMessage(e) || keep.has(e.uuid)) continue;
+  const live = new Set<string>();
+  for (const uuid of [last.uuid, ...chainIds]) {
     for (
-      let u: Entry | undefined = e;
-      u &&
-      !keep.has(u.uuid) &&
-      !drop.has(u.uuid) &&
-      (firstIndex.get(u.uuid) ?? chainStart) >= chainStart;
-      u = u.parentUuid ? byUuid.get(u.parentUuid) : undefined
+      let e = byUuid.get(uuid);
+      e && !live.has(e.uuid);
+      e = e.parentUuid ? byUuid.get(e.parentUuid) : undefined
     ) {
-      drop.add(u.uuid);
+      live.add(e.uuid);
     }
   }
-  if (drop.size === 0) return slice;
-  for (const e of slice) if (e.parentUuid && drop.has(e.parentUuid)) drop.add(e.uuid);
-  return slice.filter((e) => !drop.has(e.uuid));
+  const leftOut = new Set<string>();
+  const isDead = (e: TranscriptEntry) => !live.has(e.uuid) && (index.get(e.uuid) ?? start) >= start;
+  const leaveOut = (from: TranscriptEntry) => {
+    for (
+      let e = byUuid.get(from.uuid);
+      e && isDead(e) && !leftOut.has(e.uuid);
+      e = e.parentUuid ? byUuid.get(e.parentUuid) : undefined
+    ) {
+      leftOut.add(e.uuid);
+    }
+    for (const e of slice) if (e.parentUuid && leftOut.has(e.parentUuid)) leftOut.add(e.uuid);
+  };
+
+  for (const e of slice) {
+    if (
+      e.type === 'system' &&
+      e.subtype === 'compact_boundary' &&
+      isDead(e) &&
+      !preservedUuids(e).some((u) => typeof u === 'string' && live.has(u))
+    ) {
+      leaveOut(e);
+    }
+  }
+  // Until the remaining rows rebuild exactly the chain, drop the dead branch
+  // that ends the conversation instead
+  for (;;) {
+    const ends: ChainEnds = {};
+    const rebuilt = buildConversationChain(
+      asMain.filter((e) => !leftOut.has(e.uuid)),
+      ends
+    );
+    if (rebuilt.length === chainIds.size && rebuilt.every((e) => chainIds.has(e.uuid))) break;
+    if (!ends.terminal || !isDead(ends.terminal)) break;
+    leaveOut(ends.terminal);
+  }
+  return leftOut.size === 0 ? slice : slice.filter((e) => !leftOut.has(e.uuid));
+}
+
+/** Point a compact boundary's preserved-message ids at the forked uuids. */
+function remapCompactMetadata(entry: Entry, ids: Map<string, string>): Partial<Entry> | undefined {
+  const meta = entry.compactMetadata as Record<string, unknown> | undefined;
+  if (entry.type !== 'system' || typeof meta !== 'object' || meta === null || Array.isArray(meta))
+    return undefined;
+  const { preservedMessages, preservedSegment } = meta;
+  if (preservedMessages === undefined && preservedSegment === undefined) return undefined;
+  const map = (v: unknown) => (typeof v === 'string' ? (ids.get(v) ?? v) : v);
+  const remap = (value: unknown, keys: string[]) => {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return value;
+    const out: Record<string, unknown> = { ...value };
+    for (const key of keys) {
+      const v = out[key];
+      if (key in out) out[key] = Array.isArray(v) ? v.map(map) : map(v);
+    }
+    return out;
+  };
+  return {
+    compactMetadata: {
+      ...meta,
+      ...(preservedMessages !== undefined && {
+        preservedMessages: remap(preservedMessages, ['anchorUuid', 'uuids', 'allUuids']),
+      }),
+      ...(preservedSegment !== undefined && {
+        preservedSegment: remap(preservedSegment, ['headUuid', 'anchorUuid', 'tailUuid']),
+      }),
+    },
+  } as Partial<Entry>;
 }
 
 /** Remap `nameOnlyAnnouncements` ids of a deferred-tools record. */
@@ -186,12 +280,13 @@ function buildForkEntries(
     const target = searchable[indexOfMessage(searchable, upTo)];
     const cut = target ? (firstIndex.get(target.uuid) ?? -1) : indexOfMessage(entries, upTo);
     if (cut === -1) throw new Error(`Message ${upTo} not found in session ${sessionId}`);
-    entries = pruneOtherBranches(entries.slice(0, cut + 1), chain, firstIndex);
+    entries = leaveOutDeadBranches(entries.slice(0, cut + 1));
   }
 
   const newIds = new Map<string, string>();
   for (const e of entries) newIds.set(e.uuid, randomUUID());
   const messages = entries.filter((e) => e.type !== 'progress');
+  const messageIds = new Map(messages.map((e) => [e.uuid, newIds.get(e.uuid) as string]));
   if (messages.length === 0) throw new Error(`Session ${sessionId} has no messages to fork`);
 
   const byUuid = new Map<string, Entry>();
@@ -240,6 +335,7 @@ function buildForkEntries(
         ? { neutralizedByFork: true }
         : undefined),
       ...remapDeferredTools(entry, newIds),
+      ...remapCompactMetadata(entry, messageIds),
       ...(remappedSource !== undefined && {
         attachment: Object.assign({}, entry.attachment, { source_uuid: remappedSource }),
       }),
@@ -249,12 +345,7 @@ function buildForkEntries(
         logicalParent == null ? logicalParent : (newIds.get(logicalParent) ?? null),
       sessionId: forkedSessionId,
       timestamp: i === messages.length - 1 ? now : entry.timestamp,
-      isSidechain: false,
-      teamName: undefined,
-      agentName: undefined,
-      sessionKind: undefined,
-      slug: undefined,
-      sourceToolAssistantUUID: undefined,
+      ...FORK_RESET,
       forkedFrom: { sessionId, messageUuid: entry.uuid },
     });
   }

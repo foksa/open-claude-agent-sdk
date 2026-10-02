@@ -2137,3 +2137,25 @@ describe('v0.3.283 type re-exports', () => {
     expect(options.verbatimPrompts).toBe(true);
   });
 });
+
+describe('v0.3.287 type re-exports', () => {
+  test('new fields on existing types', () => {
+    const reason: import('../../src/types/index.ts').SDKStartupFailureReason =
+      'provider_not_allowed';
+    const settings: import('../../src/types/index.ts').Settings = {
+      allowedProviders: ['anthropic', 'bedrock'],
+    };
+    const parked: NonNullable<
+      import('../../src/types/index.ts').SDKControlInitializeResponse['sdk_mcp_manifests_parked']
+    > = { tools: 'parked', other: 'not_honoured' };
+    const latency: Pick<
+      import('../../src/types/index.ts').SDKResultSuccess,
+      'first_text_post_queue_wait_ms' | 'first_text_post_queued_behind'
+    > = { first_text_post_queue_wait_ms: 12, first_text_post_queued_behind: 'none' };
+
+    expect(reason).toBe('provider_not_allowed');
+    expect(settings.allowedProviders).toContain('bedrock');
+    expect(parked.tools).toBe('parked');
+    expect(latency.first_text_post_queued_behind).toBe('none');
+  });
+});

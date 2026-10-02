@@ -9,7 +9,8 @@
 
 import type { ControlProtocolHandler } from '../core/control.ts';
 import { buildHookConfig } from '../core/hookConfig.ts';
-import type { InitializeRequest } from '../types/control.ts';
+import type { InitWriteGate } from '../core/stdinGate.ts';
+import type { InitializeRequest, SdkMcpServerManifest } from '../types/control.ts';
 import { MessageType, RequestSubtype } from '../types/control.ts';
 import type { Options, SDKUserMessage } from '../types/index.ts';
 import type { ControlRequestManager } from './ControlRequestManager.ts';
@@ -49,7 +50,8 @@ function buildSdkMcpServerConfigs(
 export function buildInitRequest(
   options: Options,
   sdkMcpServerNames: string[],
-  controlHandler: ControlProtocolHandler
+  controlHandler: ControlProtocolHandler,
+  sdkMcpServerManifests?: Record<string, SdkMcpServerManifest>
 ): InitializeRequest {
   let systemPrompt: string[] | undefined;
   let appendSystemPrompt: string | undefined;
@@ -91,6 +93,7 @@ export function buildInitRequest(
     ...(excludeDynamicSections !== undefined && { excludeDynamicSections }),
     ...(sdkMcpServerNames.length > 0 && { sdkMcpServers: sdkMcpServerNames }),
     ...(sdkMcpServerConfigs && { sdkMcpServerConfigs }),
+    ...(sdkMcpServerManifests && { sdkMcpServerManifests }),
     ...(options.outputFormat?.type === 'json_schema' && {
       jsonSchema: options.outputFormat.schema as Record<string, unknown>,
     }),
@@ -139,24 +142,28 @@ export function sendProtocolInit(
   manager: ControlRequestManager,
   options: Options,
   sdkMcpServerNames: string[],
-  controlHandler: ControlProtocolHandler
+  controlHandler: ControlProtocolHandler,
+  init?: { gate?: InitWriteGate; manifests?: Record<string, SdkMcpServerManifest> }
 ): string {
   const requestId = `init_${Date.now()}`;
   manager.initRequestId = requestId;
 
-  const request = buildInitRequest(options, sdkMcpServerNames, controlHandler);
+  const request = buildInitRequest(options, sdkMcpServerNames, controlHandler, init?.manifests);
 
-  const init = {
+  const message = {
     type: MessageType.CONTROL_REQUEST,
     request_id: requestId,
     request,
   };
 
   if (process.env.DEBUG_HOOKS) {
-    console.error('[DEBUG] Sending control protocol init:', JSON.stringify(init, null, 2));
+    console.error('[DEBUG] Sending control protocol init:', JSON.stringify(message, null, 2));
   }
 
-  manager.writeToStdin(init);
+  // Through a held gate, initialize goes out first and releases what queued behind it
+  if (init?.gate && !init.gate.released) init.gate.release(`${JSON.stringify(message)}\n`);
+  else manager.writeToStdin(message);
+  controlHandler.initializeWritten = true;
   return requestId;
 }
 

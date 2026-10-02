@@ -14,7 +14,10 @@ import { StringDecoder } from 'node:string_decoder';
 import { AbortError } from '../constants.ts';
 import { ControlProtocolHandler, ControlRequests } from '../core/control.ts';
 import { connectMcpBridges, setSdkMcpServers } from '../core/mcpBridge.ts';
+import { captureSdkMcpManifests, manifestCaptureEnabled } from '../core/mcpManifests.ts';
 import { redactSecrets } from '../core/redact.ts';
+import { InitWriteGate } from '../core/stdinGate.ts';
+import type { GetTaskOutputResponse } from '../types/control.ts';
 import type {
   AccountInfo,
   AgentInfo,
@@ -44,7 +47,7 @@ import type {
 import { ControlRequestManager } from './ControlRequestManager.ts';
 import { MessageQueue } from './MessageQueue.ts';
 import { MessageRouter } from './MessageRouter.ts';
-import { DefaultProcessFactory, type ProcessFactory } from './ProcessFactory.ts';
+import { DefaultProcessFactory, type ProcessFactory, runEndCeilingMs } from './ProcessFactory.ts';
 import { buildInitRequest, sendInitialPrompt, sendProtocolInit } from './protocolInit.ts';
 
 /** Option checks the official SDK makes before spawning the CLI. */
@@ -84,6 +87,9 @@ function canUseToolShadowWarning(mode: string, allowedTools: string[]): string |
   return `canUseTool will not be invoked for: ${bare.join(', ')}. Bare allowedTools entries auto-approve the whole tool before the callback is consulted. To gate every tool call, use a PreToolUse hook; or remove the bare names from allowedTools so they fall through to canUseTool. Allow rules from settings files can also shadow the callback but are not visible here.`;
 }
 
+/** Largest delay setTimeout accepts. */
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
 /** Grace period before SIGTERM when closing/aborting (matches official SDK). */
 const KILL_GRACE_MS = 2000;
 /** Further delay before SIGKILL if SIGTERM was ignored. */
@@ -104,8 +110,26 @@ export class QueryImpl implements Query {
   private drainTimer: ReturnType<typeof setTimeout> | null = null;
   /** Text of the last error `result`, reported instead of a bare exit code. */
   private lastErrorResultText: string | undefined;
-  private firstResultReceived = false;
-  private firstResultWaiters: (() => void)[] = [];
+  /**
+   * Whether the current run has ended: a result arrived and the CLI went
+   * `idle` (or never reports session state, or the ceiling passed). A run
+   * outlives its first result while background agents can still wake a
+   * follow-up turn (matches official SDK since v0.3.284).
+   */
+  private runEnded = false;
+  private resultReceived = false;
+  private sessionState: string | undefined;
+  private runEndWaiters: (() => void)[] = [];
+  private runEndCeilingTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Set by create(); see runEndCeilingMs(). */
+  private runEndCeilingMs = 0;
+  /** Holds stdin writes until `initialize` is written; set by create(). */
+  private stdinGate: InitWriteGate | null = null;
+  private closedResolve!: () => void;
+  /** Resolves once the query closes (shutdown or CLI exit). */
+  private closedPromise = new Promise<void>((resolve) => {
+    this.closedResolve = resolve;
+  });
   private resourcesReleased = false;
   /**
    * Signal handed to the spawned process. Aborted only after stdin is closed
@@ -163,8 +187,10 @@ export class QueryImpl implements Query {
 
     // 2. Initialize components
     const messageQueue = new MessageQueue<SDKMessage>();
-    const controlHandler = new ControlProtocolHandler(childProcess.stdin, options);
-    const controlManager = new ControlRequestManager(childProcess.stdin);
+    // Every stdin write goes after `initialize` (held while manifests are captured)
+    const gate = new InitWriteGate(childProcess.stdin);
+    const controlHandler = new ControlProtocolHandler(gate, options);
+    const controlManager = new ControlRequestManager(gate);
 
     // 3. Connect SDK MCP servers
     const sdkMcpServerNames = connectMcpBridges(options, controlHandler);
@@ -185,6 +211,8 @@ export class QueryImpl implements Query {
       controlHandler
     );
     instance.forwardedAbort = forwardedAbort;
+    instance.runEndCeilingMs = runEndCeilingMs(options);
+    instance.stdinGate = gate;
 
     // 5. Initialize message router with callbacks
     instance.router = new MessageRouter(
@@ -198,8 +226,13 @@ export class QueryImpl implements Query {
     // 6. Start background reading
     instance.router.startReading();
 
-    // 7. Send control protocol initialization
-    sendProtocolInit(controlManager, options, sdkMcpServerNames, controlHandler);
+    // 7. Send control protocol initialization — after capturing in-process
+    // MCP server handshakes (≤250ms) when there are any (official SDK)
+    if (sdkMcpServerNames.length > 0 && manifestCaptureEnabled()) {
+      instance.initializeWithManifests();
+    } else {
+      sendProtocolInit(controlManager, options, sdkMcpServerNames, controlHandler, { gate });
+    }
 
     // 8. Handle input
     if (typeof prompt === 'string') {
@@ -300,9 +333,28 @@ export class QueryImpl implements Query {
             : undefined
         : undefined;
       this.lastErrorResultText = text || undefined;
-      this.markFirstResult();
-      // For single-turn queries, close stdin on result to signal CLI to exit
-      if (this.isSingleUserTurn) this.endInput();
+      this.resultReceived = true;
+      if (
+        this.sessionState === undefined ||
+        this.sessionState === 'idle' ||
+        !this.hasBidirectionalNeeds()
+      ) {
+        this.endRun();
+      } else {
+        this.armRunEndCeiling();
+      }
+    } else if (msg.type === 'system' && msg.subtype === 'session_state_changed') {
+      this.sessionState = msg.state;
+      if (msg.state === 'idle') {
+        if (this.resultReceived) this.endRun();
+      } else if (!(this.isSingleUserTurn && this.runEnded)) {
+        // Work resumed (e.g. a finished background agent woke a follow-up turn)
+        this.runEnded = false;
+        if (msg.state === 'requires_action') this.clearRunEndCeiling();
+        else if (this.resultReceived) this.armRunEndCeiling();
+      }
+      // Meant for the SDK only, not the caller (official SDK drops these)
+      if ('sdk_host_only' in msg && msg.sdk_host_only === true) return;
     } else if (
       msg.type === 'system' &&
       msg.subtype === 'commands_changed' &&
@@ -310,8 +362,16 @@ export class QueryImpl implements Query {
     ) {
       this.latestCommands = msg.commands;
       this.lastErrorResultText = undefined;
-    } else if (!(msg.type === 'system' && msg.subtype === 'session_state_changed')) {
+    } else {
       this.lastErrorResultText = undefined;
+      if (
+        (msg.type === 'assistant' || msg.type === 'stream_event') &&
+        msg.parent_tool_use_id === null &&
+        !(this.isSingleUserTurn && this.runEnded)
+      ) {
+        this.runEnded = false;
+        this.clearRunEndCeiling();
+      }
     }
     this.messageQueue.push(msg);
   }
@@ -330,11 +390,12 @@ export class QueryImpl implements Query {
 
   /** Complete iteration once stdout has drained and the process has exited. */
   private finish(): void {
+    this.closedResolve();
     if (this.drainTimer) {
       clearTimeout(this.drainTimer);
       this.drainTimer = null;
     }
-    this.markFirstResult();
+    this.releaseRunEndWaiters();
     if (this.messageQueue.isDone()) return;
     // The exit error quotes the stderr tail: 'exit' can precede stderr's last
     // chunk, so wait for it to close, bounded by the stdout drain window
@@ -419,13 +480,14 @@ export class QueryImpl implements Query {
   /** End stdin, stop answering control requests, and kill the CLI if it lingers. */
   private shutdown(): void {
     this.closed = true;
+    this.closedResolve();
     if (this.abortController && this.abortHandler) {
       this.abortController.signal.removeEventListener('abort', this.abortHandler);
       this.abortHandler = null;
     }
     this.controlHandler?.close();
     this.endInput();
-    this.markFirstResult();
+    this.releaseRunEndWaiters();
     const proc = this.process;
     if (!proc || proc.exitCode !== null || proc.signalCode != null) {
       this.forwardAbortToProcess();
@@ -495,21 +557,70 @@ export class QueryImpl implements Query {
 
   private endInput(): void {
     try {
-      this.process?.stdin?.end();
+      if (this.stdinGate) this.stdinGate.end();
+      else this.process?.stdin?.end();
     } catch {}
   }
 
-  private markFirstResult(): void {
-    this.firstResultReceived = true;
-    for (const resolve of this.firstResultWaiters.splice(0)) resolve();
+  /** Capture in-process MCP server manifests, then write `initialize` with them. */
+  private async initializeWithManifests(): Promise<void> {
+    const gate = this.stdinGate as InitWriteGate;
+    const handler = this.controlHandler as ControlProtocolHandler;
+    let manifests: Awaited<ReturnType<typeof captureSdkMcpManifests>>;
+    try {
+      manifests = await captureSdkMcpManifests(handler, this.closedPromise);
+    } catch {
+      manifests = undefined;
+    }
+    if (this.closed) {
+      gate.discard();
+      return;
+    }
+    sendProtocolInit(this.controlManager, this.options, this.sdkMcpServerNames, handler, {
+      gate,
+      manifests,
+    });
   }
 
-  private waitForFirstResult(): Promise<void> {
-    if (this.firstResultReceived || this.closed) return Promise.resolve();
-    return new Promise((resolve) => this.firstResultWaiters.push(resolve));
+  /** The run is over: wake streamInput, and close stdin for a single-turn query. */
+  private endRun(): void {
+    if (this.runEnded) return;
+    this.runEnded = true;
+    this.clearRunEndCeiling();
+    this.releaseRunEndWaiters();
+    if (this.isSingleUserTurn) this.endInput();
   }
 
-  /** Callbacks the CLI may call back into — stdin must stay open until the first result. */
+  /** End the run if the CLI doesn't go `idle` within the ceiling after a result. */
+  private armRunEndCeiling(): void {
+    this.clearRunEndCeiling();
+    if (this.runEnded || this.closed || this.runEndCeilingMs <= 0) return;
+    this.runEndCeilingTimer = setTimeout(
+      () => this.endRun(),
+      Math.min(this.runEndCeilingMs, MAX_TIMEOUT_MS)
+    );
+    this.runEndCeilingTimer.unref?.();
+  }
+
+  private clearRunEndCeiling(): void {
+    if (this.runEndCeilingTimer) {
+      clearTimeout(this.runEndCeilingTimer);
+      this.runEndCeilingTimer = null;
+    }
+  }
+
+  /** Resolve anyone waiting for the run to end (also on close/exit). */
+  private releaseRunEndWaiters(): void {
+    this.clearRunEndCeiling();
+    for (const resolve of this.runEndWaiters.splice(0)) resolve();
+  }
+
+  private waitForRunEnd(): Promise<void> {
+    if (this.runEnded || this.closed) return Promise.resolve();
+    return new Promise((resolve) => this.runEndWaiters.push(resolve));
+  }
+
+  /** Callbacks the CLI may call back into — stdin must stay open until the run ends. */
   private hasBidirectionalNeeds(): boolean {
     const o = this.options;
     return (
@@ -607,8 +718,8 @@ export class QueryImpl implements Query {
   }
 
   /**
-   * Write user messages from `stream`, then close stdin — after the first
-   * result when callbacks may still be needed (matches official SDK).
+   * Write user messages from `stream`, then close stdin — after the run ends
+   * when callbacks may still be needed (matches official SDK).
    */
   async streamInput(stream: AsyncIterable<SDKUserMessage>): Promise<void> {
     try {
@@ -616,11 +727,14 @@ export class QueryImpl implements Query {
       for await (const msg of stream) {
         count++;
         if (this.aborted || this.closed) break;
+        this.runEnded = false;
+        this.resultReceived = false;
+        this.clearRunEndCeiling();
         this.controlManager.writeToStdin(
           this.options.verbatimPrompts ? { ...msg, client_composed: true } : msg
         );
       }
-      if (count > 0 && this.hasBidirectionalNeeds()) await this.waitForFirstResult();
+      if (count > 0 && this.hasBidirectionalNeeds()) await this.waitForRunEnd();
       this.endInput();
     } catch (error) {
       // An abort is already handled by abort(); anything else is the caller's
@@ -752,6 +866,18 @@ export class QueryImpl implements Query {
   async listPermissionRules(): Promise<SDKControlListPermissionRulesResponse> {
     return this.controlManager.sendControlRequestWithResponse<SDKControlListPermissionRulesResponse>(
       ControlRequests.listPermissionRules()
+    );
+  }
+
+  /**
+   * Read the end (at most the last 8 KiB) of a background shell or Monitor
+   * task's output. Not (yet) part of the official SDK's public `Query` type,
+   * but present on its runtime Query class (v0.3.287); kept here to mirror
+   * actual behavior.
+   */
+  async getTaskOutput(taskId: string): Promise<GetTaskOutputResponse> {
+    return this.controlManager.sendControlRequestWithResponse<GetTaskOutputResponse>(
+      ControlRequests.getTaskOutput(taskId)
     );
   }
 

@@ -11,11 +11,15 @@ import type { GetSessionMessagesOptions, SessionMessage } from '../types/index.t
 import { findSessionFile, validateUuid } from './paths.ts';
 import {
   buildConversationChain,
+  type ChainEnds,
+  createDeliveryState,
+  finishDeliveries,
   isConversationMessage,
   normalizeChain,
   paginate,
   parseTranscript,
   toSessionMessage,
+  trailingQueuedCommands,
 } from './transcript.ts';
 
 export async function getSessionMessages(
@@ -34,8 +38,16 @@ export async function getSessionMessages(
     return [];
   }
 
-  const chain = buildConversationChain(parseTranscript(content));
-  const messages = normalizeChain(chain)
+  const deliveries = createDeliveryState();
+  const entries = parseTranscript(content, deliveries);
+  const ends: ChainEnds = {};
+  const chain = buildConversationChain(entries, ends);
+  // Messages sent while Claude was working that no reply followed
+  const trailing = trailingQueuedCommands(entries, chain, ends.leaf);
+  const messages = normalizeChain(chain.concat(trailing), {
+    trailingIds: new Set(trailing.map((e) => e.uuid)),
+    delivered: finishDeliveries(deliveries),
+  })
     .filter((e) => isConversationMessage(e, options?.includeSystemMessages))
     .map((e) => toSessionMessage(e));
   return paginate(messages, options);
