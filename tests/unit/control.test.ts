@@ -168,6 +168,45 @@ describe('ControlProtocolHandler', () => {
       });
     });
 
+    test('forwards decisionReasonType and decisionReasonCode when strings (v0.3.295)', async () => {
+      const { stream } = createMockStdin();
+      const canUseTool = mock(
+        async (
+          _toolName: string,
+          _input: Record<string, unknown>,
+          _context: Record<string, unknown>
+        ) => ({ behavior: 'allow' as const })
+      );
+      const handler = new ControlProtocolHandler(stream, { canUseTool });
+      const request = (id: string, extra: Record<string, unknown>): ControlRequest => ({
+        type: 'control_request',
+        request_id: id,
+        request: {
+          subtype: 'can_use_tool',
+          tool_name: 'Bash',
+          input: { command: 'ls' },
+          tool_use_id: `tu-${id}`,
+          decision_reason: 'Matched an ask rule',
+          ...extra,
+        } as ControlRequest['request'],
+      });
+
+      await handler.handleControlRequest(
+        request('typed', { decision_reason_type: 'rule', decision_reason_code: 'ask_rule' })
+      );
+      await handler.handleControlRequest(
+        request('untyped', { decision_reason_type: 7, decision_reason_code: null })
+      );
+
+      expect(canUseTool.mock.calls[0][2]).toMatchObject({
+        decisionReason: 'Matched an ask rule',
+        decisionReasonType: 'rule',
+        decisionReasonCode: 'ask_rule',
+      });
+      expect(canUseTool.mock.calls[1][2]).not.toHaveProperty('decisionReasonType');
+      expect(canUseTool.mock.calls[1][2]).not.toHaveProperty('decisionReasonCode');
+    });
+
     test('forwards mcpServer, matchedAskRule and prompt display fields (v0.3.276)', async () => {
       const { stream } = createMockStdin();
       const canUseTool = mock(

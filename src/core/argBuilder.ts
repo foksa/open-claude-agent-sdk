@@ -33,9 +33,9 @@ const REQUIRED_CLI_FLAGS = [
 // Declarative flag mapping — option key → CLI flag + type
 // ============================================================================
 
+// Every valued flag is sent as a single `--flag=value` argument (official SDK since v0.3.295)
 type FlagMapping =
   | { key: keyof Options; flag: string; type: 'string' }
-  | { key: keyof Options; flag: string; type: 'equals-string' }
   | { key: keyof Options; flag: string; type: 'number' }
   | { key: keyof Options; flag: string; type: 'positive-number' }
   | { key: keyof Options; flag: string; type: 'boolean' }
@@ -49,12 +49,10 @@ const FLAG_MAP: FlagMapping[] = [
   { key: 'agent', flag: '--agent', type: 'string' },
   { key: 'debugFile', flag: '--debug-file', type: 'string' },
   { key: 'permissionPrompts', flag: '--permission-prompts', type: 'string' },
-
-  // String pass-through, bound with equals-form (--flag=value) — matches official SDK
-  { key: 'resume', flag: '--resume', type: 'equals-string' },
-  { key: 'sessionId', flag: '--session-id', type: 'equals-string' },
-  { key: 'resumeSessionAt', flag: '--resume-session-at', type: 'equals-string' },
-  { key: 'resumeDropsTurn', flag: '--resume-drops-turn', type: 'equals-string' },
+  { key: 'resume', flag: '--resume', type: 'string' },
+  { key: 'sessionId', flag: '--session-id', type: 'string' },
+  { key: 'resumeSessionAt', flag: '--resume-session-at', type: 'string' },
+  { key: 'resumeDropsTurn', flag: '--resume-drops-turn', type: 'string' },
 
   // Number → string (maxTurns: 0 is omitted, like the official SDK)
   { key: 'maxTurns', flag: '--max-turns', type: 'positive-number' },
@@ -85,11 +83,19 @@ const FLAG_MAP: FlagMapping[] = [
   { key: 'additionalDirectories', flag: '--add-dir', type: 'repeated' },
 ];
 
-/** `--key value`, or `--key=value` when the value itself looks like a flag. */
-function pushFlagValue(args: string[], key: string, value: unknown): void {
+/** `--flag=value` as one argument — the official SDK's form for its named options. */
+function flagValue(flag: string, value: unknown): string {
+  return `${flag}=${value}`;
+}
+
+/**
+ * `--flag value`, or `--flag=value` when the value itself looks like a flag.
+ * The official SDK keeps this form for `--mcp-config`, `--managed-settings` and extraArgs.
+ */
+function pushFlagValue(args: string[], flag: string, value: unknown): void {
   const str = String(value);
-  if (str.length > 1 && str.startsWith('-')) args.push(`--${key}=${str}`);
-  else args.push(`--${key}`, str);
+  if (str.length > 1 && str.startsWith('-')) args.push(flagValue(flag, str));
+  else args.push(flag, str);
 }
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what we reject
@@ -176,16 +182,13 @@ function applyFlagMap(args: string[], options: Options): void {
     const value = options[mapping.key];
     switch (mapping.type) {
       case 'string':
-        if (value) args.push(mapping.flag, value as string);
-        break;
-      case 'equals-string':
-        if (value) args.push(`${mapping.flag}=${value as string}`);
+        if (value) args.push(flagValue(mapping.flag, value));
         break;
       case 'number':
-        if (value !== undefined) args.push(mapping.flag, String(value));
+        if (value !== undefined) args.push(flagValue(mapping.flag, value));
         break;
       case 'positive-number':
-        if (value) args.push(mapping.flag, String(value));
+        if (value) args.push(flagValue(mapping.flag, value));
         break;
       case 'boolean':
         if (value) args.push(mapping.flag);
@@ -195,13 +198,13 @@ function applyFlagMap(args: string[], options: Options): void {
         break;
       case 'csv': {
         const arr = value as string[] | undefined;
-        if (arr && arr.length > 0) args.push(mapping.flag, arr.join(','));
+        if (arr && arr.length > 0) args.push(flagValue(mapping.flag, arr.join(',')));
         break;
       }
       case 'repeated': {
         const items = value as string[] | undefined;
         if (items) {
-          for (const item of items) args.push(mapping.flag, item);
+          for (const item of items) args.push(flagValue(mapping.flag, item));
         }
         break;
       }
@@ -219,7 +222,7 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   // Permission mode — only when set; an omitted mode is left to the CLI so a
   // settings `defaultMode` applies (official SDK behavior since v0.3.286)
   if (options.permissionMode !== undefined) {
-    args.push('--permission-mode', options.permissionMode);
+    args.push(flagValue('--permission-mode', options.permissionMode));
   }
 
   // All simple flag mappings
@@ -227,7 +230,7 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
 
   // projectConfigRoot — single `--project-config-root=<path>` arg (official SDK form)
   if (options.projectConfigRoot !== undefined) {
-    args.push(`--project-config-root=${options.projectConfigRoot}`);
+    args.push(flagValue('--project-config-root', options.projectConfigRoot));
   }
 
   // allowedTools + skills — merged into single --allowedTools CSV
@@ -244,51 +247,50 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
       allowed.push(...entries.filter((entry) => !existing.has(entry)));
     }
     if (allowed.length > 0) {
-      args.push('--allowedTools', allowed.join(','));
+      args.push(flagValue('--allowedTools', allowed.join(',')));
     }
   }
 
-  // taskBudget — extract total from object: { total: number } → --task-budget <total>
+  // taskBudget — extract total from object: { total: number } → --task-budget=<total>
   if (options.taskBudget) {
-    args.push('--task-budget', String(options.taskBudget.total));
+    args.push(flagValue('--task-budget', options.taskBudget.total));
   }
 
-  // effort — pass through as --effort <value>
   if (options.effort) {
-    args.push('--effort', options.effort);
+    args.push(flagValue('--effort', options.effort));
   }
 
   // thinking — converts to CLI flags (official SDK behavior):
-  //   adaptive                        → --thinking adaptive
-  //   disabled                        → --thinking disabled
-  //   enabled + budgetTokens          → --max-thinking-tokens <budgetTokens>
-  //   enabled (no budgetTokens)       → --thinking adaptive (fallback)
-  //   display (unless disabled)       → --thinking-display <display>
-  // maxThinkingTokens (without thinking): 0 → --thinking disabled, else --max-thinking-tokens
+  //   adaptive                        → --thinking=adaptive
+  //   disabled                        → --thinking=disabled
+  //   enabled + budgetTokens          → --max-thinking-tokens=<budgetTokens>
+  //   enabled (no budgetTokens)       → --thinking=adaptive (fallback)
+  //   display (unless disabled)       → --thinking-display=<display>
+  // maxThinkingTokens (without thinking): 0 → --thinking=disabled, else --max-thinking-tokens
   if (options.thinking) {
     switch (options.thinking.type) {
       case 'adaptive':
-        args.push('--thinking', 'adaptive');
+        args.push('--thinking=adaptive');
         break;
       case 'disabled':
-        args.push('--thinking', 'disabled');
+        args.push('--thinking=disabled');
         break;
       case 'enabled':
         if (options.thinking.budgetTokens !== undefined) {
-          args.push('--max-thinking-tokens', String(options.thinking.budgetTokens));
+          args.push(flagValue('--max-thinking-tokens', options.thinking.budgetTokens));
         } else {
-          args.push('--thinking', 'adaptive');
+          args.push('--thinking=adaptive');
         }
         break;
     }
     if (options.thinking.type !== 'disabled' && options.thinking.display) {
-      args.push('--thinking-display', options.thinking.display);
+      args.push(flagValue('--thinking-display', options.thinking.display));
     }
   } else if (options.maxThinkingTokens !== undefined) {
     if (options.maxThinkingTokens === 0) {
-      args.push('--thinking', 'disabled');
+      args.push('--thinking=disabled');
     } else {
-      args.push('--max-thinking-tokens', String(options.maxThinkingTokens));
+      args.push(flagValue('--max-thinking-tokens', options.maxThinkingTokens));
     }
   }
 
@@ -299,9 +301,9 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     );
   }
   if (options.canUseTool) {
-    args.push('--permission-prompt-tool', 'stdio');
+    args.push('--permission-prompt-tool=stdio');
   } else if (options.permissionPromptToolName) {
-    args.push('--permission-prompt-tool', options.permissionPromptToolName);
+    args.push(flagValue('--permission-prompt-tool', options.permissionPromptToolName));
   }
 
   // Fallback model — must differ from primary model
@@ -311,18 +313,17 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
         'Fallback model cannot be the same as the main model. Please specify a different model for fallbackModel option.'
       );
     }
-    args.push('--fallback-model', options.fallbackModel);
+    args.push(flagValue('--fallback-model', options.fallbackModel));
   }
 
   // Output format (structured outputs)
   if (options.outputFormat?.type === 'json_schema') {
-    args.push('--json-schema', JSON.stringify(options.outputFormat.schema));
+    args.push(flagValue('--json-schema', JSON.stringify(options.outputFormat.schema)));
   }
 
   // Setting sources — only pass when explicitly provided
-  // Use = syntax to prevent empty string consuming the next CLI flag
   if (options.settingSources !== undefined) {
-    args.push(`--setting-sources=${options.settingSources.join(',')}`);
+    args.push(flagValue('--setting-sources', options.settingSources.join(',')));
   }
 
   // Debug — debugFile takes priority over debug flag
@@ -331,21 +332,21 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
   }
   if (!options.debugFile && !options.spawnClaudeCodeProcess) {
     const debugFile = getSdkDebugFile();
-    if (debugFile) args.push('--debug-file', debugFile);
+    if (debugFile) args.push(flagValue('--debug-file', debugFile));
   }
 
-  // Tools — array → csv, preset → "default"
+  // Tools — array → csv (empty array → `--tools=`), preset → "default"
   if (options.tools !== undefined) {
     if (Array.isArray(options.tools)) {
-      args.push('--tools', options.tools.length > 0 ? options.tools.join(',') : '');
+      args.push(flagValue('--tools', options.tools.join(',')));
     } else {
-      args.push('--tools', 'default');
+      args.push('--tools=default');
     }
   }
 
   // managedSettings — policy-tier settings passed in-memory to CLI
   if (options.managedSettings !== undefined) {
-    args.push('--managed-settings', JSON.stringify(options.managedSettings));
+    pushFlagValue(args, '--managed-settings', JSON.stringify(options.managedSettings));
   }
 
   // settings + sandbox — both go via --settings (official SDK behavior):
@@ -385,7 +386,7 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     if (value === null) {
       args.push(`--${key}`);
     } else {
-      pushFlagValue(args, key, value);
+      pushFlagValue(args, `--${key}`, value);
     }
   }
 
@@ -400,7 +401,7 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
       serializedServers[name] = config;
     }
     if (Object.keys(serializedServers).length > 0) {
-      args.push('--mcp-config', JSON.stringify({ mcpServers: serializedServers }));
+      pushFlagValue(args, '--mcp-config', JSON.stringify({ mcpServers: serializedServers }));
     }
   }
 
@@ -414,7 +415,9 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     } else {
       for (const plugin of options.plugins) {
         if (plugin.type === 'local') {
-          args.push(plugin.skipMcpDiscovery ? '--plugin-dir-no-mcp' : '--plugin-dir', plugin.path);
+          args.push(
+            flagValue(plugin.skipMcpDiscovery ? '--plugin-dir-no-mcp' : '--plugin-dir', plugin.path)
+          );
         } else {
           throw new Error(`Unsupported plugin type: ${(plugin as { type: string }).type}`);
         }

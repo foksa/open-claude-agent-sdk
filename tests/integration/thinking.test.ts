@@ -40,7 +40,10 @@ testWithBothSDKs('maxThinkingTokens option works', async (sdk) => {
 });
 
 testWithBothSDKs('thinking: enabled with budgetTokens works', async (sdk) => {
-  const messages = await runWithSDK(sdk, 'What is 7 * 8? Think step by step.', {
+  // A trivial prompt ("What is 7 * 8?") often gets no thinking block at all
+  const prompt =
+    'How many prime numbers are there between 100 and 200? Work it out carefully before answering.';
+  const messages = await runWithSDK(sdk, prompt, {
     thinking: { type: 'enabled', budgetTokens: 5000 },
     maxTurns: 1,
   });

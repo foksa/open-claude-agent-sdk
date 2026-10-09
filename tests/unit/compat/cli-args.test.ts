@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
+import { argValue, argValues, hasFlag } from '../arg-utils.ts';
 import { capture, officialQuery, openQuery, queryError } from './capture-utils.ts';
 
 describe('CLI arguments compatibility', () => {
@@ -40,10 +41,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { model }),
       ]);
 
-      expect(open.args).toContain('--model');
-      expect(open.args).toContain(model);
-      expect(official.args).toContain('--model');
-      expect(official.args).toContain(model);
+      expect(open.args).toContain(`--model=${model}`);
+      expect(official.args).toContain(`--model=${model}`);
 
       console.log('   Model args match');
     },
@@ -58,10 +57,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { maxTurns: 5 }),
       ]);
 
-      expect(open.args).toContain('--max-turns');
-      expect(open.args).toContain('5');
-      expect(official.args).toContain('--max-turns');
-      expect(official.args).toContain('5');
+      expect(open.args).toContain('--max-turns=5');
+      expect(official.args).toContain('--max-turns=5');
 
       console.log('   maxTurns args match');
     },
@@ -76,7 +73,7 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { maxTurns: 0 }),
       ]);
 
-      expect(official.args).not.toContain('--max-turns');
+      expect(hasFlag(official.args, '--max-turns')).toBe(false);
       expect([...open.args].sort()).toEqual([...official.args].sort());
     },
     { timeout: 60000 }
@@ -90,8 +87,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', {}),
       ]);
 
-      expect(official.args).not.toContain('--permission-mode');
-      expect(open.args).not.toContain('--permission-mode');
+      expect(hasFlag(official.args, '--permission-mode')).toBe(false);
+      expect(hasFlag(open.args, '--permission-mode')).toBe(false);
       expect([...open.args].sort()).toEqual([...official.args].sort());
     },
     { timeout: 60000 }
@@ -125,10 +122,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { permissionMode: 'acceptEdits' }),
       ]);
 
-      expect(open.args).toContain('--permission-mode');
-      expect(open.args).toContain('acceptEdits');
-      expect(official.args).toContain('--permission-mode');
-      expect(official.args).toContain('acceptEdits');
+      expect(open.args).toContain('--permission-mode=acceptEdits');
+      expect(official.args).toContain('--permission-mode=acceptEdits');
 
       console.log('   permissionMode args match');
     },
@@ -145,15 +140,13 @@ describe('CLI arguments compatibility', () => {
       ]);
 
       // Both should use --settings with JSON
-      expect(open.args).toContain('--settings');
-      expect(official.args).toContain('--settings');
+      expect(hasFlag(open.args, '--settings')).toBe(true);
+      expect(hasFlag(official.args, '--settings')).toBe(true);
 
       // Find the settings value
-      const openSettingsIdx = open.args.indexOf('--settings');
-      const officialSettingsIdx = official.args.indexOf('--settings');
 
-      const openSettings = JSON.parse(open.args[openSettingsIdx + 1]);
-      const officialSettings = JSON.parse(official.args[officialSettingsIdx + 1]);
+      const openSettings = JSON.parse(argValue(open.args, '--settings'));
+      const officialSettings = JSON.parse(argValue(official.args, '--settings'));
 
       expect(openSettings.sandbox).toEqual(officialSettings.sandbox);
 
@@ -219,10 +212,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { maxThinkingTokens: 10000 }),
       ]);
 
-      expect(open.args).toContain('--max-thinking-tokens');
-      expect(open.args).toContain('10000');
-      expect(official.args).toContain('--max-thinking-tokens');
-      expect(official.args).toContain('10000');
+      expect(open.args).toContain('--max-thinking-tokens=10000');
+      expect(official.args).toContain('--max-thinking-tokens=10000');
 
       console.log('   maxThinkingTokens args match');
     },
@@ -238,16 +229,14 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { allowedTools }),
       ]);
 
-      expect(open.args).toContain('--allowedTools');
-      expect(official.args).toContain('--allowedTools');
+      expect(hasFlag(open.args, '--allowedTools')).toBe(true);
+      expect(hasFlag(official.args, '--allowedTools')).toBe(true);
 
       // Find the allowedTools value
-      const openIdx = open.args.indexOf('--allowedTools');
-      const officialIdx = official.args.indexOf('--allowedTools');
 
       // Values should match (order may differ)
-      const openValue = open.args[openIdx + 1].split(',').sort().join(',');
-      const officialValue = official.args[officialIdx + 1].split(',').sort().join(',');
+      const openValue = argValue(open.args, '--allowedTools').split(',').sort().join(',');
+      const officialValue = argValue(official.args, '--allowedTools').split(',').sort().join(',');
 
       expect(openValue).toBe(officialValue);
 
@@ -265,16 +254,17 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { disallowedTools }),
       ]);
 
-      expect(open.args).toContain('--disallowedTools');
-      expect(official.args).toContain('--disallowedTools');
+      expect(hasFlag(open.args, '--disallowedTools')).toBe(true);
+      expect(hasFlag(official.args, '--disallowedTools')).toBe(true);
 
       // Find the disallowedTools value
-      const openIdx = open.args.indexOf('--disallowedTools');
-      const officialIdx = official.args.indexOf('--disallowedTools');
 
       // Values should match (order may differ)
-      const openValue = open.args[openIdx + 1].split(',').sort().join(',');
-      const officialValue = official.args[officialIdx + 1].split(',').sort().join(',');
+      const openValue = argValue(open.args, '--disallowedTools').split(',').sort().join(',');
+      const officialValue = argValue(official.args, '--disallowedTools')
+        .split(',')
+        .sort()
+        .join(',');
 
       expect(openValue).toBe(officialValue);
 
@@ -290,10 +280,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { effort: 'low' }),
       ]);
 
-      expect(open.args).toContain('--effort');
-      expect(open.args).toContain('low');
-      expect(official.args).toContain('--effort');
-      expect(official.args).toContain('low');
+      expect(open.args).toContain('--effort=low');
+      expect(official.args).toContain('--effort=low');
 
       console.log('   effort args match');
     },
@@ -308,10 +296,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { thinking: { type: 'adaptive' } }),
       ]);
 
-      expect(open.args).toContain('--thinking');
-      expect(open.args).toContain('adaptive');
-      expect(official.args).toContain('--thinking');
-      expect(official.args).toContain('adaptive');
+      expect(open.args).toContain('--thinking=adaptive');
+      expect(official.args).toContain('--thinking=adaptive');
 
       console.log('   thinking adaptive args match');
     },
@@ -326,14 +312,12 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { thinking: { type: 'enabled', budgetTokens: 5000 } }),
       ]);
 
-      expect(open.args).toContain('--max-thinking-tokens');
-      expect(open.args).toContain('5000');
-      expect(official.args).toContain('--max-thinking-tokens');
-      expect(official.args).toContain('5000');
+      expect(open.args).toContain('--max-thinking-tokens=5000');
+      expect(official.args).toContain('--max-thinking-tokens=5000');
 
       // Should NOT have --thinking flag
-      expect(open.args).not.toContain('--thinking');
-      expect(official.args).not.toContain('--thinking');
+      expect(hasFlag(open.args, '--thinking')).toBe(false);
+      expect(hasFlag(official.args, '--thinking')).toBe(false);
 
       console.log('   thinking enabled args match');
     },
@@ -348,10 +332,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { thinking: { type: 'disabled' } }),
       ]);
 
-      expect(open.args).toContain('--thinking');
-      expect(open.args).toContain('disabled');
-      expect(official.args).toContain('--thinking');
-      expect(official.args).toContain('disabled');
+      expect(open.args).toContain('--thinking=disabled');
+      expect(official.args).toContain('--thinking=disabled');
 
       console.log('   thinking disabled args match');
     },
@@ -367,14 +349,12 @@ describe('CLI arguments compatibility', () => {
       ]);
 
       // Official SDK falls back to --thinking adaptive when no budgetTokens
-      expect(open.args).toContain('--thinking');
-      expect(open.args).toContain('adaptive');
-      expect(official.args).toContain('--thinking');
-      expect(official.args).toContain('adaptive');
+      expect(open.args).toContain('--thinking=adaptive');
+      expect(official.args).toContain('--thinking=adaptive');
 
       // Neither should have --max-thinking-tokens
-      expect(open.args).not.toContain('--max-thinking-tokens');
-      expect(official.args).not.toContain('--max-thinking-tokens');
+      expect(hasFlag(open.args, '--max-thinking-tokens')).toBe(false);
+      expect(hasFlag(official.args, '--max-thinking-tokens')).toBe(false);
 
       console.log('   thinking enabled (no budget) args match');
     },
@@ -441,14 +421,11 @@ describe('CLI arguments compatibility', () => {
         >[0]['options']),
       ]);
 
-      expect(open.args).toContain('--settings');
-      expect(official.args).toContain('--settings');
+      expect(hasFlag(open.args, '--settings')).toBe(true);
+      expect(hasFlag(official.args, '--settings')).toBe(true);
 
-      const openIdx = open.args.indexOf('--settings');
-      const officialIdx = official.args.indexOf('--settings');
-
-      const openSettings = JSON.parse(open.args[openIdx + 1]);
-      const officialSettings = JSON.parse(official.args[officialIdx + 1]);
+      const openSettings = JSON.parse(argValue(open.args, '--settings'));
+      const officialSettings = JSON.parse(argValue(official.args, '--settings'));
 
       expect(openSettings).toEqual(officialSettings);
 
@@ -468,14 +445,11 @@ describe('CLI arguments compatibility', () => {
         >[0]['options']),
       ]);
 
-      expect(open.args).toContain('--settings');
-      expect(official.args).toContain('--settings');
+      expect(hasFlag(open.args, '--settings')).toBe(true);
+      expect(hasFlag(official.args, '--settings')).toBe(true);
 
-      const openIdx = open.args.indexOf('--settings');
-      const officialIdx = official.args.indexOf('--settings');
-
-      expect(open.args[openIdx + 1]).toBe(settings);
-      expect(official.args[officialIdx + 1]).toBe(settings);
+      expect(argValue(open.args, '--settings')).toBe(settings);
+      expect(argValue(official.args, '--settings')).toBe(settings);
 
       console.log('   settings string path args match');
     },
@@ -496,14 +470,11 @@ describe('CLI arguments compatibility', () => {
         >[0]['options']),
       ]);
 
-      expect(open.args).toContain('--settings');
-      expect(official.args).toContain('--settings');
+      expect(hasFlag(open.args, '--settings')).toBe(true);
+      expect(hasFlag(official.args, '--settings')).toBe(true);
 
-      const openIdx = open.args.indexOf('--settings');
-      const officialIdx = official.args.indexOf('--settings');
-
-      const openSettings = JSON.parse(open.args[openIdx + 1]);
-      const officialSettings = JSON.parse(official.args[officialIdx + 1]);
+      const openSettings = JSON.parse(argValue(open.args, '--settings'));
+      const officialSettings = JSON.parse(argValue(official.args, '--settings'));
 
       expect(openSettings).toEqual(officialSettings);
 
@@ -520,10 +491,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { taskBudget: { total: 10000 } }),
       ]);
 
-      expect(open.args).toContain('--task-budget');
-      expect(open.args).toContain('10000');
-      expect(official.args).toContain('--task-budget');
-      expect(official.args).toContain('10000');
+      expect(open.args).toContain('--task-budget=10000');
+      expect(official.args).toContain('--task-budget=10000');
 
       console.log('   taskBudget args match');
     },
@@ -554,10 +523,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { permissionMode: 'auto' }),
       ]);
 
-      expect(open.args).toContain('--permission-mode');
-      expect(open.args).toContain('auto');
-      expect(official.args).toContain('--permission-mode');
-      expect(official.args).toContain('auto');
+      expect(open.args).toContain('--permission-mode=auto');
+      expect(official.args).toContain('--permission-mode=auto');
 
       console.log('   permissionMode auto args match');
     },
@@ -572,11 +539,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { sandbox: { enabled: true } }),
       ]);
 
-      const openIdx = open.args.indexOf('--settings');
-      const officialIdx = official.args.indexOf('--settings');
-
-      const openSettings = JSON.parse(open.args[openIdx + 1]);
-      const officialSettings = JSON.parse(official.args[officialIdx + 1]);
+      const openSettings = JSON.parse(argValue(open.args, '--settings'));
+      const officialSettings = JSON.parse(argValue(official.args, '--settings'));
 
       // Both should default failIfUnavailable to true when enabled: true
       expect(openSettings.sandbox.failIfUnavailable).toBe(true);
@@ -597,11 +561,8 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { sandbox }),
       ]);
 
-      const openIdx = open.args.indexOf('--settings');
-      const officialIdx = official.args.indexOf('--settings');
-
-      const openSettings = JSON.parse(open.args[openIdx + 1]);
-      const officialSettings = JSON.parse(official.args[officialIdx + 1]);
+      const openSettings = JSON.parse(argValue(open.args, '--settings'));
+      const officialSettings = JSON.parse(argValue(official.args, '--settings'));
 
       expect(openSettings.sandbox.failIfUnavailable).toBe(false);
       expect(officialSettings.sandbox.failIfUnavailable).toBe(false);
@@ -624,15 +585,8 @@ describe('CLI arguments compatibility', () => {
       ]);
 
       // Both should have two --plugin-dir flags
-      const openPluginDirs: string[] = [];
-      const officialPluginDirs: string[] = [];
-
-      for (let i = 0; i < open.args.length; i++) {
-        if (open.args[i] === '--plugin-dir') openPluginDirs.push(open.args[i + 1]);
-      }
-      for (let i = 0; i < official.args.length; i++) {
-        if (official.args[i] === '--plugin-dir') officialPluginDirs.push(official.args[i + 1]);
-      }
+      const openPluginDirs = argValues(open.args, '--plugin-dir');
+      const officialPluginDirs = argValues(official.args, '--plugin-dir');
 
       expect(openPluginDirs).toEqual(officialPluginDirs);
       expect(openPluginDirs).toEqual(['./path/to/plugin1', '/absolute/path/to/plugin2']);
@@ -654,18 +608,10 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { plugins }),
       ]);
 
-      const collectFlag = (args: string[], flag: string) => {
-        const values: string[] = [];
-        for (let i = 0; i < args.length; i++) {
-          if (args[i] === flag) values.push(args[i + 1]);
-        }
-        return values;
-      };
-
-      expect(collectFlag(open.args, '--plugin-dir-no-mcp')).toEqual(['./path/to/plugin1']);
-      expect(collectFlag(official.args, '--plugin-dir-no-mcp')).toEqual(['./path/to/plugin1']);
-      expect(collectFlag(open.args, '--plugin-dir')).toEqual(['/absolute/path/to/plugin2']);
-      expect(collectFlag(official.args, '--plugin-dir')).toEqual(['/absolute/path/to/plugin2']);
+      expect(argValues(open.args, '--plugin-dir-no-mcp')).toEqual(['./path/to/plugin1']);
+      expect(argValues(official.args, '--plugin-dir-no-mcp')).toEqual(['./path/to/plugin1']);
+      expect(argValues(open.args, '--plugin-dir')).toEqual(['/absolute/path/to/plugin2']);
+      expect(argValues(official.args, '--plugin-dir')).toEqual(['/absolute/path/to/plugin2']);
 
       console.log('   plugins --plugin-dir-no-mcp args match');
     },
@@ -683,8 +629,8 @@ describe('CLI arguments compatibility', () => {
 
       expect(open.args).toContain('--await-initialize');
       expect(official.args).toContain('--await-initialize');
-      expect(open.args).not.toContain('--plugin-dir');
-      expect(official.args).not.toContain('--plugin-dir');
+      expect(hasFlag(open.args, '--plugin-dir')).toBe(false);
+      expect(hasFlag(official.args, '--plugin-dir')).toBe(false);
 
       console.log("   plugins pluginDelivery: 'initialize' args match");
     },
@@ -700,13 +646,10 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { managedSettings }),
       ]);
 
-      const openIdx = open.args.indexOf('--managed-settings');
-      const officialIdx = official.args.indexOf('--managed-settings');
-
-      expect(openIdx).toBeGreaterThan(-1);
-      expect(officialIdx).toBeGreaterThan(-1);
-      expect(JSON.parse(open.args[openIdx + 1])).toEqual(managedSettings);
-      expect(JSON.parse(official.args[officialIdx + 1])).toEqual(managedSettings);
+      expect(hasFlag(open.args, '--managed-settings')).toBe(true);
+      expect(hasFlag(official.args, '--managed-settings')).toBe(true);
+      expect(JSON.parse(argValue(open.args, '--managed-settings'))).toEqual(managedSettings);
+      expect(JSON.parse(argValue(official.args, '--managed-settings'))).toEqual(managedSettings);
 
       console.log('   managedSettings --managed-settings args match');
     },
@@ -721,13 +664,10 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { skills: 'all' }),
       ]);
 
-      const openIdx = open.args.indexOf('--allowedTools');
-      const officialIdx = official.args.indexOf('--allowedTools');
-
-      expect(openIdx).toBeGreaterThan(-1);
-      expect(officialIdx).toBeGreaterThan(-1);
-      expect(open.args[openIdx + 1]).toBe('Skill');
-      expect(official.args[officialIdx + 1]).toBe('Skill');
+      expect(hasFlag(open.args, '--allowedTools')).toBe(true);
+      expect(hasFlag(official.args, '--allowedTools')).toBe(true);
+      expect(argValue(open.args, '--allowedTools')).toBe('Skill');
+      expect(argValue(official.args, '--allowedTools')).toBe('Skill');
 
       console.log('   skills: all --allowedTools Skill match');
     },
@@ -742,13 +682,10 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { skills: ['pdf', 'docx'] }),
       ]);
 
-      const openIdx = open.args.indexOf('--allowedTools');
-      const officialIdx = official.args.indexOf('--allowedTools');
-
-      expect(openIdx).toBeGreaterThan(-1);
-      expect(officialIdx).toBeGreaterThan(-1);
-      expect(open.args[openIdx + 1]).toBe('Skill(pdf),Skill(docx)');
-      expect(official.args[officialIdx + 1]).toBe('Skill(pdf),Skill(docx)');
+      expect(hasFlag(open.args, '--allowedTools')).toBe(true);
+      expect(hasFlag(official.args, '--allowedTools')).toBe(true);
+      expect(argValue(open.args, '--allowedTools')).toBe('Skill(pdf),Skill(docx)');
+      expect(argValue(official.args, '--allowedTools')).toBe('Skill(pdf),Skill(docx)');
 
       console.log('   skills: string[] --allowedTools Skill(name) match');
     },
@@ -763,13 +700,10 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { allowedTools: ['Bash', 'Read'], skills: ['pdf'] }),
       ]);
 
-      const openIdx = open.args.indexOf('--allowedTools');
-      const officialIdx = official.args.indexOf('--allowedTools');
-
-      expect(openIdx).toBeGreaterThan(-1);
-      expect(officialIdx).toBeGreaterThan(-1);
-      expect(open.args[openIdx + 1]).toBe('Bash,Read,Skill(pdf)');
-      expect(official.args[officialIdx + 1]).toBe('Bash,Read,Skill(pdf)');
+      expect(hasFlag(open.args, '--allowedTools')).toBe(true);
+      expect(hasFlag(official.args, '--allowedTools')).toBe(true);
+      expect(argValue(open.args, '--allowedTools')).toBe('Bash,Read,Skill(pdf)');
+      expect(argValue(official.args, '--allowedTools')).toBe('Bash,Read,Skill(pdf)');
 
       console.log('   skills + allowedTools combined --allowedTools match');
     },
@@ -784,10 +718,10 @@ describe('CLI arguments compatibility', () => {
         capture(officialQuery, 'test', { permissionPrompts: 'none' }),
       ]);
 
-      expect(open.args).toContain('--permission-prompts');
-      expect(official.args).toContain('--permission-prompts');
-      expect(open.args[open.args.indexOf('--permission-prompts') + 1]).toBe('none');
-      expect(official.args[official.args.indexOf('--permission-prompts') + 1]).toBe('none');
+      expect(hasFlag(open.args, '--permission-prompts')).toBe(true);
+      expect(hasFlag(official.args, '--permission-prompts')).toBe(true);
+      expect(argValue(open.args, '--permission-prompts')).toBe('none');
+      expect(argValue(official.args, '--permission-prompts')).toBe('none');
 
       console.log('   permissionPrompts args match');
     },
@@ -877,6 +811,48 @@ describe('CLI arguments compatibility', () => {
     ['skills leading slash rejected', { skills: ['/pdf'] }],
     ['skills wildcard suffix rejected', { skills: ['plugin:*'] }],
     ['empty skills array', { skills: [] }],
+    // v0.3.295: named options are sent as one `--flag=value` argument
+    ['defaults', {}],
+    [
+      'named options as --flag=value',
+      {
+        model: 'claude-sonnet-4-5',
+        fallbackModel: 'claude-haiku-4-5',
+        agent: 'reviewer',
+        permissionMode: 'plan',
+        maxTurns: 3,
+        maxBudgetUsd: 2.5,
+        taskBudget: { total: 9000 },
+        effort: 'high',
+        betas: ['context-1m-2025-08-07'],
+        allowedTools: ['Read'],
+        disallowedTools: ['Bash'],
+        skills: ['pdf'],
+        additionalDirectories: ['/tmp/a', '/tmp/b'],
+        projectConfigRoot: '/tmp/root',
+        permissionPrompts: 'none',
+        permissionPromptToolName: 'mcp__perm__ask',
+        debugFile: '/tmp/debug.log',
+        resume: 'abc',
+        resumeSessionAt: 'def',
+        outputFormat: { type: 'json_schema', schema: { type: 'object' } },
+        thinking: { type: 'enabled', budgetTokens: 1024, display: 'summarized' },
+        plugins: [
+          { type: 'local', path: '/tmp/p1' },
+          { type: 'local', path: '/tmp/p2', skipMcpDiscovery: true },
+        ],
+      },
+    ],
+    ['tools empty array as --tools=', { tools: [] }],
+    ['tools preset as --tools=default', { tools: { type: 'preset', preset: 'claude_code' } }],
+    ['canUseTool as --permission-prompt-tool=stdio', { canUseTool: async () => ({}) }],
+    [
+      'mcp-config and managed-settings keep the split form',
+      {
+        mcpServers: { remote: { type: 'http', url: 'https://example.com/mcp' } },
+        managedSettings: { model: 'claude-sonnet-4-5' },
+      },
+    ],
   ];
 
   for (const [name, options] of parityCases) {

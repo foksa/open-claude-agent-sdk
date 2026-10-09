@@ -5,8 +5,9 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import type { HookCallbackMatcher, Query } from '../../../src/types/index.ts';
+import type { HookCallbackMatcher, McpServerConfig, Query } from '../../../src/types/index.ts';
 import { createSdkMcpServer, tool } from '../../../src/types/index.ts';
+import { argValue, hasFlag } from '../arg-utils.ts';
 import {
   capture,
   captureWithQuery,
@@ -718,14 +719,12 @@ describe('stdin message compatibility', () => {
         }),
       ]);
 
-      expect(open.args).toContain('--json-schema');
-      expect(official.args).toContain('--json-schema');
+      expect(hasFlag(open.args, '--json-schema')).toBe(true);
+      expect(hasFlag(official.args, '--json-schema')).toBe(true);
 
       // Find and compare the schema values
-      const openIdx = open.args.indexOf('--json-schema');
-      const officialIdx = official.args.indexOf('--json-schema');
-      expect(JSON.parse(open.args[openIdx + 1])).toEqual(
-        JSON.parse(official.args[officialIdx + 1])
+      expect(JSON.parse(argValue(open.args, '--json-schema'))).toEqual(
+        JSON.parse(argValue(official.args, '--json-schema'))
       );
 
       console.log('   outputFormat json_schema args match');
@@ -744,15 +743,13 @@ describe('stdin message compatibility', () => {
         capture(officialQuery, 'test', { mcpServers }),
       ]);
 
-      expect(open.args).toContain('--mcp-config');
-      expect(official.args).toContain('--mcp-config');
+      expect(hasFlag(open.args, '--mcp-config')).toBe(true);
+      expect(hasFlag(official.args, '--mcp-config')).toBe(true);
 
       // Find and compare the --mcp-config values
-      const openIdx = open.args.indexOf('--mcp-config');
-      const officialIdx = official.args.indexOf('--mcp-config');
 
-      expect(JSON.parse(open.args[openIdx + 1])).toEqual(
-        JSON.parse(official.args[officialIdx + 1])
+      expect(JSON.parse(argValue(open.args, '--mcp-config'))).toEqual(
+        JSON.parse(argValue(official.args, '--mcp-config'))
       );
 
       console.log('   process-based mcpServers --mcp-config args match');
@@ -784,8 +781,8 @@ describe('stdin message compatibility', () => {
       ]);
 
       // SDK-only servers should NOT produce --mcp-config (handled in-process via sdkMcpServers init)
-      expect(open.args).not.toContain('--mcp-config');
-      expect(official.args).not.toContain('--mcp-config');
+      expect(hasFlag(open.args, '--mcp-config')).toBe(false);
+      expect(hasFlag(official.args, '--mcp-config')).toBe(false);
 
       console.log('   SDK mcpServers excluded from --mcp-config');
     },
@@ -1669,6 +1666,37 @@ describe('stdin message compatibility', () => {
       expect(officialReq?.request.servers).toEqual({
         remote: { type: 'http', url: 'https://example.com/mcp' },
         late: { type: 'sdk', name: 'late', timeout: 5000 },
+      });
+      expect(openReq && normalizeMessage(openReq)).toEqual(
+        officialReq && normalizeMessage(officialReq)
+      );
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'setMcpServers carries disableAutoBackground and keeps a registered server’s settings (v0.3.295)',
+    async () => {
+      const makeServer = (name: string) => createSdkMcpServer({ name, timeout: 5000 });
+      const run = (queryFn: typeof openQuery) =>
+        captureWithQuery(
+          queryFn,
+          'test',
+          async (q: Query) => {
+            await q.setMcpServers({
+              // Already registered at startup: its original settings are kept
+              early: { ...makeServer('early'), disableAutoBackground: true },
+              late: { ...makeServer('late'), disableAutoBackground: true },
+            } as Record<string, McpServerConfig>);
+          },
+          { mcpServers: { early: makeServer('early') } }
+        );
+      const [open, official] = await Promise.all([run(openQuery), run(officialQuery)]);
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'mcp_set_servers');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'mcp_set_servers');
+      expect(officialReq?.request.servers).toEqual({
+        early: { type: 'sdk', name: 'early', timeout: 5000 },
+        late: { type: 'sdk', name: 'late', timeout: 5000, disableAutoBackground: true },
       });
       expect(openReq && normalizeMessage(openReq)).toEqual(
         officialReq && normalizeMessage(officialReq)

@@ -15,7 +15,16 @@ import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { McpServerConfig, Options } from '../types/index.ts';
 import type { ControlProtocolHandler } from './control.ts';
 
-type SdkServerConfig = { type: 'sdk'; name: string; instance: unknown; timeout?: number };
+type SdkServerConfig = {
+  type: 'sdk';
+  name: string;
+  instance: unknown;
+  timeout?: number;
+  disableAutoBackground?: boolean;
+};
+
+/** Per-server settings sent to the CLI for an in-process server. */
+export type SdkMcpServerSettings = { timeout?: number; disableAutoBackground?: true };
 
 function isSdkServerConfig(config: McpServerConfig): config is McpServerConfig & SdkServerConfig {
   return config.type === 'sdk' && 'instance' in config && !!config.instance;
@@ -24,6 +33,20 @@ function isSdkServerConfig(config: McpServerConfig): config is McpServerConfig &
 /** Positive integer timeouts only (matches official SDK validation). */
 function validTimeout(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
+/**
+ * The settings an in-process server config carries to the CLI: a valid `timeout`,
+ * and `disableAutoBackground` only when `true` (official SDK, v0.3.295).
+ */
+export function sdkMcpServerSettings(config: unknown): SdkMcpServerSettings {
+  if (typeof config !== 'object' || config === null) return {};
+  const { timeout, disableAutoBackground } = config as Partial<SdkServerConfig>;
+  const validated = validTimeout(timeout);
+  return {
+    ...(validated !== undefined && { timeout: validated }),
+    ...(disableAutoBackground === true && { disableAutoBackground }),
+  };
 }
 
 function connectBridge(
@@ -36,7 +59,7 @@ function connectBridge(
   const bridge = new McpServerBridge(
     config.instance as unknown as McpServer,
     (message) => controlHandler.sendMcpMessageToCli(name, message),
-    validTimeout(config.timeout)
+    sdkMcpServerSettings(config)
   );
   controlHandler.addMcpServerBridge(name, bridge);
   bridge.ready = bridge.connect().catch((err) => {
@@ -69,7 +92,7 @@ export function connectMcpBridges(
 /**
  * Apply a `setMcpServers()` call locally: connect new in-process servers,
  * disconnect removed ones, and return the server map to send to the CLI —
- * in-process servers are sent as `{ type: 'sdk', name, timeout? }` only.
+ * in-process servers are sent as `{ type: 'sdk', name, ...settings }` only.
  */
 export async function setSdkMcpServers(
   servers: Record<string, McpServerConfig>,
@@ -92,16 +115,15 @@ export async function setSdkMcpServers(
   for (const [name, config] of Object.entries(sdk)) {
     const existing = controlHandler.getMcpServerBridge(name);
     if (!existing) connectBridge(controlHandler, name, config);
-    // An already-registered server keeps its original timeout (official behavior)
+    // An already-registered server keeps its original settings (official behavior)
   }
 
   const sdkEntries: Record<string, McpServerConfig> = {};
   for (const name of Object.keys(sdk)) {
-    const timeout = controlHandler.getMcpServerBridge(name)?.timeout;
     sdkEntries[name] = {
       type: 'sdk',
       name,
-      ...(timeout !== undefined && { timeout }),
+      ...controlHandler.getMcpServerBridge(name)?.settings,
     } as McpServerConfig;
   }
   return { ...others, ...sdkEntries };
@@ -122,7 +144,7 @@ export class McpServerBridge {
   constructor(
     private serverInstance: McpServer,
     private sendToCli: (message: Record<string, unknown>) => void = () => {},
-    readonly timeout?: number
+    readonly settings: SdkMcpServerSettings = {}
   ) {}
 
   /**

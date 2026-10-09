@@ -147,6 +147,10 @@ export type CanUseToolRequest = {
   permission_suggestions?: PermissionUpdate[];
   blocked_path?: string;
   decision_reason?: string;
+  /** v0.3.295 */
+  decision_reason_type?: string;
+  /** v0.3.295 */
+  decision_reason_code?: string;
   title?: string;
   display_name?: string;
   agent_id?: string;
@@ -176,7 +180,7 @@ export type InitializeRequest = {
   appendSystemPrompt?: string;
   systemPromptSnapshot?: boolean;
   sdkMcpServers?: string[];
-  sdkMcpServerConfigs?: Record<string, { timeout?: number }>;
+  sdkMcpServerConfigs?: Record<string, { timeout?: number; disableAutoBackground?: true }>;
   /** Handshake results of in-process servers, captured before initialize. */
   sdkMcpServerManifests?: Record<string, SdkMcpServerManifest>;
   jsonSchema?: Record<string, unknown>;

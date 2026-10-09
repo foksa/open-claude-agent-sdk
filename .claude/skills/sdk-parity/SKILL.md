@@ -119,13 +119,15 @@ Port the official logic faithfully — same order, same edge cases — and comme
 **Simple flags** — add to `FLAG_MAP` array:
 
 ```typescript
-{ key: 'optionName', flag: '--flag-name', type: 'string' }   // string pass-through
-{ key: 'optionName', flag: '--flag-name', type: 'number' }   // number → string
+{ key: 'optionName', flag: '--flag-name', type: 'string' }   // --flag-name=<value>
+{ key: 'optionName', flag: '--flag-name', type: 'number' }   // --flag-name=<number>
 { key: 'optionName', flag: '--flag-name', type: 'boolean' }  // present when truthy
 { key: 'optionName', flag: '--no-flag',   type: 'boolean-inverted' } // present when false
-{ key: 'optionName', flag: '--flag-name', type: 'csv' }      // array → comma-separated
-{ key: 'optionName', flag: '--flag-name', type: 'repeated' } // array → one flag per element
+{ key: 'optionName', flag: '--flag-name', type: 'csv' }      // --flag-name=a,b
+{ key: 'optionName', flag: '--flag-name', type: 'repeated' } // --flag-name=a --flag-name=b
 ```
+
+Valued flags are one `--flag=value` argument (official SDK since v0.3.295); only `--mcp-config`, `--managed-settings` and `extraArgs` keep `--flag value` (`pushFlagValue`).
 
 **Complex flags** — add explicit handling after the `applyFlagMap(args, options)` call. See `thinking`, `effort`, `canUseTool`, `sandbox` as examples.
 

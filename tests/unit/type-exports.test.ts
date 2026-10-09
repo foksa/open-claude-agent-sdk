@@ -2159,3 +2159,14 @@ describe('v0.3.287 type re-exports', () => {
     expect(latency.first_text_post_queued_behind).toBe('none');
   });
 });
+
+describe('v0.3.295 type re-exports', () => {
+  test('SDKRateLimitInfo carries overageEnabled', () => {
+    const info: import('../../src/types/index.ts').SDKRateLimitInfo = {
+      status: 'allowed_warning',
+      overageEnabled: true,
+      overageStatus: 'allowed',
+    };
+    expect(info.overageEnabled).toBe(true);
+  });
+});

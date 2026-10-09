@@ -151,6 +151,38 @@ describe('mcpServers init message compatibility', () => {
   );
 
   test.concurrent(
+    'sdkMcpServers disableAutoBackground reaches sdkMcpServerConfigs (v0.3.295)',
+    async () => {
+      // Not a createSdkMcpServer option: the official SDK reads it off the server config
+      const makeServers = () => ({
+        bg: { ...createSdkMcpServer({ name: 'bg' }), disableAutoBackground: true },
+        timed: {
+          ...createSdkMcpServer({ name: 'timed', timeout: 5000 }),
+          disableAutoBackground: true,
+        },
+        // Only `true` is sent
+        off: { ...createSdkMcpServer({ name: 'off' }), disableAutoBackground: false },
+      });
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { mcpServers: makeServers() }),
+        capture(officialQuery, 'test', { mcpServers: makeServers() }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      const expected = {
+        bg: { disableAutoBackground: true },
+        timed: { timeout: 5000, disableAutoBackground: true },
+      };
+      expect(officialInit?.request?.sdkMcpServerConfigs).toEqual(expected);
+      expect(openInit?.request?.sdkMcpServerConfigs).toEqual(expected);
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'sdkMcpServers invalid timeout is omitted, matching official SDK (v0.3.248)',
     async () => {
       const makeServer = () => createSdkMcpServer({ name: 'bad-timeout-tools', timeout: -5 });

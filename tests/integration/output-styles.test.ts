@@ -8,7 +8,8 @@
  * 1. settingSources: ['project'] or ['user'] to load from filesystem
  * 2. cwd pointing to directory with .claude/output-styles/
  *
- * Fixture: tests/fixtures/.claude/output-styles/concise.md
+ * Fixture: tests/fixtures/.claude/output-styles/terse-fixture.md ("Terse Fixture" — not
+ * "Concise", which CLI 2.1.29x ships as a built-in style)
  */
 
 import { expect } from 'bun:test';
@@ -17,6 +18,7 @@ import type { ExtendedQuery } from '../../src/types/index.ts';
 import { testWithBothSDKs } from './comparison-utils.ts';
 
 const fixturesDir = path.join(import.meta.dir, '../fixtures');
+const FIXTURE_STYLE = 'Terse Fixture';
 
 // ============================================================================
 // Output Style Discovery Tests
@@ -46,11 +48,9 @@ testWithBothSDKs(
     expect(Array.isArray(init.available_output_styles)).toBe(true);
     expect(init.available_output_styles.length).toBeGreaterThan(0);
 
-    // Our fixture "Concise" style should be present
-    const hasConcise = init.available_output_styles.some((s: string) =>
-      s.toLowerCase().includes('concise')
-    );
-    expect(hasConcise).toBe(true);
+    // Our fixture style should be present
+    const hasFixtureStyle = init.available_output_styles.includes(FIXTURE_STYLE);
+    expect(hasFixtureStyle).toBe(true);
 
     for await (const msg of q) {
       if (msg.type === 'result') break;
@@ -82,11 +82,9 @@ testWithBothSDKs(
 
     const init = await q.initializationResult();
 
-    // Our custom "Concise" style should NOT be present without settingSources
-    const hasConcise = init.available_output_styles.some((s: string) =>
-      s.toLowerCase().includes('concise')
-    );
-    expect(hasConcise).toBe(false);
+    // Our fixture style should NOT be present without settingSources
+    const hasFixtureStyle = init.available_output_styles.includes(FIXTURE_STYLE);
+    expect(hasFixtureStyle).toBe(false);
 
     for await (const msg of q) {
       if (msg.type === 'result') break;
@@ -119,9 +117,7 @@ testWithBothSDKs(
         },
       });
       const init = await q.initializationResult();
-      expect(
-        init.available_output_styles.some((s: string) => s.toLowerCase().includes('concise'))
-      ).toBe(true);
+      expect(init.available_output_styles.includes(FIXTURE_STYLE)).toBe(true);
       for await (const msg of q) {
         if (msg.type === 'result') break;
       }
@@ -146,7 +142,7 @@ testWithBothSDKs(
     const current = await q.currentOutputStyle();
 
     expect(Array.isArray(styles)).toBe(true);
-    expect(styles.some((s) => s.toLowerCase().includes('concise'))).toBe(true);
+    expect(styles.includes(FIXTURE_STYLE)).toBe(true);
     expect(typeof current).toBe('string');
 
     for await (const msg of q) {

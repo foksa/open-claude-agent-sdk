@@ -386,6 +386,8 @@ export class ControlProtocolHandler {
       permission_suggestions,
       blocked_path,
       decision_reason,
+      decision_reason_type,
+      decision_reason_code,
       title,
       display_name,
       description,
@@ -402,6 +404,9 @@ export class ControlProtocolHandler {
       blockedPath: blocked_path,
       ...(mcp_server && { mcpServer: { name: mcp_server.name, source: mcp_server.source } }),
       decisionReason: decision_reason,
+      // v0.3.295: forwarded when the CLI sends them (not yet in the public type)
+      ...(typeof decision_reason_type === 'string' && { decisionReasonType: decision_reason_type }),
+      ...(typeof decision_reason_code === 'string' && { decisionReasonCode: decision_reason_code }),
       title,
       displayName: display_name,
       description,

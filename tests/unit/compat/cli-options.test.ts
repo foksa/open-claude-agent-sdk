@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
+import { argValue, argValues, hasFlag } from '../arg-utils.ts';
 import { capture, officialQuery, openQuery } from './capture-utils.ts';
 
 describe('new CLI options compatibility', () => {
@@ -18,14 +19,8 @@ describe('new CLI options compatibility', () => {
       ]);
 
       // Both should have --add-dir flags
-      const openAddDirs: string[] = [];
-      const officialAddDirs: string[] = [];
-      for (let i = 0; i < open.args.length; i++) {
-        if (open.args[i] === '--add-dir') openAddDirs.push(open.args[i + 1]);
-      }
-      for (let i = 0; i < official.args.length; i++) {
-        if (official.args[i] === '--add-dir') officialAddDirs.push(official.args[i + 1]);
-      }
+      const openAddDirs = argValues(open.args, '--add-dir');
+      const officialAddDirs = argValues(official.args, '--add-dir');
 
       expect(openAddDirs).toEqual(officialAddDirs);
       expect(openAddDirs).toEqual(additionalDirectories);
@@ -43,10 +38,8 @@ describe('new CLI options compatibility', () => {
         capture(officialQuery, 'test', { agent: 'code-reviewer' }),
       ]);
 
-      expect(open.args).toContain('--agent');
-      expect(open.args).toContain('code-reviewer');
-      expect(official.args).toContain('--agent');
-      expect(official.args).toContain('code-reviewer');
+      expect(open.args).toContain('--agent=code-reviewer');
+      expect(official.args).toContain('--agent=code-reviewer');
 
       console.log('   agent args match');
     },
@@ -62,12 +55,10 @@ describe('new CLI options compatibility', () => {
         capture(officialQuery, 'test', { betas }),
       ]);
 
-      expect(open.args).toContain('--betas');
-      expect(official.args).toContain('--betas');
+      expect(hasFlag(open.args, '--betas')).toBe(true);
+      expect(hasFlag(official.args, '--betas')).toBe(true);
 
-      const openIdx = open.args.indexOf('--betas');
-      const officialIdx = official.args.indexOf('--betas');
-      expect(open.args[openIdx + 1]).toBe(official.args[officialIdx + 1]);
+      expect(argValue(open.args, '--betas')).toBe(argValue(official.args, '--betas'));
 
       console.log('   betas args match');
     },
@@ -104,10 +95,8 @@ describe('new CLI options compatibility', () => {
         }),
       ]);
 
-      expect(open.args).toContain('--fallback-model');
-      expect(open.args).toContain('claude-haiku-4-20250414');
-      expect(official.args).toContain('--fallback-model');
-      expect(official.args).toContain('claude-haiku-4-20250414');
+      expect(open.args).toContain('--fallback-model=claude-haiku-4-20250414');
+      expect(official.args).toContain('--fallback-model=claude-haiku-4-20250414');
 
       console.log('   fallbackModel args match');
     },
@@ -222,12 +211,10 @@ describe('new CLI options compatibility', () => {
         capture(officialQuery, 'test', { tools }),
       ]);
 
-      expect(open.args).toContain('--tools');
-      expect(official.args).toContain('--tools');
+      expect(hasFlag(open.args, '--tools')).toBe(true);
+      expect(hasFlag(official.args, '--tools')).toBe(true);
 
-      const openIdx = open.args.indexOf('--tools');
-      const officialIdx = official.args.indexOf('--tools');
-      expect(open.args[openIdx + 1]).toBe(official.args[officialIdx + 1]);
+      expect(argValue(open.args, '--tools')).toBe(argValue(official.args, '--tools'));
 
       console.log('   tools string array args match');
     },
@@ -243,13 +230,11 @@ describe('new CLI options compatibility', () => {
         capture(officialQuery, 'test', { tools }),
       ]);
 
-      expect(open.args).toContain('--tools');
-      expect(official.args).toContain('--tools');
+      expect(hasFlag(open.args, '--tools')).toBe(true);
+      expect(hasFlag(official.args, '--tools')).toBe(true);
 
-      const openIdx = open.args.indexOf('--tools');
-      const officialIdx = official.args.indexOf('--tools');
-      expect(open.args[openIdx + 1]).toBe('');
-      expect(official.args[officialIdx + 1]).toBe('');
+      expect(argValue(open.args, '--tools')).toBe('');
+      expect(argValue(official.args, '--tools')).toBe('');
 
       console.log('   tools empty array args match');
     },
@@ -265,12 +250,10 @@ describe('new CLI options compatibility', () => {
         capture(officialQuery, 'test', { tools }),
       ]);
 
-      expect(open.args).toContain('--tools');
-      expect(official.args).toContain('--tools');
+      expect(hasFlag(open.args, '--tools')).toBe(true);
+      expect(hasFlag(official.args, '--tools')).toBe(true);
 
-      const openIdx = open.args.indexOf('--tools');
-      const officialIdx = official.args.indexOf('--tools');
-      expect(open.args[openIdx + 1]).toBe(official.args[officialIdx + 1]);
+      expect(argValue(open.args, '--tools')).toBe(argValue(official.args, '--tools'));
 
       console.log('   tools preset args match');
     },
@@ -285,10 +268,8 @@ describe('new CLI options compatibility', () => {
         capture(officialQuery, 'test', { permissionPromptToolName: 'my-tool' }),
       ]);
 
-      expect(open.args).toContain('--permission-prompt-tool');
-      expect(open.args).toContain('my-tool');
-      expect(official.args).toContain('--permission-prompt-tool');
-      expect(official.args).toContain('my-tool');
+      expect(open.args).toContain('--permission-prompt-tool=my-tool');
+      expect(official.args).toContain('--permission-prompt-tool=my-tool');
 
       console.log('   permissionPromptToolName args match');
     },
@@ -327,18 +308,16 @@ describe('new CLI options compatibility', () => {
       ]);
 
       // Both should have --settings (sandbox merged into extraArgs.settings)
-      expect(open.args).toContain('--settings');
-      expect(official.args).toContain('--settings');
+      expect(hasFlag(open.args, '--settings')).toBe(true);
+      expect(hasFlag(official.args, '--settings')).toBe(true);
 
       // Both should have --some-flag
       expect(open.args).toContain('--some-flag');
       expect(official.args).toContain('--some-flag');
 
       // Compare settings values
-      const openIdx = open.args.indexOf('--settings');
-      const officialIdx = official.args.indexOf('--settings');
-      const openSettings = JSON.parse(open.args[openIdx + 1]);
-      const officialSettings = JSON.parse(official.args[officialIdx + 1]);
+      const openSettings = JSON.parse(argValue(open.args, '--settings'));
+      const officialSettings = JSON.parse(argValue(official.args, '--settings'));
       expect(openSettings.sandbox).toEqual(officialSettings.sandbox);
 
       console.log('   sandbox + extraArgs merged correctly');

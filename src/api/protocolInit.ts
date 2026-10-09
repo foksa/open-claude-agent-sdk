@@ -9,6 +9,7 @@
 
 import type { ControlProtocolHandler } from '../core/control.ts';
 import { buildHookConfig } from '../core/hookConfig.ts';
+import { type SdkMcpServerSettings, sdkMcpServerSettings } from '../core/mcpBridge.ts';
 import type { InitWriteGate } from '../core/stdinGate.ts';
 import type { InitializeRequest, SdkMcpServerManifest } from '../types/control.ts';
 import { MessageType, RequestSubtype } from '../types/control.ts';
@@ -16,19 +17,19 @@ import type { Options, SDKUserMessage } from '../types/index.ts';
 import type { ControlRequestManager } from './ControlRequestManager.ts';
 
 /**
- * Build `sdkMcpServerConfigs` — per-server `{ timeout }` entries for SDK
- * (in-process) MCP servers that declared a timeout via `createSdkMcpServer`.
- * Only servers with a defined timeout are included (matches official SDK).
+ * Build `sdkMcpServerConfigs` — per-server settings (`timeout`, `disableAutoBackground`)
+ * for SDK (in-process) MCP servers. Only servers with any setting are included
+ * (matches official SDK).
  */
 function buildSdkMcpServerConfigs(
   options: Options
-): Record<string, { timeout?: number }> | undefined {
+): Record<string, SdkMcpServerSettings> | undefined {
   if (!options.mcpServers) return undefined;
-  const entries = Object.entries(options.mcpServers).flatMap(([name, config]) =>
-    'instance' in config && config.timeout !== undefined
-      ? [[name, { timeout: config.timeout }] as const]
-      : []
-  );
+  const entries = Object.entries(options.mcpServers).flatMap(([name, config]) => {
+    if (!('instance' in config)) return [];
+    const settings = sdkMcpServerSettings(config);
+    return Object.keys(settings).length > 0 ? [[name, settings] as const] : [];
+  });
   return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 

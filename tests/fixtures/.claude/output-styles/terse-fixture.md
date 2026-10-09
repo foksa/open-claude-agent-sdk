@@ -1,5 +1,5 @@
 ---
-name: Concise
+name: Terse Fixture
 description: Short and to the point responses
 ---
 

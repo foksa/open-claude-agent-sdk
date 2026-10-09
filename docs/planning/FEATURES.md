@@ -1,6 +1,6 @@
 # Feature Comparison: Open SDK vs Official SDK
 
-**Last Updated:** 2026-10-02
+**Last Updated:** 2026-10-09
 **Purpose:** Honest feature matrix — distinguishes real E2E tests from protocol-level pass-through
 
 ---
@@ -38,7 +38,7 @@
 | `accountInfo()` | ✅ | Returns account data with expected shape |
 | `reconnectMcpServer()` | ✅ | Tested with minimal stdio MCP server |
 | `toggleMcpServer()` | ✅ | Disable and re-enable tested with stdio MCP server |
-| `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs; in-process servers are connected/disconnected locally and sent as `{type:'sdk', name, timeout?}` (v0.50.0, stdin parity tested) — previously a newly added SDK server was never registered |
+| `setMcpServers()` | ✅ | Adds server, returns result with errors for bad configs; in-process servers are connected/disconnected locally and sent as `{type:'sdk', name, timeout?, disableAutoBackground?}` (v0.50.0; `disableAutoBackground` v0.3.295 — a server already registered keeps its original settings; stdin parity tested) — previously a newly added SDK server was never registered |
 | `readMcpResource()` | 🔌 | Sends `mcp_read_resource` `{serverName, uri}` to read an MCP Apps `ui://` resource (alpha, v0.3.280); stdin parity tested |
 | `setMcpPermissionModeOverride()` | 🔌 | Sends set_mcp_permission_mode_override control request; resolves `{}` on an empty response like official; protocol parity tested (v0.3.187) |
 | `supportedAgents()` | ✅ | Returns array of AgentInfo from init response |
@@ -65,7 +65,7 @@
 | `maxBudgetUsd` | 🔌 | CLI flag passed, no budget-exceeded test |
 | `includePartialMessages` | ✅ | Streaming test verifies partial messages appear |
 | `cwd` | ✅ | Verified working directory is used |
-| `canUseTool` | ✅ | 8 behavioral tests (allow/deny/selective/async); `requestId` field (v0.3.199) + `null` return to suppress response unit tested; `defaultToNo`/`suppressAlwaysAllowRule` hints forwarded from CLI (v0.3.268), unit tested; `mcpServer` provenance (v0.3.274) E2E tested; `title`/`displayName`/`description`/`matchedAskRule` forwarded and `toolUseID` echoed in the response, matching official SDK; callbacks get a live `signal` aborted by `control_cancel_request` (v0.50.0); with no callback the request now errors like official instead of auto-allowing |
+| `canUseTool` | ✅ | 8 behavioral tests (allow/deny/selective/async); `requestId` field (v0.3.199) + `null` return to suppress response unit tested; `defaultToNo`/`suppressAlwaysAllowRule` hints forwarded from CLI (v0.3.268), unit tested; `decisionReasonType`/`decisionReasonCode` forwarded when the CLI sends strings (v0.3.295), unit tested; `mcpServer` provenance (v0.3.274) E2E tested; `title`/`displayName`/`description`/`matchedAskRule` forwarded and `toolUseID` echoed in the response, matching official SDK; callbacks get a live `signal` aborted by `control_cancel_request` (v0.50.0); with no callback the request now errors like official instead of auto-allowing |
 | `hooks` | ⚠️ | See Hooks section — 7 of 26 events tested |
 | `allowDangerouslySkipPermissions` | ✅ | Verified in permission-modes.test.ts |
 | `outputFormat` | ✅ | JSON schema validation tested E2E |
@@ -100,6 +100,7 @@
 | `permissionPromptToolName` | 🔌 | CLI flag passed |
 | `permissionPrompts` | 🔌 | CLI flag `--permission-prompts` (`'host' \| 'none'`) verified to match official SDK (v0.3.259) |
 | `extraArgs` | 🔌 | CLI flag passed; values starting with `-` are passed as `--key=value` like official (v0.50.0) |
+| CLI arg form `--flag=value` | 🔌 | v0.3.295: every named option is one `--flag=value` argument (`--model=…`, `--max-turns=…`, `--tools=` for `[]`, one `--add-dir=…` per directory, …); `--mcp-config`, `--managed-settings` and `extraArgs` keep `--flag value` unless the value starts with `-`. Exact-argv parity cases in cli-args.test.ts |
 | `thinking` | ✅ | adaptive/enabled/disabled all E2E tested; `display` → `--thinking-display`, `maxThinkingTokens: 0` → `--thinking disabled` (v0.50.0, args parity tested) |
 | `effort` | ✅ | E2E tested with low effort level |
 | `taskBudget` | 🔌 | CLI flag `--task-budget` verified to match official SDK (v0.2.84) |
@@ -262,6 +263,7 @@
 | Output-field additions (v0.3.234–v0.3.238) | ⚠️ | `SDKSystemMessage.effort` (applied effort level, v0.3.234), `ApiKeySource` value set corrected, `ExitReason` dropped unused `bypass_permissions_disabled`, `SDKMessageOrigin` peer `fromMode` (v0.3.234), `PostToolUseHookSpecificOutput.classifierContext` (v0.3.236), `SDKTaskStartedMessage.is_backgrounded`/`spawn_depth` (v0.3.238), `UserPromptExpansionHookSpecificOutput.suppressOriginalPrompt` (v0.3.238) — all type-only, forwarded via existing re-exports (hook outputs pass through unmodified, inbound NDJSON is cast, not reshaped); no SDK changes needed |
 | `perTaskStopAffordance` option | 🔌 | Added in v0.3.246; `Options.perTaskStopAffordance` → `perTaskStopAffordance` init message field; capture-verified byte-identical against official SDK in stdin-messages.test.ts; declares that this consumer wires `stop_task` for per-task stopping, so `interrupt()` on an open-input session spares running background agents/workflows |
 | MCP: in-process manifest capture (`sdkMcpServerManifests`) | ✅ | Before writing `initialize` we run each in-process server's `initialize` + `tools/list` ourselves (≤250 ms, like official) and send the results, so the CLI skips the `mcp_message` handshake round trips and the tools are ready for the first turn. Servers that miss the deadline, error, paginate, or whose tools change meanwhile fall back exactly as official; all stdin writes are held behind `initialize` meanwhile; `CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS` turns it off. Byte-identical manifests vs official in mcp-servers.test.ts; E2E-verified the CLI reports `sdk_mcp_manifests_parked: parked` and the tool call works |
+| MCP: SDK server `disableAutoBackground` | 🔌 | v0.3.295: `disableAutoBackground: true` on an in-process server config (not a `createSdkMcpServer` option, not in the public type) is sent in `sdkMcpServerConfigs` and `mcp_set_servers`; capture-verified in mcp-servers.test.ts / stdin-messages.test.ts |
 | MCP: `createSdkMcpServer({ timeout })` | 🔌 | Added in v0.3.248; per-server tool-call timeout (ms), sent as `sdkMcpServerConfigs: { [name]: { timeout } }` in the init message alongside `sdkMcpServers`; invalid values (non-positive-integer) silently omitted, matching official SDK's validation; capture-verified in mcp-servers.test.ts (valid + invalid cases) |
 | Output-field additions (v0.3.239–v0.3.250) | ⚠️ | `ModelUsage.costBasis` (v0.3.246), `Settings.modelPricing` for managed-settings orgs (v0.3.246), `SDKAssistantMessage.user_message_uuid` (v0.3.246), `ambient` flag on `SDKTaskStartedMessage`, `SDKTaskNotificationMessage`, and `SDKBackgroundTasksChangedMessage.tasks[]` (v0.3.247) — all type-only, forwarded via existing re-exports; no SDK changes needed |
 | `PreModelSwitchHookInput` / `PostModelSwitchHookInput` / `*HookSpecificOutput` types | ⚠️ | Re-exported from official SDK (v0.3.257); `HookInput`/hook-output union members for the model-switch lifecycle event |
