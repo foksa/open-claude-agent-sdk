@@ -106,7 +106,7 @@ export async function setSdkMcpServers(
   }
 
   for (const name of controlHandler.mcpServerBridgeNames()) {
-    if (name in sdk) continue;
+    if (Object.hasOwn(sdk, name)) continue;
     const bridge = controlHandler.getMcpServerBridge(name);
     if (!bridge) continue;
     await bridge.close();

@@ -157,6 +157,59 @@ describe('CLI arguments compatibility', () => {
     { timeout: 60000 }
   );
 
+  // v0.3.296: the sandbox option merges into an inline settings.sandbox block
+  test.concurrent.each([
+    [
+      'deep-merges and unions deny/credential lists',
+      {
+        settings: {
+          model: 'x',
+          sandbox: {
+            enabled: true,
+            failIfUnavailable: false,
+            filesystem: { denyRead: ['/a'], allowWrite: ['/w'] },
+            network: { deniedDomains: ['a.com'], allowLocalBinding: true },
+            credentials: { envVars: ['A'] },
+          },
+        },
+        sandbox: {
+          enabled: true,
+          filesystem: { denyRead: ['/b', '/a'] },
+          network: { deniedDomains: ['b.com'] },
+          credentials: { envVars: ['B'] },
+        },
+      },
+    ],
+    [
+      'drops inline proxy ports and filesystem.disabled when the option sets policy',
+      {
+        settings: JSON.stringify({
+          sandbox: {
+            filesystem: { disabled: true, allowWrite: ['/w'] },
+            network: { httpProxyPort: 1, socksProxyPort: 2, allowLocalBinding: true },
+          },
+        }),
+        sandbox: {
+          enabled: true,
+          filesystem: { denyRead: ['/x'] },
+          network: { allowedDomains: ['c.com'] },
+        },
+      },
+    ],
+  ])(
+    'sandbox + inline settings.sandbox: %s',
+    async (_name, options) => {
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', options),
+        capture(officialQuery, 'test', options),
+      ]);
+      expect(JSON.parse(argValue(open.args, '--settings'))).toEqual(
+        JSON.parse(argValue(official.args, '--settings'))
+      );
+    },
+    { timeout: 60000 }
+  );
+
   test.concurrent(
     'settingSources option args match official SDK',
     async () => {

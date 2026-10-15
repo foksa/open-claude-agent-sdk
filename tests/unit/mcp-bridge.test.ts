@@ -12,7 +12,7 @@ import {
 } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { ControlProtocolHandler } from '../../src/core/control.ts';
-import { connectMcpBridges, McpServerBridge } from '../../src/core/mcpBridge.ts';
+import { connectMcpBridges, McpServerBridge, setSdkMcpServers } from '../../src/core/mcpBridge.ts';
 import { captureSdkMcpManifests, manifestCaptureEnabled } from '../../src/core/mcpManifests.ts';
 import { createSdkMcpServer, tool } from '../../src/mcp.ts';
 
@@ -276,5 +276,21 @@ describe('in-process MCP manifest capture', () => {
       if (saved === undefined) delete process.env.CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS;
       else process.env.CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS = saved;
     }
+  });
+});
+
+describe('setSdkMcpServers() server names', () => {
+  test.each([
+    'toString',
+    'constructor',
+  ])('removes a bridge named %s when it is left out', async (name) => {
+    const { stream } = capturingStdin();
+    const handler = new ControlProtocolHandler(stream, {});
+    const server = createSdkMcpServer({ name, tools: [ping] });
+    connectMcpBridges({ mcpServers: { [name]: server } }, handler);
+    expect(handler.getMcpServerBridge(name)).toBeDefined();
+
+    await setSdkMcpServers({}, handler);
+    expect(handler.getMcpServerBridge(name)).toBeUndefined();
   });
 });

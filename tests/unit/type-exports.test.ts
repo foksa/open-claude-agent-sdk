@@ -2170,3 +2170,20 @@ describe('v0.3.295 type re-exports', () => {
     expect(info.overageEnabled).toBe(true);
   });
 });
+
+describe('v0.3.300 type re-exports', () => {
+  test('AgentDefinition carries autoCompactWindow', () => {
+    const agent: import('../../src/types/index.ts').AgentDefinition = {
+      description: 'd',
+      prompt: 'p',
+      autoCompactWindow: 120000,
+    };
+    expect(agent.autoCompactWindow).toBe(120000);
+  });
+
+  test('SDKControlInitializeResponse carries claude_code_version', () => {
+    type Init = import('../../src/types/index.ts').SDKControlInitializeResponse;
+    const version: Init['claude_code_version'] = '2.1.300';
+    expect(version).toBe('2.1.300');
+  });
+});

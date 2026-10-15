@@ -177,6 +177,94 @@ function isJsonObjectString(value: string): boolean {
   return trimmed.startsWith('{') && trimmed.endsWith('}');
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+// Sandbox paths whose arrays are concatenated (deduped) instead of replaced
+const SANDBOX_UNION_PATHS = new Set([
+  'filesystem.denyRead',
+  'filesystem.denyWrite',
+  'network.deniedDomains',
+  'credentials.files',
+  'credentials.envVars',
+]);
+// Sandbox paths whose objects are replaced whole instead of deep-merged
+const SANDBOX_REPLACE_PATHS = new Set(['ripgrep', 'network.tlsTerminate']);
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+// Inline proxy ports dropped when the option sets its own domain policy
+const SANDBOX_PROXY_PORT_KEYS = ['httpProxyPort', 'socksProxyPort'] as const;
+
+function deepMergeSandbox(
+  base: unknown,
+  override: Record<string, unknown>,
+  path = ''
+): Record<string, unknown> {
+  const result: Record<string, unknown> = isPlainObject(base) ? { ...base } : {};
+  for (const [key, value] of Object.entries(override)) {
+    if (UNSAFE_KEYS.has(key) || value === undefined) continue;
+    const keyPath = path ? `${path}.${key}` : key;
+    const existing = Object.hasOwn(result, key) ? result[key] : undefined;
+    if (SANDBOX_UNION_PATHS.has(keyPath) && Array.isArray(existing) && Array.isArray(value)) {
+      result[key] = [...new Set([...existing, ...value])];
+    } else if (
+      isPlainObject(existing) &&
+      isPlainObject(value) &&
+      !SANDBOX_REPLACE_PATHS.has(keyPath)
+    ) {
+      result[key] = deepMergeSandbox(existing, value, keyPath);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+/**
+ * v0.3.296: the `sandbox` option merges into an inline `settings.sandbox` block
+ * (option wins, deny/credential lists combine) instead of replacing it.
+ */
+function mergeSandboxSettings(
+  inline: unknown,
+  sandbox: NonNullable<Options['sandbox']>
+): Record<string, unknown> {
+  const opt = sandbox;
+  const merged = deepMergeSandbox(inline, opt as Record<string, unknown>);
+  // An option that configures filesystem restrictions re-enables an inline-disabled filesystem sandbox
+  const credentialFiles = opt.credentials?.files;
+  const setsFilesystem =
+    opt.filesystem !== undefined ||
+    (Array.isArray(credentialFiles) &&
+      credentialFiles.some((f) => isPlainObject(f) && f.mode === 'deny'));
+  const filesystem = merged.filesystem;
+  if (
+    setsFilesystem &&
+    opt.filesystem?.disabled === undefined &&
+    isPlainObject(filesystem) &&
+    filesystem.disabled === true
+  ) {
+    delete filesystem.disabled;
+  }
+  const network = opt.network;
+  const setsDomainPolicy =
+    network?.allowedDomains !== undefined ||
+    (network?.deniedDomains?.length ?? 0) > 0 ||
+    network?.strictAllowlist === true;
+  const mergedNetwork = merged.network;
+  if (setsDomainPolicy && isPlainObject(mergedNetwork)) {
+    for (const key of SANDBOX_PROXY_PORT_KEYS) {
+      if (network?.[key] === undefined && mergedNetwork[key] !== undefined)
+        delete mergedNetwork[key];
+    }
+  }
+  // Official SDK defaults failIfUnavailable: true when enabled: true
+  if (opt.enabled === true && merged.failIfUnavailable === undefined)
+    merged.failIfUnavailable = true;
+  return merged;
+}
+
 function applyFlagMap(args: string[], options: Options): void {
   for (const mapping of FLAG_MAP) {
     const value = options[mapping.key];
@@ -358,23 +446,21 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
         ? options.settings
         : JSON.stringify(options.settings);
   if (options.sandbox) {
-    // Official SDK defaults failIfUnavailable: true when enabled: true
-    const sandbox =
-      options.sandbox.enabled === true && options.sandbox.failIfUnavailable === undefined
-        ? { ...options.sandbox, failIfUnavailable: true }
-        : options.sandbox;
     if (settings && !isJsonObjectString(settings)) {
       throw new Error(
         'Cannot use both a settings file path and the sandbox option. Include the sandbox configuration in your settings file instead.'
       );
     }
-    let merged: Record<string, unknown> = { sandbox };
+    let base: Record<string, unknown> = {};
     if (settings) {
       try {
-        merged = { ...JSON.parse(settings), sandbox };
+        base = JSON.parse(settings);
       } catch {}
     }
-    settings = JSON.stringify(merged);
+    settings = JSON.stringify({
+      ...base,
+      sandbox: mergeSandboxSettings(base.sandbox, options.sandbox),
+    });
   }
 
   // extraArgs — user-supplied passthrough flags (settings overrides extraArgs.settings)
