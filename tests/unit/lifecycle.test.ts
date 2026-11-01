@@ -6,7 +6,7 @@
 
 import { afterAll, describe, expect, test } from 'bun:test';
 import { spawn } from 'node:child_process';
-import { unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import {
   AbortError as OfficialAbortError,
   query as officialQuery,
@@ -401,4 +401,187 @@ describe('a stderr pipe held by a forked child does not keep the host alive', ()
     // Rejects after the ~2s stderr drain window; must not wait for the 6s child
     expect(elapsed).toBeLessThan(4500);
   }, 15000);
+});
+
+describe('canUseTool receives the same context as official', () => {
+  const request = JSON.stringify({
+    type: 'control_request',
+    request_id: 'perm-1',
+    request: {
+      subtype: 'can_use_tool',
+      tool_name: 'mcp__srv__x',
+      input: { a: 1 },
+      tool_use_id: 'tu-1',
+      decision_reason: 'policy',
+      decision_reason_type: 'rule',
+      decision_reason_code: 'ask_rule',
+      // v0.3.301
+      server_policy_ask_only: true,
+      plugin: 'my-plugin',
+      requires_user_interaction: true,
+      server_prompt: 'Allow?',
+      computer_folder: { path: '/w', computer_name: 'box', extra: 1 },
+      mcp_server: { name: 'srv', source: 'sdk' },
+      title: 'T',
+      display_name: 'D',
+      agent_id: 'ag',
+    },
+  });
+  // Answers initialize, asks for permission, waits for the answer, then ends
+  const script = fakeCli(`read -r line
+id=$(echo "$line" | sed -E 's/.*"request_id":"([^"]+)".*/\\1/')
+echo '{"type":"control_response","response":{"subtype":"success","request_id":"'"$id"'","response":{"commands":[],"agents":[],"models":[],"output_style":"default","available_output_styles":[],"account":{}}}}'
+echo '${request}'
+while read -r l; do case "$l" in *perm-1*) break;; esac; done
+echo '${RESULT}'
+cat > /dev/null
+`);
+
+  const run = async (query: QueryFn) => {
+    let context: Record<string, unknown> | undefined;
+    const q = query({
+      prompt: 'hi',
+      options: {
+        pathToClaudeCodeExecutable: script,
+        settingSources: [],
+        canUseTool: async (_name, _input, ctx) => {
+          const { signal: _signal, ...rest } = ctx;
+          context = rest;
+          return { behavior: 'allow', updatedInput: {} };
+        },
+      },
+    });
+    for await (const msg of q) {
+      if (msg.type === 'result') break;
+    }
+    return context;
+  };
+
+  test('context fields match', async () => {
+    const [ours, theirs] = await Promise.all([
+      run(openQuery),
+      run(officialQuery as unknown as QueryFn),
+    ]);
+    expect(theirs).toMatchObject({ serverPolicyAskOnly: true });
+    expect(ours).toEqual(theirs);
+  }, 10000);
+});
+
+describe('initialize response re-delivers open prompts', () => {
+  const INIT_RESPONSE =
+    '"response":{"commands":[],"agents":[],"models":[],"output_style":"default","available_output_styles":[],"account":{}}';
+  const pending = [
+    `"pending_permission_requests":${JSON.stringify([
+      {
+        type: 'control_request',
+        request_id: 'perm-1',
+        request: {
+          subtype: 'can_use_tool',
+          tool_name: 'Bash',
+          input: { command: 'ls' },
+          tool_use_id: 'tu-1',
+          // Cleared before re-asking
+          server_policy_ask_only: true,
+        },
+      },
+      // Not a permission prompt: skipped
+      { type: 'control_request', request_id: 'odd-1', request: { subtype: 'hook_callback' } },
+    ])}`,
+    `"pending_user_dialog_requests":${JSON.stringify([
+      {
+        type: 'control_request',
+        request_id: 'dlg-1',
+        request: { subtype: 'request_user_dialog', dialog_kind: 'confirm', payload: { q: 1 } },
+      },
+    ])}`,
+    // Ignored, as upstream does
+    `"pending_elicitation_requests":${JSON.stringify([
+      {
+        type: 'control_request',
+        request_id: 'eli-1',
+        request: { subtype: 'elicitation', mcp_server_name: 's', message: 'm' },
+      },
+    ])}`,
+  ].join(',');
+
+  /**
+   * Answers the Nth `initialize` (PENDING_ON) with open prompts, the others
+   * plainly; logs every stdin line; ends once both prompts are answered.
+   */
+  const script = fakeCli(`n=0; got=0
+while read -r line; do
+  echo "$line" >> "$REDELIVERY_LOG"
+  case "$line" in
+    *'"subtype":"initialize"'*)
+      n=$((n+1))
+      id=$(echo "$line" | sed -E 's/.*"request_id":"([^"]+)".*/\\1/')
+      if [ "$n" -eq "$PENDING_ON" ]; then
+        echo '{"type":"control_response","response":{"subtype":"success","request_id":"'"$id"'",${INIT_RESPONSE},${pending}}}'
+      else
+        echo '{"type":"control_response","response":{"subtype":"success","request_id":"'"$id"'",${INIT_RESPONSE}}}'
+      fi ;;
+    *'"request_id":"perm-1"'*|*'"request_id":"dlg-1"'*)
+      got=$((got+1))
+      if [ "$got" -eq 2 ]; then echo '${RESULT}'; fi ;;
+  esac
+done
+`);
+
+  const run = async (query: QueryFn, pendingOn: 1 | 2) => {
+    const log = `/tmp/redelivery-${Date.now()}-${Math.random().toString(36).slice(2)}.log`;
+    scripts.push(log);
+    const calls: unknown[] = [];
+    const q = query({
+      prompt: 'hi',
+      options: {
+        pathToClaudeCodeExecutable: script,
+        settingSources: [],
+        env: { ...process.env, REDELIVERY_LOG: log, PENDING_ON: String(pendingOn) },
+        canUseTool: async (name, input, { signal: _s, ...ctx }) => {
+          calls.push(['canUseTool', name, input, ctx]);
+          return { behavior: 'allow', updatedInput: input };
+        },
+        onUserDialog: async (request, { signal: _s, ...ctx }) => {
+          calls.push(['onUserDialog', request, ctx]);
+          return { behavior: 'completed', result: { ok: true } } as never;
+        },
+        onElicitation: async (request) => {
+          calls.push(['onElicitation', request]);
+          return { action: 'decline' };
+        },
+      },
+    });
+    if (pendingOn === 2) {
+      await q.initializationResult();
+      await q.reinitialize();
+    }
+    for await (const msg of q) {
+      if (msg.type === 'result') break;
+    }
+    // The SDK's answers to the re-delivered prompts, as the CLI read them
+    const answers = (existsSync(log) ? readFileSync(log, 'utf8') : '')
+      .split('\n')
+      .filter((l) => l.includes('"control_response"'))
+      .map((l) => JSON.parse(l))
+      .sort((a, b) => a.response.request_id.localeCompare(b.response.request_id));
+    return { calls, answers };
+  };
+
+  for (const [label, pendingOn] of [
+    ['first initialize', 1],
+    ['reinitialize()', 2],
+  ] as const) {
+    test(`${label}: prompts answered like official`, async () => {
+      const [ours, theirs] = await Promise.all([
+        run(openQuery, pendingOn),
+        run(officialQuery as unknown as QueryFn, pendingOn),
+      ]);
+      expect(theirs.calls.map((c) => (c as unknown[])[0]).sort()).toEqual([
+        'canUseTool',
+        'onUserDialog',
+      ]);
+      expect(theirs.answers.map((a) => a.response.request_id)).toEqual(['dlg-1', 'perm-1']);
+      expect(ours).toEqual(theirs);
+    }, 10000);
+  }
 });

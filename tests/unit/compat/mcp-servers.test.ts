@@ -183,6 +183,56 @@ describe('mcpServers init message compatibility', () => {
   );
 
   test.concurrent(
+    'sdkMcpServers tools permission policy and connectorId reach sdkMcpServerConfigs (v0.3.301)',
+    async () => {
+      // Host-declared policy on the server config, not createSdkMcpServer's tool definitions
+      const makeServers = () => ({
+        policed: {
+          ...createSdkMcpServer({ name: 'policed' }),
+          tools: [
+            { name: 'ask', permission_policy: 'always_ask' },
+            { name: 'deny', permission_policy: 'always_deny' },
+            { name: 'plain' },
+            // Unknown policy reads as always_ask; entry without a string name is dropped
+            { name: 'weird', permission_policy: 'nope' },
+            { permission_policy: 'always_deny' },
+            'not-an-entry',
+          ],
+          connectorId: 'conn-1',
+        },
+        // Empty list is still sent (clears the policy); empty connectorId is dropped
+        cleared: { ...createSdkMcpServer({ name: 'cleared' }), tools: [], connectorId: '' },
+        // A non-list reads as absent
+        notList: { ...createSdkMcpServer({ name: 'notList' }), tools: 'always_deny' },
+      });
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { mcpServers: makeServers() as never }),
+        capture(officialQuery, 'test', { mcpServers: makeServers() as never }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      const expected = {
+        policed: {
+          tools: [
+            { name: 'ask', permission_policy: 'always_ask' },
+            { name: 'deny', permission_policy: 'always_deny' },
+            { name: 'plain' },
+            { name: 'weird', permission_policy: 'always_ask' },
+          ],
+          connectorId: 'conn-1',
+        },
+        cleared: { tools: [] },
+      };
+      expect(officialInit?.request?.sdkMcpServerConfigs).toEqual(expected);
+      expect(openInit?.request?.sdkMcpServerConfigs).toEqual(expected);
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'sdkMcpServers invalid timeout is omitted, matching official SDK (v0.3.248)',
     async () => {
       const makeServer = () => createSdkMcpServer({ name: 'bad-timeout-tools', timeout: -5 });

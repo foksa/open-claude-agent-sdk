@@ -127,6 +127,54 @@ describe('SDK MCP Servers', () => {
     },
     120000
   );
+
+  testWithBothSDKs(
+    'per-tool always_ask policy routes an allowed sdk tool through canUseTool (v0.3.301)',
+    async (sdk) => {
+      const server = createSdkMcpServer({
+        name: 'policy-tools',
+        tools: [
+          tool(
+            'get_secret_number',
+            'Returns a secret number. Always call this tool when asked for the secret number.',
+            {},
+            async () => ({ content: [{ type: 'text' as const, text: '42' }] })
+          ),
+        ],
+      });
+      const asked: Array<{ name: string; serverPolicyAskOnly?: unknown }> = [];
+
+      const messages = await runWithSDK(
+        sdk,
+        'What is the secret number? Use the get_secret_number tool to find out. Reply with just the number.',
+        {
+          permissionMode: 'default',
+          canUseTool: async (name, _input, ctx) => {
+            asked.push({
+              name,
+              serverPolicyAskOnly: (ctx as { serverPolicyAskOnly?: unknown }).serverPolicyAskOnly,
+            });
+            return { behavior: 'allow' as const };
+          },
+          mcpServers: {
+            'policy-tools': {
+              ...server,
+              tools: [{ name: 'get_secret_number', permission_policy: 'always_ask' }],
+            },
+          },
+          // The allow rule would skip canUseTool without the always_ask policy
+          allowedTools: ['mcp__policy-tools__*'],
+          maxTurns: 3,
+        }
+      );
+
+      const result = messages.find((m) => m.type === 'result');
+      expect(result?.type === 'result' && result.subtype).toBe('success');
+      expect(asked.map((a) => a.name)).toContain('mcp__policy-tools__get_secret_number');
+      console.log(`   [${sdk}] canUseTool asked:`, JSON.stringify(asked));
+    },
+    120000
+  );
 });
 
 // =============================================================================

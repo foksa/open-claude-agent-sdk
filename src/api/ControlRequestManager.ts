@@ -10,7 +10,12 @@
 
 import type { OutboundControlRequest } from '../core/control.ts';
 import type { StdinLike } from '../core/stdinGate.ts';
-import { MessageType, ResponseSubtype } from '../types/control.ts';
+import {
+  type ControlRequest,
+  MessageType,
+  RequestSubtype,
+  ResponseSubtype,
+} from '../types/control.ts';
 import type { SDKControlInitializeResponse } from '../types/index.ts';
 import type { ControlResponsePayload } from './MessageRouter.ts';
 
@@ -26,6 +31,14 @@ export class ControlRequestManager {
   private initReject!: (reason: Error) => void;
   private initResponsePromise: Promise<SDKControlInitializeResponse>;
   private _initRequestId = '';
+  /** Ids of `reinitialize()` requests still awaiting their response */
+  private reinitRequestIds = new Set<string>();
+
+  /**
+   * Called with a prompt the CLI re-sends on an `initialize` response
+   * (`can_use_tool` or `request_user_dialog`), to be answered like a fresh one.
+   */
+  onRedeliveredPrompt?: (request: ControlRequest) => void;
 
   constructor(private stdin: StdinLike | null) {
     this.initResponsePromise = new Promise<SDKControlInitializeResponse>((resolve, reject) => {
@@ -67,6 +80,9 @@ export class ControlRequestManager {
       return Promise.reject(new Error('Cannot send control request: query is closed'));
     }
     const envelope = this.buildControlRequest(request);
+    if (request.subtype === RequestSubtype.INITIALIZE) {
+      this.reinitRequestIds.add(envelope.request_id);
+    }
     const promise = new Promise<T>((resolve, reject) => {
       this.pendingResponses.set(envelope.request_id, { resolve, reject });
     });
@@ -90,6 +106,7 @@ export class ControlRequestManager {
       } else {
         this.initReject(new Error(`Initialization failed: ${response.error || 'unknown error'}`));
       }
+      this.redeliverPrompts(response);
       return;
     }
 
@@ -103,6 +120,27 @@ export class ControlRequestManager {
       } else {
         reject(new Error(`Control request failed: ${response.error || 'unknown error'}`));
       }
+      // Only an `initialize` response re-delivers prompts; on any other
+      // response the official SDK ignores these fields
+      if (this.reinitRequestIds.delete(requestId)) this.redeliverPrompts(response);
+    }
+  }
+
+  /**
+   * Answer the prompts an `initialize` response (success or error) lists as
+   * still open, after settling the response — official SDK order. A permission
+   * prompt is re-asked without `server_policy_ask_only`; elicitations are
+   * ignored, as upstream does.
+   */
+  private redeliverPrompts(response: ControlResponsePayload): void {
+    const deliver = this.onRedeliveredPrompt;
+    if (!deliver) return;
+    for (const req of response.pending_permission_requests ?? []) {
+      if (req.request.subtype !== RequestSubtype.CAN_USE_TOOL) continue;
+      deliver({ ...req, request: { ...req.request, server_policy_ask_only: undefined } });
+    }
+    for (const req of response.pending_user_dialog_requests ?? []) {
+      if (req.request.subtype === RequestSubtype.REQUEST_USER_DIALOG) deliver(req);
     }
   }
 
@@ -114,6 +152,7 @@ export class ControlRequestManager {
   /** Reject init promise and all pending control response promises */
   rejectAll(error: Error): void {
     this.closed = true;
+    this.reinitRequestIds.clear();
     this.initReject?.(error);
     for (const [, { reject }] of this.pendingResponses) {
       reject(error);

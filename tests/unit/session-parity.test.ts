@@ -448,6 +448,10 @@ describe('forkSession parity', () => {
         type: 'assistant',
         uuid: a2,
         parentUuid: qa,
+        // Per-session fields a fork clears (turnAttributionKey: v0.3.316)
+        summarizedTurnPromptUuids: [u1],
+        droppedPromptUuids: [u1],
+        turnAttributionKey: 'turn-key',
         message: { id: 'msg_2', role: 'assistant', content: [{ type: 'text', text: 'done' }] },
       },
       // abandoned branch off a2
@@ -961,6 +965,8 @@ describe('listSubagents / getSubagentMessages parity', () => {
 describe('runtime constants match official SDK', () => {
   test('values are identical', () => {
     const pick = (sdk: typeof open | typeof official) => ({
+      BUILTIN_TOOL_NAMES: sdk.BUILTIN_TOOL_NAMES,
+      LEGACY_TOOL_NAME_ALIASES: sdk.LEGACY_TOOL_NAME_ALIASES,
       EXIT_REASONS: sdk.EXIT_REASONS,
       HOOK_EVENTS: sdk.HOOK_EVENTS,
       SYSTEM_PROMPT_DYNAMIC_BOUNDARY: sdk.SYSTEM_PROMPT_DYNAMIC_BOUNDARY,

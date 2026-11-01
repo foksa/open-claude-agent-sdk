@@ -2187,3 +2187,28 @@ describe('v0.3.300 type re-exports', () => {
     expect(version).toBe('2.1.300');
   });
 });
+
+describe('v0.3.316 type re-exports', () => {
+  test('McpSdkServerConfig carries per-tool permission policy (v0.3.301)', () => {
+    const config: import('../../src/types/index.ts').McpSdkServerConfig = {
+      type: 'sdk',
+      name: 's',
+      tools: [{ name: 't', permission_policy: 'always_deny' }],
+    };
+    expect(config.tools?.[0]?.permission_policy).toBe('always_deny');
+  });
+
+  test('ModelUsage carries cache-lifetime split (v0.3.311)', () => {
+    const usage: Partial<import('../../src/types/index.ts').ModelUsage> = {
+      cacheCreationEphemeral5mInputTokens: 1,
+      cacheCreationEphemeral1hInputTokens: 2,
+    };
+    expect(usage.cacheCreationEphemeral1hInputTokens).toBe(2);
+  });
+
+  test('BUILTIN_TOOL_NAMES and LEGACY_TOOL_NAME_ALIASES are importable from main entry', () => {
+    const { BUILTIN_TOOL_NAMES, LEGACY_TOOL_NAME_ALIASES } = require('../../src/index.ts');
+    expect(BUILTIN_TOOL_NAMES).toContain('Bash');
+    expect(LEGACY_TOOL_NAME_ALIASES.Task).toBe('Agent');
+  });
+});

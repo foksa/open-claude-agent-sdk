@@ -3,15 +3,17 @@
  * A lightweight alternative to Claude Agent SDK - uses local CLI
  */
 
-export const version = '0.54.0';
+export const version = '0.55.0';
 
 export { query } from './api/query.ts';
 // Runtime values the official SDK exports — our own implementations, so the
 // package has no runtime dependency on @anthropic-ai/claude-agent-sdk
 export {
   AbortError,
+  BUILTIN_TOOL_NAMES,
   EXIT_REASONS,
   HOOK_EVENTS,
+  LEGACY_TOOL_NAME_ALIASES,
   ORG_POLICY_LIMIT_PREFIXES,
   SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
   USAGE_LIMIT_ERROR_PREFIXES,

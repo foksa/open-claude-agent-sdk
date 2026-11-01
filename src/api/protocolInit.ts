@@ -17,7 +17,7 @@ import type { Options, SDKUserMessage } from '../types/index.ts';
 import type { ControlRequestManager } from './ControlRequestManager.ts';
 
 /**
- * Build `sdkMcpServerConfigs` — per-server settings (`timeout`, `disableAutoBackground`)
+ * Build `sdkMcpServerConfigs` — per-server settings (`timeout`, `disableAutoBackground`, `tools`, `connectorId`)
  * for SDK (in-process) MCP servers. Only servers with any setting are included
  * (matches official SDK).
  */

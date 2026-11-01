@@ -41,6 +41,7 @@ import type {
   SDKControlReloadSkillsResponse,
   SDKMessage,
   SDKUserMessage,
+  SdkPluginConfig,
   Settings,
   SlashCommand,
 } from '../types/index.ts';
@@ -191,6 +192,9 @@ export class QueryImpl implements Query {
     const gate = new InitWriteGate(childProcess.stdin);
     const controlHandler = new ControlProtocolHandler(gate, options);
     const controlManager = new ControlRequestManager(gate);
+    controlManager.onRedeliveredPrompt = (request) => {
+      void controlHandler.handleControlRequest(request);
+    };
 
     // 3. Connect SDK MCP servers
     const sdkMcpServerNames = connectMcpBridges(options, controlHandler);
@@ -896,6 +900,7 @@ export class QueryImpl implements Query {
 
   async reloadPlugins(options?: {
     holdOnCacheImpact?: boolean;
+    addPlugins?: SdkPluginConfig[];
   }): Promise<SDKControlReloadPluginsResponse> {
     return this.controlManager.sendControlRequestWithResponse<SDKControlReloadPluginsResponse>(
       ControlRequests.reloadPlugins(options)

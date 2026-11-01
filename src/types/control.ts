@@ -11,6 +11,7 @@
 
 import type {
   HookInput,
+  McpServerToolPolicy,
   PermissionMode,
   PermissionUpdate,
   SDKMessage,
@@ -159,6 +160,12 @@ export type CanUseToolRequest = {
   suppress_always_allow_rule?: boolean;
   mcp_server?: { name: string; source: string };
   matched_ask_rule?: { source: string; tool_name: string; rule_content?: string };
+  /** v0.3.301: set when only a host-declared per-tool `always_ask` policy asks */
+  server_policy_ask_only?: boolean;
+  plugin?: string;
+  requires_user_interaction?: boolean;
+  server_prompt?: string;
+  computer_folder?: unknown;
 };
 
 export type HookCallbackRequest = {
@@ -180,7 +187,15 @@ export type InitializeRequest = {
   appendSystemPrompt?: string;
   systemPromptSnapshot?: boolean;
   sdkMcpServers?: string[];
-  sdkMcpServerConfigs?: Record<string, { timeout?: number; disableAutoBackground?: true }>;
+  sdkMcpServerConfigs?: Record<
+    string,
+    {
+      timeout?: number;
+      disableAutoBackground?: true;
+      tools?: McpServerToolPolicy[];
+      connectorId?: string;
+    }
+  >;
   /** Handshake results of in-process servers, captured before initialize. */
   sdkMcpServerManifests?: Record<string, SdkMcpServerManifest>;
   jsonSchema?: Record<string, unknown>;
@@ -282,6 +297,8 @@ export type UpdateSettingsRequest = {
 export type ReloadPluginsRequest = {
   subtype: typeof RequestSubtype.RELOAD_PLUGINS;
   hold_on_cache_impact?: boolean;
+  /** v0.3.301: more plugin folders to load into the running session */
+  add_plugins?: SdkPluginConfig[];
 };
 
 export type ReloadSkillsRequest = {
@@ -371,16 +388,25 @@ export type ControlResponse = {
 
 export type ControlResponseInner = ControlResponseSuccess | ControlResponseError;
 
-export type ControlResponseSuccess = {
+/**
+ * Prompts the CLI still has open, listed on a response to `initialize` so a
+ * client (re)initializing a running session can answer them.
+ */
+export type PromptRedelivery = {
+  pending_permission_requests?: ControlRequest[];
+  pending_user_dialog_requests?: ControlRequest[];
+  /** Ignored, as the official SDK does (v0.3.316) */
+  pending_elicitation_requests?: ControlRequest[];
+};
+
+export type ControlResponseSuccess = PromptRedelivery & {
   subtype: typeof ResponseSubtype.SUCCESS;
   request_id: string;
   response?: Record<string, unknown>;
-  pending_permission_requests?: ControlRequest[];
 };
 
-export type ControlResponseError = {
+export type ControlResponseError = PromptRedelivery & {
   subtype: typeof ResponseSubtype.ERROR;
   request_id: string;
   error: string;
-  pending_permission_requests?: ControlRequest[];
 };

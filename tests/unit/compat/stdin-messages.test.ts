@@ -932,6 +932,31 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'reloadPlugins({ addPlugins }) sends add_plugins matching official SDK (v0.3.301)',
+    async () => {
+      const plugins = [{ type: 'local' as const, path: '/tmp/extra-plugin' }];
+      const run = (queryFn: typeof openQuery) =>
+        captureWithQuery(queryFn, 'test', async (q) => {
+          await q.reloadPlugins({ addPlugins: plugins });
+          // An empty list is not sent
+          await q.reloadPlugins({ addPlugins: [] });
+        });
+      const [open, official] = await Promise.all([run(openQuery), run(officialQuery)]);
+
+      const pick = (stdin: typeof open.stdin) =>
+        stdin.filter((m) => m.request?.subtype === 'reload_plugins').map(normalizeMessage);
+      expect(pick(official.stdin)).toEqual([
+        expect.objectContaining({
+          request: { subtype: 'reload_plugins', add_plugins: plugins },
+        }),
+        expect.objectContaining({ request: { subtype: 'reload_plugins' } }),
+      ]);
+      expect(pick(open.stdin)).toEqual(pick(official.stdin));
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'reloadSkills sends reload_skills control request matching official SDK',
     async () => {
       const [open, official] = await Promise.all([
@@ -1697,6 +1722,66 @@ describe('stdin message compatibility', () => {
       expect(officialReq?.request.servers).toEqual({
         early: { type: 'sdk', name: 'early', timeout: 5000 },
         late: { type: 'sdk', name: 'late', timeout: 5000, disableAutoBackground: true },
+      });
+      expect(openReq && normalizeMessage(openReq)).toEqual(
+        officialReq && normalizeMessage(officialReq)
+      );
+    },
+    { timeout: 60000 }
+  );
+  test.concurrent(
+    'setMcpServers replaces a registered server’s tools policy only (v0.3.301)',
+    async () => {
+      const makeServer = (name: string) => createSdkMcpServer({ name, timeout: 5000 });
+      const run = (queryFn: typeof openQuery) =>
+        captureWithQuery(
+          queryFn,
+          'test',
+          async (q: Query) => {
+            await q.setMcpServers({
+              // Registered at startup: timeout kept, tools replaced
+              early: {
+                ...makeServer('early'),
+                timeout: 9000,
+                tools: [{ name: 'x', permission_policy: 'always_deny' }],
+              },
+              // Registered at startup with a policy, no tools passed: policy kept
+              kept: makeServer('kept'),
+              late: { ...makeServer('late'), tools: [{ name: 'y', permission_policy: 'bad' }] },
+            } as Record<string, McpServerConfig>);
+          },
+          {
+            mcpServers: {
+              early: { ...makeServer('early'), tools: [{ name: 'x' }] },
+              kept: {
+                ...makeServer('kept'),
+                tools: [{ name: 'z', permission_policy: 'always_ask' }],
+              },
+            } as Record<string, McpServerConfig>,
+          }
+        );
+      const [open, official] = await Promise.all([run(openQuery), run(officialQuery)]);
+      const openReq = open.stdin.find((m) => m.request?.subtype === 'mcp_set_servers');
+      const officialReq = official.stdin.find((m) => m.request?.subtype === 'mcp_set_servers');
+      expect(officialReq?.request.servers).toEqual({
+        early: {
+          type: 'sdk',
+          name: 'early',
+          timeout: 5000,
+          tools: [{ name: 'x', permission_policy: 'always_deny' }],
+        },
+        kept: {
+          type: 'sdk',
+          name: 'kept',
+          timeout: 5000,
+          tools: [{ name: 'z', permission_policy: 'always_ask' }],
+        },
+        late: {
+          type: 'sdk',
+          name: 'late',
+          timeout: 5000,
+          tools: [{ name: 'y', permission_policy: 'always_ask' }],
+        },
       });
       expect(openReq && normalizeMessage(openReq)).toEqual(
         officialReq && normalizeMessage(officialReq)

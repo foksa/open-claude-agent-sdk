@@ -109,6 +109,10 @@ const FORK_RESET = {
   sessionKind: undefined,
   slug: undefined,
   sourceToolAssistantUUID: undefined,
+  summarizedTurnPromptUuids: undefined,
+  droppedPromptUuids: undefined,
+  // v0.3.316
+  turnAttributionKey: undefined,
 };
 
 /** The message uuids a compact boundary preserved. */

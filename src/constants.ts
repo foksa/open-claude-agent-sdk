@@ -13,7 +13,7 @@ type Official = typeof import('@anthropic-ai/claude-agent-sdk');
  * an SDK host of the protocol version we implement. Kept equal to the pinned
  * devDependency (tests/unit/index.test.ts).
  */
-export const COMPATIBLE_SDK_VERSION = '0.3.300';
+export const COMPATIBLE_SDK_VERSION = '0.3.316';
 
 /** Thrown when a query is aborted via its AbortController. */
 export class AbortError extends Error {}
@@ -89,6 +89,7 @@ export const USAGE_TRANSITION_PREFIXES: Official['USAGE_TRANSITION_PREFIXES'] = 
   "You're now using your usage allocation",
   'Now using your usage allocation',
   'Now using usage credits',
+  'Now using credits',
   "You're now using extra usage",
   'Now using extra usage',
 ];
@@ -97,3 +98,73 @@ export const USAGE_WARNING_PREFIXES: Official['USAGE_WARNING_PREFIXES'] = [
   "You've used",
   "You're close to",
 ];
+
+/** v0.3.301: public built-in tool names, as permission rules spell them. */
+export const BUILTIN_TOOL_NAMES: Official['BUILTIN_TOOL_NAMES'] = [
+  'Agent',
+  'Artifact',
+  'AskUserQuestion',
+  'Bash',
+  'ClaudeDesign',
+  'CronCreate',
+  'CronDelete',
+  'CronList',
+  'Edit',
+  'EndConversation',
+  'EnterPlanMode',
+  'EnterWorktree',
+  'ExitPlanMode',
+  'ExitWorktree',
+  'Glob',
+  'Grep',
+  'ListAgents',
+  'ListMcpResourcesTool',
+  'LSP',
+  'Monitor',
+  'NotebookEdit',
+  'OfferChromeSetup',
+  'PowerShell',
+  'Projects',
+  'propose_skills',
+  'ProposeGoal',
+  'PushNotification',
+  'Read',
+  'ReadMcpResourceDirTool',
+  'ReadMcpResourceTool',
+  'ReadNotifications',
+  'RemoteTrigger',
+  'ReportFindings',
+  'ScheduleWakeup',
+  'SendFeedback',
+  'SendMessage',
+  'SendUserFile',
+  'SendUserMessage',
+  'ShareOnboardingGuide',
+  'ShowOnboardingRolePicker',
+  'Skill',
+  'SubagentHandback',
+  'TaskCreate',
+  'TaskGet',
+  'TaskList',
+  'TaskStop',
+  'TaskUpdate',
+  'TodoWrite',
+  'ToolSearch',
+  'WaitForMcpServers',
+  'WebFetch',
+  'WebSearch',
+  'Workflow',
+  'Write',
+];
+
+/** v0.3.301: former tool names still accepted, mapped to the current name. */
+export const LEGACY_TOOL_NAME_ALIASES: Official['LEGACY_TOOL_NAME_ALIASES'] = {
+  Task: 'Agent',
+  KillShell: 'TaskStop',
+  KillBash: 'TaskStop',
+  ListPeers: 'ListAgents',
+  Brief: 'SendUserMessage',
+  ListMcpResources: 'ListMcpResourcesTool',
+  ReadMcpResource: 'ReadMcpResourceTool',
+  ReadMcpResourceDir: 'ReadMcpResourceDirTool',
+};

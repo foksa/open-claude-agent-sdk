@@ -12,7 +12,7 @@
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
-import type { McpServerConfig, Options } from '../types/index.ts';
+import type { McpServerConfig, McpServerToolPolicy, Options } from '../types/index.ts';
 import type { ControlProtocolHandler } from './control.ts';
 
 type SdkServerConfig = {
@@ -21,10 +21,17 @@ type SdkServerConfig = {
   instance: unknown;
   timeout?: number;
   disableAutoBackground?: boolean;
+  tools?: unknown;
+  connectorId?: unknown;
 };
 
 /** Per-server settings sent to the CLI for an in-process server. */
-export type SdkMcpServerSettings = { timeout?: number; disableAutoBackground?: true };
+export type SdkMcpServerSettings = {
+  timeout?: number;
+  disableAutoBackground?: true;
+  tools?: McpServerToolPolicy[];
+  connectorId?: string;
+};
 
 function isSdkServerConfig(config: McpServerConfig): config is McpServerConfig & SdkServerConfig {
   return config.type === 'sdk' && 'instance' in config && !!config.instance;
@@ -35,17 +42,47 @@ function validTimeout(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
+const TOOL_PERMISSION_POLICIES = new Set(['always_allow', 'always_ask', 'always_deny']);
+
+/**
+ * Normalize a per-tool permission policy list (official SDK, v0.3.301): an entry
+ * without a string `name` is dropped, an unknown `permission_policy` reads as
+ * `always_ask`, and a value that is not a list reads as absent.
+ */
+function toolPolicies(value: unknown): McpServerToolPolicy[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const policies: McpServerToolPolicy[] = [];
+  for (const entry of value) {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) continue;
+    const { name, permission_policy } = entry as Record<string, unknown>;
+    if (typeof name !== 'string') continue;
+    if (permission_policy === undefined) policies.push({ name });
+    else
+      policies.push({
+        name,
+        permission_policy: TOOL_PERMISSION_POLICIES.has(permission_policy as string)
+          ? (permission_policy as McpServerToolPolicy['permission_policy'])
+          : 'always_ask',
+      });
+  }
+  return policies;
+}
+
 /**
  * The settings an in-process server config carries to the CLI: a valid `timeout`,
- * and `disableAutoBackground` only when `true` (official SDK, v0.3.295).
+ * `disableAutoBackground` only when `true` (official SDK, v0.3.295), and the
+ * per-tool `tools` policy plus a non-empty `connectorId` (v0.3.301).
  */
 export function sdkMcpServerSettings(config: unknown): SdkMcpServerSettings {
-  if (typeof config !== 'object' || config === null) return {};
-  const { timeout, disableAutoBackground } = config as Partial<SdkServerConfig>;
+  if (typeof config !== 'object' || config === null || Array.isArray(config)) return {};
+  const { timeout, disableAutoBackground, tools, connectorId } = config as Partial<SdkServerConfig>;
   const validated = validTimeout(timeout);
+  const policies = toolPolicies(tools);
   return {
     ...(validated !== undefined && { timeout: validated }),
     ...(disableAutoBackground === true && { disableAutoBackground }),
+    ...(policies !== undefined && { tools: policies }),
+    ...(typeof connectorId === 'string' && connectorId !== '' && { connectorId }),
   };
 }
 
@@ -114,8 +151,15 @@ export async function setSdkMcpServers(
   }
   for (const [name, config] of Object.entries(sdk)) {
     const existing = controlHandler.getMcpServerBridge(name);
-    if (!existing) connectBridge(controlHandler, name, config);
-    // An already-registered server keeps its original settings (official behavior)
+    if (!existing) {
+      connectBridge(controlHandler, name, config);
+      continue;
+    }
+    // An already-registered server keeps its original timeout,
+    // disableAutoBackground and connectorId (official behavior); a `tools`
+    // policy passed here replaces the stored one (v0.3.301)
+    const { tools } = sdkMcpServerSettings(config);
+    if (tools !== undefined) existing.settings = { ...existing.settings, tools };
   }
 
   const sdkEntries: Record<string, McpServerConfig> = {};
@@ -144,7 +188,7 @@ export class McpServerBridge {
   constructor(
     private serverInstance: McpServer,
     private sendToCli: (message: Record<string, unknown>) => void = () => {},
-    readonly settings: SdkMcpServerSettings = {}
+    public settings: SdkMcpServerSettings = {}
   ) {}
 
   /**

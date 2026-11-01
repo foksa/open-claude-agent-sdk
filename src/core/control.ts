@@ -48,6 +48,7 @@ import type {
   Options,
   PermissionMode,
   PermissionResult,
+  SdkPluginConfig,
   UserDialogResult,
 } from '../types/index.ts';
 import type { McpServerBridge } from './mcpBridge.ts';
@@ -174,9 +175,14 @@ export const ControlRequests = {
     settings,
   }),
 
-  reloadPlugins: (opts?: { holdOnCacheImpact?: boolean }): ReloadPluginsRequest => ({
+  reloadPlugins: (opts?: {
+    holdOnCacheImpact?: boolean;
+    addPlugins?: SdkPluginConfig[];
+  }): ReloadPluginsRequest => ({
     subtype: RequestSubtype.RELOAD_PLUGINS,
     ...(opts?.holdOnCacheImpact && { hold_on_cache_impact: true }),
+    // v0.3.301: sent only when non-empty (official SDK)
+    ...(opts?.addPlugins && opts.addPlugins.length > 0 && { add_plugins: opts.addPlugins }),
   }),
 
   reloadSkills: (): ReloadSkillsRequest => ({
@@ -236,6 +242,15 @@ export const ControlRequests = {
 
 /** Returned by a handler when the consumer answered out-of-band (or nobody should). */
 const SUPPRESS_RESPONSE = Symbol('suppressControlResponse');
+
+function isComputerFolder(value: unknown): value is { path: string; computer_name: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { path?: unknown }).path === 'string' &&
+    typeof (value as { computer_name?: unknown }).computer_name === 'string'
+  );
+}
 
 export class ControlProtocolHandler {
   private callbackMap: Map<string, InternalHookCallback> = new Map();
@@ -396,6 +411,11 @@ export class ControlProtocolHandler {
       suppress_always_allow_rule,
       mcp_server,
       matched_ask_rule,
+      server_policy_ask_only,
+      plugin,
+      requires_user_interaction,
+      server_prompt,
+      computer_folder,
     } = req.request;
 
     const result: PermissionResult | null = await this.options.canUseTool(tool_name, input, {
@@ -407,6 +427,10 @@ export class ControlProtocolHandler {
       // v0.3.295: forwarded when the CLI sends them (not yet in the public type)
       ...(typeof decision_reason_type === 'string' && { decisionReasonType: decision_reason_type }),
       ...(typeof decision_reason_code === 'string' && { decisionReasonCode: decision_reason_code }),
+      // v0.3.301
+      ...(typeof server_policy_ask_only === 'boolean' && {
+        serverPolicyAskOnly: server_policy_ask_only,
+      }),
       title,
       displayName: display_name,
       description,
@@ -414,7 +438,18 @@ export class ControlProtocolHandler {
       suppressAlwaysAllowRule: suppress_always_allow_rule,
       toolUseID: tool_use_id,
       agentID: agent_id,
+      ...(typeof plugin === 'string' && { plugin }),
       requestId: req.request_id,
+      ...(typeof requires_user_interaction === 'boolean' && {
+        requiresUserInteraction: requires_user_interaction,
+      }),
+      ...(typeof server_prompt === 'string' && { serverPrompt: server_prompt }),
+      ...(isComputerFolder(computer_folder) && {
+        computerFolder: {
+          path: computer_folder.path,
+          computer_name: computer_folder.computer_name,
+        },
+      }),
       ...(matched_ask_rule && {
         matchedAskRule: {
           source: matched_ask_rule.source,

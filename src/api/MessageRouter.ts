@@ -14,12 +14,12 @@
 import { createInterface, type Interface } from 'node:readline';
 import type { Readable } from 'node:stream';
 import type { ControlProtocolHandler } from '../core/control.ts';
-import { MessageType, type StdoutMessage } from '../types/control.ts';
+import { MessageType, type PromptRedelivery, type StdoutMessage } from '../types/control.ts';
 import type { SDKMessage } from '../types/index.ts';
 
 export type MessageCallback = (msg: SDKMessage) => void;
 export type DoneCallback = (error?: Error) => void;
-export type ControlResponsePayload = {
+export type ControlResponsePayload = PromptRedelivery & {
   subtype: string;
   request_id: string;
   response?: Record<string, unknown>;
