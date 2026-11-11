@@ -154,6 +154,61 @@ describe('stdin message compatibility', () => {
   );
 
   test.concurrent(
+    'hook matcher onFailure reaches the init message (v0.3.317)',
+    async () => {
+      const makeHooks = (): Record<string, HookCallbackMatcher[]> => ({
+        PreToolUse: [
+          { matcher: 'Bash', hooks: [async () => ({})], timeout: 5, onFailure: 'continue' },
+          { hooks: [async () => ({})] },
+        ],
+      });
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { hooks: makeHooks() }),
+        capture(officialQuery, 'test', { hooks: makeHooks() }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(officialInit?.request?.hooks).toEqual({
+        PreToolUse: [
+          { matcher: 'Bash', hookCallbackIds: ['hook_0'], timeout: 5, onFailure: 'continue' },
+          { hookCallbackIds: ['hook_1'] },
+        ],
+      });
+      expect(openInit?.request?.hooks).toEqual(officialInit?.request?.hooks);
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'a hook event set to undefined or [] is left out, the others are kept (v0.3.321)',
+    async () => {
+      const makeHooks = () =>
+        ({
+          PreToolUse: undefined,
+          Stop: [],
+          PostToolUse: [{ matcher: 'Read', hooks: [async () => ({})] }],
+        }) as unknown as Record<string, HookCallbackMatcher[]>;
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { hooks: makeHooks() }),
+        capture(officialQuery, 'test', { hooks: makeHooks() }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      expect(officialInit?.request?.hooks).toEqual({
+        PostToolUse: [{ matcher: 'Read', hookCallbackIds: ['hook_0'] }],
+      });
+      expect(openInit?.request?.hooks).toEqual(officialInit?.request?.hooks);
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'message ordering matches official SDK',
     async () => {
       const [open, official] = await Promise.all([

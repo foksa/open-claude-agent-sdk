@@ -585,3 +585,169 @@ done
     }, 10000);
   }
 });
+
+describe('error result text survives what follows it', () => {
+  const errorResult = JSON.stringify({
+    ...JSON.parse(RESULT),
+    subtype: 'error_during_execution',
+    is_error: true,
+    errors: ['boom'],
+  });
+  const writesLost = JSON.stringify({
+    type: 'system',
+    subtype: 'session_writes_lost',
+    error_code: 'ENOSPC',
+    lost: ['transcript'],
+    transcript_session_ids: ['s'],
+    uuid: '00000000-0000-4000-8000-000000000000',
+    session_id: 's',
+  });
+  // A queued subagent report that shared another report's model call
+  const modelLessResult = JSON.stringify({ ...JSON.parse(RESULT), result: '', num_turns: 0 });
+
+  const cases: [string, string, string[]][] = [
+    [
+      'session_writes_lost after the last result (v0.3.317)',
+      fakeCli(`echo '${errorResult}'\necho '${writesLost}'\nexit 1\n`),
+      ['result', 'system'],
+    ],
+    [
+      'a model-less turn after an error result (v0.3.316)',
+      fakeCli(`echo '${errorResult}'\necho '${modelLessResult}'\nexit 1\n`),
+      ['result', 'result'],
+    ],
+  ];
+
+  for (const [label, script, expectedTypes] of cases) {
+    for (const [name, query] of both) {
+      test(`${name}: ${label}`, async () => {
+        const types: string[] = [];
+        let error: Error | undefined;
+        try {
+          for await (const msg of query({
+            prompt: 'hi',
+            options: { pathToClaudeCodeExecutable: script, settingSources: [] },
+          })) {
+            types.push(msg.type);
+          }
+        } catch (e) {
+          error = e as Error;
+        }
+        expect(types).toEqual(expectedTypes);
+        expect(error?.message).toBe('Claude Code returned an error result: boom');
+      }, 10000);
+    }
+  }
+});
+
+describe('hooks set to onFailure: "block" (v0.3.317)', () => {
+  const INIT_FIELDS =
+    '"commands":[],"agents":[],"models":[],"output_style":"default","available_output_styles":[],"account":{}';
+
+  /**
+   * Waits a second before answering `initialize` with INIT_EXTRA, noting
+   * whether anything else arrived on stdin meanwhile; then reports, in the
+   * result, whether the prompt was held and what followed the answer.
+   */
+  const script = fakeCli(`read -r init
+id=$(echo "$init" | sed -E 's/.*"request_id":"([^"]+)".*/\\1/')
+if read -r -t 1 early; then held=early; else held=held; fi
+echo '{"type":"control_response","response":{"subtype":"success","request_id":"'"$id"'","response":{${INIT_FIELDS}'"$INIT_EXTRA"'}}}'
+if [ "$held" = held ]; then
+  if read -r -t 2 next; then
+    case "$next" in *'"type":"user"'*) after=prompt ;; *) after=other ;; esac
+  else after=nothing; fi
+else after=skipped; fi
+echo "$held:$after" > "$HOLD_LOG"
+if [ "$after" = prompt ] || [ "$held" = early ]; then echo '${RESULT}'; fi
+cat > /dev/null
+`);
+
+  const run = async (
+    query: QueryFn,
+    initExtra: string,
+    prompt: string | AsyncIterable<SDKUserMessage>,
+    onFailure: 'block' | 'continue' = 'block',
+    interruptFirst = false
+  ) => {
+    const log = `/tmp/hold-${Date.now()}-${Math.random().toString(36).slice(2)}.log`;
+    scripts.push(log);
+    writeFileSync(log, '');
+    const q = query({
+      prompt,
+      options: {
+        pathToClaudeCodeExecutable: script,
+        settingSources: [],
+        env: { ...process.env, HOLD_LOG: log, INIT_EXTRA: initExtra },
+        hooks: { PreToolUse: [{ hooks: [async () => ({})], onFailure }] },
+      },
+    });
+    // Never answered by the fake CLI; rejects when the query ends
+    if (interruptFirst) q.interrupt().catch(() => {});
+    const init = q.initializationResult().then(
+      () => 'resolved',
+      (e: Error) => e.message
+    );
+    const types: string[] = [];
+    let error: string | undefined;
+    try {
+      for await (const msg of q) {
+        types.push(msg.type);
+        if (msg.type === 'result') break;
+      }
+    } catch (e) {
+      error = (e as Error).message;
+    }
+    // The fake CLI writes its log once stdin handling is over
+    for (let i = 0; i < 50 && readFileSync(log, 'utf8') === ''; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return { types, error, init: await init, cli: readFileSync(log, 'utf8').trim() };
+  };
+
+  for (const [name, query] of both) {
+    test(`${name}: the prompt waits for the initialize answer`, async () => {
+      const out = await run(query, ',"hook_on_failure_supported":true', 'hi');
+      expect(out).toEqual({
+        types: ['result'],
+        error: undefined,
+        init: 'resolved',
+        cli: 'held:prompt',
+      });
+    }, 15000);
+
+    test(`${name}: a streamed prompt waits too`, async () => {
+      const out = await run(query, ',"hook_on_failure_supported":true', oneMessage());
+      expect(out.cli).toBe('held:prompt');
+      expect(out.types).toEqual(['result']);
+    }, 15000);
+
+    test(`${name}: interrupt() is held behind the prompt`, async () => {
+      const out = await run(query, ',"hook_on_failure_supported":true', 'hi', 'block', true);
+      expect(out.cli).toBe('held:prompt');
+    }, 15000);
+
+    test(`${name}: without "block" the prompt is not held`, async () => {
+      const out = await run(query, '', 'hi', 'continue');
+      expect(out.cli).toBe('early:skipped');
+    }, 15000);
+
+    test(`${name}: a CLI that does not honor onFailure fails the query, prompt unsent`, async () => {
+      const out = await run(query, '', 'hi');
+      const message =
+        'The process answering initialize does not honor onFailure on hook matchers, so a hook that fails would not block. Update Claude Code if it is old, or remove onFailure: "block" from your hooks.';
+      expect(out).toEqual({ types: [], error: message, init: message, cli: 'held:nothing' });
+    }, 15000);
+
+    test(`${name}: a session that did not register the hooks fails the query`, async () => {
+      const out = await run(
+        query,
+        ',"hook_on_failure_supported":true,"hooks_applied":false',
+        oneMessage()
+      );
+      const message =
+        'This session was already running and did not register your hooks, so a hook set to onFailure: "block" would never run. Start a new session, or remove onFailure: "block" from your hooks.';
+      expect(out).toEqual({ types: [], error: message, init: message, cli: 'held:nothing' });
+    }, 15000);
+  }
+});

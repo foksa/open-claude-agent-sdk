@@ -233,6 +233,42 @@ describe('mcpServers init message compatibility', () => {
   );
 
   test.concurrent(
+    'sdkMcpServers autoModeVerdictTools reaches sdkMcpServerConfigs only when valid (v0.3.322)',
+    async () => {
+      const makeServers = () => ({
+        listed: { ...createSdkMcpServer({ name: 'listed' }), autoModeVerdictTools: ['a', 'b'] },
+        // Still sent when empty
+        none: { ...createSdkMcpServer({ name: 'none' }), autoModeVerdictTools: [] },
+        // Any invalid entry (not a string, over 128 chars) drops the whole list
+        mixed: { ...createSdkMcpServer({ name: 'mixed' }), autoModeVerdictTools: ['a', 1] },
+        long: { ...createSdkMcpServer({ name: 'long' }), autoModeVerdictTools: ['x'.repeat(129)] },
+        // ...as does more than 64 entries, or a non-list
+        many: {
+          ...createSdkMcpServer({ name: 'many' }),
+          autoModeVerdictTools: Array.from({ length: 65 }, (_, i) => `t${i}`),
+        },
+        notList: { ...createSdkMcpServer({ name: 'notList' }), autoModeVerdictTools: 'a' },
+      });
+
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { mcpServers: makeServers() as never }),
+        capture(officialQuery, 'test', { mcpServers: makeServers() as never }),
+      ]);
+
+      const openInit = open.stdin.find((m) => m.request?.subtype === 'initialize');
+      const officialInit = official.stdin.find((m) => m.request?.subtype === 'initialize');
+
+      const expected = {
+        listed: { autoModeVerdictTools: ['a', 'b'] },
+        none: { autoModeVerdictTools: [] },
+      };
+      expect(officialInit?.request?.sdkMcpServerConfigs).toEqual(expected);
+      expect(openInit?.request?.sdkMcpServerConfigs).toEqual(expected);
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'sdkMcpServers invalid timeout is omitted, matching official SDK (v0.3.248)',
     async () => {
       const makeServer = () => createSdkMcpServer({ name: 'bad-timeout-tools', timeout: -5 });

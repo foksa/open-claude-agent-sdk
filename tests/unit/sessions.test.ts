@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { getSessionMessages as officialGetSessionMessages } from '@anthropic-ai/claude-agent-sdk';
 import { getSessionMessages } from '../../src/sessions/getSessionMessages.ts';
 import { listSessions } from '../../src/sessions/listSessions.ts';
+import { removeTree } from '../../src/sessions/mutations.ts';
 
 /**
  * Test fixtures: temporary session files in a fake project directory.
@@ -464,5 +465,54 @@ describe('listSessions', () => {
 
     // Cleanup
     await rm(join(STORAGE_DIR, `${id2}.jsonl`), { force: true });
+  });
+});
+
+describe('removeTree (deleteSession companion folder, v0.3.319)', () => {
+  const enoent = () => Object.assign(new Error('gone'), { code: 'ENOENT' });
+  const enotempty = () => Object.assign(new Error('busy'), { code: 'ENOTEMPTY' });
+  type Fs = NonNullable<Parameters<typeof removeTree>[1]>;
+  const fakeFs = (rmResults: (Error | null)[], existsAfter: boolean[]) => {
+    const calls: string[] = [];
+    const fs = {
+      rm: async () => {
+        calls.push('rm');
+        const next = rmResults.shift();
+        if (next) throw next;
+      },
+      lstat: async () => {
+        calls.push('lstat');
+        if (!existsAfter.shift()) throw enoent();
+        return {};
+      },
+    } as unknown as Fs;
+    return { fs, calls };
+  };
+
+  test('resolves once the folder is gone', async () => {
+    const { fs, calls } = fakeFs([null], [false]);
+    await removeTree('/x', fs);
+    expect(calls).toEqual(['rm', 'lstat']);
+  });
+
+  test('retries while a writer keeps the folder non-empty', async () => {
+    const { fs, calls } = fakeFs([enotempty(), null], [true, false]);
+    await removeTree('/x', fs);
+    expect(calls).toEqual(['rm', 'lstat', 'rm', 'lstat']);
+  });
+
+  test('rejects with ENOTEMPTY when the folder is still there after three tries', async () => {
+    const { fs, calls } = fakeFs([enotempty(), null, enotempty()], [true, true, true]);
+    const error = await removeTree('/x', fs).catch((e) => e);
+    expect(error.code).toBe('ENOTEMPTY');
+    expect(error.message).toStartWith("'/x' is still on disk after three tries to delete it.");
+    expect(calls.filter((c) => c === 'rm')).toHaveLength(3);
+  });
+
+  test('other rm errors are not retried', async () => {
+    const denied = Object.assign(new Error('denied'), { code: 'EACCES' });
+    const { fs, calls } = fakeFs([denied], []);
+    expect(await removeTree('/x', fs).catch((e) => e)).toBe(denied);
+    expect(calls).toEqual(['rm']);
   });
 });

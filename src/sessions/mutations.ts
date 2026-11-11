@@ -4,7 +4,7 @@
  */
 
 import { constants } from 'node:fs';
-import { open, readdir, rm, stat } from 'node:fs/promises';
+import { lstat, open, readdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { SessionMutationOptions } from '../types/index.ts';
 import { getProjectsBaseDir, projectDirsForMutation, validateUuid } from './paths.ts';
@@ -100,6 +100,51 @@ export async function tagSession(
   await appendToSession(sessionId, line, options);
 }
 
+/** Windows reports these for a directory that is already on its way out. */
+const WINDOWS_PENDING_DELETE = new Set(['EPERM', 'EACCES', 'EBUSY']);
+const REMOVE_TREE_TRIES = 3;
+const REMOVE_TREE_RETRY_MS = 50;
+
+/**
+ * Delete a directory tree and confirm it is gone, retrying while something
+ * keeps writing into it; rejects with `ENOTEMPTY` after three tries
+ * (official SDK, v0.3.319). `fs` is injectable for tests.
+ * @internal
+ */
+export async function removeTree(
+  path: string,
+  fs: { rm: typeof rm; lstat: typeof lstat } = { rm, lstat }
+): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    let removed = true;
+    try {
+      await fs.rm(path, { recursive: true, force: true });
+    } catch (err) {
+      if (errorCode(err) !== 'ENOTEMPTY') throw err;
+      removed = false;
+    }
+    try {
+      await fs.lstat(path);
+    } catch (err) {
+      const code = errorCode(err);
+      if (code === 'ENOENT' || code === 'ENOTDIR') return;
+      if (removed && process.platform === 'win32' && code && WINDOWS_PENDING_DELETE.has(code)) {
+        return;
+      }
+      throw err;
+    }
+    if (attempt === REMOVE_TREE_TRIES) {
+      throw Object.assign(
+        new Error(
+          `'${path}' is still on disk after three tries to delete it. A program may be writing to it, such as a running Claude Code session, or you may not have permission to change it. Stop that program or fix the permissions, then delete it yourself.`
+        ),
+        { code: 'ENOTEMPTY' }
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, attempt * REMOVE_TREE_RETRY_MS));
+  }
+}
+
 /** Delete a session's transcript and its companion directory (subagents, tool results). */
 export async function deleteSession(
   sessionId: string,
@@ -118,7 +163,7 @@ export async function deleteSession(
     }
     if (size === 0) continue;
     await rm(filePath, { force: true });
-    await rm(join(dir, sessionId), { recursive: true, force: true });
+    await removeTree(join(dir, sessionId));
     return;
   }
   throw new Error(

@@ -4,6 +4,9 @@
  */
 
 import { expect } from 'bun:test';
+import { existsSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { query as officialQuery } from '@anthropic-ai/claude-agent-sdk';
 import { query as openQuery } from '../../src/api/query.ts';
 import type {
@@ -546,4 +549,44 @@ testWithBothSDKs(
     );
   },
   60000
+);
+
+testWithBothSDKs(
+  'a failing hook set to onFailure: "block" blocks the tool call (v0.3.317)',
+  async (sdk) => {
+    const marker = join(tmpdir(), `on-failure-block-${sdk}-${Date.now()}.txt`);
+    let hookCalls = 0;
+
+    const hooks: Record<string, HookCallbackMatcher[]> = {
+      PreToolUse: [
+        {
+          matcher: 'Bash',
+          onFailure: 'block',
+          hooks: [
+            async () => {
+              hookCalls++;
+              throw new Error('hook failed on purpose');
+            },
+          ],
+        },
+      ],
+    };
+
+    try {
+      const messages = await runWithSDK(
+        sdk,
+        `Run this exact bash command once and then stop, whatever happens: touch ${marker}`,
+        { maxTurns: 3, permissionMode: 'default', canUseTool: autoApprove, hooks }
+      );
+
+      // The CLI honors onFailure (else the query would have failed at startup)
+      expect(messages.find((m) => m.type === 'result')).toBeTruthy();
+      expect(hookCalls).toBeGreaterThan(0);
+      // The failed hook blocked the command instead of letting it run
+      expect(existsSync(marker)).toBe(false);
+    } finally {
+      rmSync(marker, { force: true });
+    }
+  },
+  120000
 );

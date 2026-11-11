@@ -2212,3 +2212,40 @@ describe('v0.3.316 type re-exports', () => {
     expect(LEGACY_TOOL_NAME_ALIASES.Task).toBe('Agent');
   });
 });
+
+describe('v0.3.322 type re-exports', () => {
+  test('SDKSessionWritesLostMessage is importable (v0.3.317)', () => {
+    const msg: import('../../src/types/index.ts').SDKSessionWritesLostMessage = {
+      type: 'system',
+      subtype: 'session_writes_lost',
+      error_code: 'ENOSPC',
+      lost: ['transcript'],
+      transcript_session_ids: ['s'],
+      uuid: '00000000-0000-4000-8000-000000000000',
+      session_id: 's',
+    };
+    expect(msg.lost).toEqual(['transcript']);
+  });
+
+  test('HookCallbackMatcher carries onFailure (v0.3.317)', () => {
+    const matcher: import('../../src/types/index.ts').HookCallbackMatcher = {
+      hooks: [],
+      onFailure: 'block',
+    };
+    expect(matcher.onFailure).toBe('block');
+  });
+
+  test('initialize response reports hook_on_failure_supported (v0.3.317)', () => {
+    type Init = import('../../src/types/index.ts').SDKControlInitializeResponse;
+    const supported: Init['hook_on_failure_supported'] = true;
+    expect(supported).toBe(true);
+  });
+
+  test('result messages carry credential_expires_at (v0.3.318)', () => {
+    const result: Pick<
+      import('../../src/types/index.ts').SDKResultSuccess,
+      'credential_expires_at'
+    > = { credential_expires_at: '2030-01-01T00:00:00Z' };
+    expect(result.credential_expires_at).toBe('2030-01-01T00:00:00Z');
+  });
+});

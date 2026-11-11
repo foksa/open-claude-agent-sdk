@@ -72,10 +72,15 @@ export class ControlRequestManager {
   }
 
   /**
-   * Send a control request and return a Promise that resolves when the CLI responds
+   * Send a control request and return a Promise that resolves when the CLI responds.
+   * `deferWrite` receives the write to run later (a request held behind the
+   * prompt); the response handler is registered right away either way.
    */
   // biome-ignore lint/suspicious/noExplicitAny: response shape varies by request type
-  sendControlRequestWithResponse<T = any>(request: OutboundControlRequest): Promise<T> {
+  sendControlRequestWithResponse<T = any>(
+    request: OutboundControlRequest,
+    deferWrite?: (write: () => void) => void
+  ): Promise<T> {
     if (this.closed) {
       return Promise.reject(new Error('Cannot send control request: query is closed'));
     }
@@ -86,7 +91,8 @@ export class ControlRequestManager {
     const promise = new Promise<T>((resolve, reject) => {
       this.pendingResponses.set(envelope.request_id, { resolve, reject });
     });
-    this.writeToStdin(envelope);
+    if (deferWrite) deferWrite(() => this.writeToStdin(envelope));
+    else this.writeToStdin(envelope);
     return promise;
   }
 

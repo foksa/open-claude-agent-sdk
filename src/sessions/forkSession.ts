@@ -67,7 +67,12 @@ function parseForFork(buf: Buffer, sessionId: string): ParsedTranscript {
       entry.sessionId === sessionId &&
       Array.isArray(entry.replacements)
     ) {
-      out.contentReplacements.push(...entry.replacements);
+      // v0.3.322: only plain objects are carried over
+      out.contentReplacements.push(
+        ...entry.replacements.filter(
+          (r: unknown) => typeof r === 'object' && r !== null && !Array.isArray(r)
+        )
+      );
     } else if (
       entry.type === 'relocated' &&
       entry.sessionId === sessionId &&

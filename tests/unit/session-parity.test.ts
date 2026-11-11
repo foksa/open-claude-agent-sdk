@@ -477,7 +477,12 @@ describe('forkSession parity', () => {
         message: { id: 'msg_3', role: 'assistant', content: [{ type: 'text', text: 'fin' }] },
       },
       { type: 'relocated', relocatedCwd: join(project, 'moved'), sessionId: id },
-      { type: 'content-replacement', sessionId: id, replacements: [{ from: 'a', to: 'b' }] },
+      {
+        type: 'content-replacement',
+        sessionId: id,
+        // Only plain objects are carried into the fork (v0.3.322)
+        replacements: [{ from: 'a', to: 'b' }, 'not-an-object', null, ['x'], 7],
+      },
       { type: 'ai-title', aiTitle: 'Fork Source', sessionId: id },
     ];
     writeSession(project, id, lines);

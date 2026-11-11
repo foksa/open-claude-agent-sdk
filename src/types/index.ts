@@ -71,6 +71,7 @@ export type {
   SDKResultMessage,
   SDKResultSuccess,
   SDKSessionStateChangedMessage,
+  SDKSessionWritesLostMessage,
   SDKStartupFailureReason,
   SDKStatus,
   SDKStatusMessage,

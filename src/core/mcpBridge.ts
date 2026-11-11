@@ -31,7 +31,12 @@ export type SdkMcpServerSettings = {
   disableAutoBackground?: true;
   tools?: McpServerToolPolicy[];
   connectorId?: string;
+  autoModeVerdictTools?: string[];
 };
+
+/** Limits on `autoModeVerdictTools` (official SDK). */
+const VERDICT_TOOLS_MAX = 64;
+const VERDICT_TOOL_NAME_MAX = 128;
 
 function isSdkServerConfig(config: McpServerConfig): config is McpServerConfig & SdkServerConfig {
   return config.type === 'sdk' && 'instance' in config && !!config.instance;
@@ -71,18 +76,31 @@ function toolPolicies(value: unknown): McpServerToolPolicy[] | undefined {
 /**
  * The settings an in-process server config carries to the CLI: a valid `timeout`,
  * `disableAutoBackground` only when `true` (official SDK, v0.3.295), and the
- * per-tool `tools` policy plus a non-empty `connectorId` (v0.3.301).
+ * per-tool `tools` policy plus a non-empty `connectorId` (v0.3.301), and
+ * `autoModeVerdictTools` when every entry is valid (v0.3.322; not in the
+ * public config type).
  */
 export function sdkMcpServerSettings(config: unknown): SdkMcpServerSettings {
   if (typeof config !== 'object' || config === null || Array.isArray(config)) return {};
-  const { timeout, disableAutoBackground, tools, connectorId } = config as Partial<SdkServerConfig>;
+  const { timeout, disableAutoBackground, tools, connectorId, autoModeVerdictTools } =
+    config as Partial<SdkServerConfig> & { autoModeVerdictTools?: unknown };
   const validated = validTimeout(timeout);
   const policies = toolPolicies(tools);
+  const verdictTools = Array.isArray(autoModeVerdictTools)
+    ? autoModeVerdictTools.filter(
+        (t): t is string => typeof t === 'string' && t.length <= VERDICT_TOOL_NAME_MAX
+      )
+    : [];
+  const verdictToolsValid =
+    Array.isArray(autoModeVerdictTools) &&
+    autoModeVerdictTools.length <= VERDICT_TOOLS_MAX &&
+    verdictTools.length === autoModeVerdictTools.length;
   return {
     ...(validated !== undefined && { timeout: validated }),
     ...(disableAutoBackground === true && { disableAutoBackground }),
     ...(policies !== undefined && { tools: policies }),
     ...(typeof connectorId === 'string' && connectorId !== '' && { connectorId }),
+    ...(verdictToolsValid && { autoModeVerdictTools: verdictTools }),
   };
 }
 

@@ -13,6 +13,7 @@ import type { ChildProcess } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
 import { AbortError } from '../constants.ts';
 import { ControlProtocolHandler, ControlRequests } from '../core/control.ts';
+import { hasHookSetToBlock } from '../core/hookConfig.ts';
 import { connectMcpBridges, setSdkMcpServers } from '../core/mcpBridge.ts';
 import { captureSdkMcpManifests, manifestCaptureEnabled } from '../core/mcpManifests.ts';
 import { redactSecrets } from '../core/redact.ts';
@@ -49,7 +50,7 @@ import { ControlRequestManager } from './ControlRequestManager.ts';
 import { MessageQueue } from './MessageQueue.ts';
 import { MessageRouter } from './MessageRouter.ts';
 import { DefaultProcessFactory, type ProcessFactory, runEndCeilingMs } from './ProcessFactory.ts';
-import { buildInitRequest, sendInitialPrompt, sendProtocolInit } from './protocolInit.ts';
+import { buildInitialPrompt, buildInitRequest, sendProtocolInit } from './protocolInit.ts';
 
 /** Option checks the official SDK makes before spawning the CLI. */
 function validateOptions(options: Options): void {
@@ -99,6 +100,11 @@ const SIGKILL_DELAY_MS = 5000;
 const STDOUT_DRAIN_MS = 2000;
 /** Characters of stderr kept for exit error messages (matches official SDK). */
 const STDERR_TAIL_CHARS = 2048;
+/**
+ * How long a prompt held for an `onFailure: "block"` hook waits for the CLI
+ * to answer `initialize` before the query fails (official SDK: 60s + 10min).
+ */
+const INITIALIZE_ANSWER_TIMEOUT_MS = 660_000;
 
 export class QueryImpl implements Query {
   private closed = false;
@@ -111,6 +117,27 @@ export class QueryImpl implements Query {
   private drainTimer: ReturnType<typeof setTimeout> | null = null;
   /** Text of the last error `result`, reported instead of a bare exit code. */
   private lastErrorResultText: string | undefined;
+  /**
+   * A model-less turn (an empty success result with `num_turns: 0`, as a
+   * queued subagent report sharing another's model call ends in) does not
+   * hide the error result before it (official SDK, v0.3.316).
+   */
+  private modelLessTurnEnded = false;
+  private errorTextBeforeModelLessTurns: string | undefined;
+  /**
+   * The `initialize` answer, checked: rejects when a hook is set to
+   * `onFailure: "block"` and the CLI would not honor it (v0.3.317).
+   */
+  private initialization: Promise<SDKControlInitializeResponse> = Promise.resolve(
+    undefined as unknown as SDKControlInitializeResponse
+  );
+  /**
+   * Set while a hook is set to `onFailure: "block"` and the prompt may not go
+   * out yet: resolves true once `initialize` is answered and the checks pass,
+   * false when the query failed instead. Prompts (and interrupt) are written
+   * behind it, in order (official SDK's promptHold, v0.3.317).
+   */
+  private promptHold: Promise<boolean> | undefined;
   /**
    * Whether the current run has ended: a result arrived and the CLI went
    * `idle` (or never reports session state, or the ceiling passed). A run
@@ -237,10 +264,15 @@ export class QueryImpl implements Query {
     } else {
       sendProtocolInit(controlManager, options, sdkMcpServerNames, controlHandler, { gate });
     }
+    instance.initialization = controlManager
+      .waitForInit()
+      .then((response) => instance.checkHooksHonored(response, true));
+    instance.initialization.catch(() => {});
+    if (hasHookSetToBlock(options.hooks)) instance.holdPromptUntilInitialized();
 
     // 8. Handle input
     if (typeof prompt === 'string') {
-      sendInitialPrompt(controlManager, prompt, options.verbatimPrompts);
+      instance.writePrompt(buildInitialPrompt(prompt, options.verbatimPrompts));
     } else {
       instance.consumeInputGenerator(prompt);
     }
@@ -337,6 +369,9 @@ export class QueryImpl implements Query {
             : undefined
         : undefined;
       this.lastErrorResultText = text || undefined;
+      this.modelLessTurnEnded =
+        msg.subtype === 'success' && !msg.is_error && msg.num_turns === 0 && msg.result === '';
+      if (!this.modelLessTurnEnded) this.errorTextBeforeModelLessTurns = this.lastErrorResultText;
       this.resultReceived = true;
       if (
         this.sessionState === undefined ||
@@ -359,15 +394,23 @@ export class QueryImpl implements Query {
       }
       // Meant for the SDK only, not the caller (official SDK drops these)
       if ('sdk_host_only' in msg && msg.sdk_host_only === true) return;
-    } else if (
-      msg.type === 'system' &&
-      msg.subtype === 'commands_changed' &&
-      Array.isArray(msg.commands)
-    ) {
-      this.latestCommands = msg.commands;
+    } else if (!(msg.type === 'system' && msg.subtype === 'session_writes_lost')) {
+      // `session_writes_lost` follows the last result and leaves the error
+      // text alone (v0.3.317)
+      if (
+        msg.type === 'system' &&
+        msg.subtype === 'commands_changed' &&
+        Array.isArray(msg.commands)
+      ) {
+        this.latestCommands = msg.commands;
+      }
       this.lastErrorResultText = undefined;
-    } else {
-      this.lastErrorResultText = undefined;
+      if (msg.type === 'system' && msg.subtype === 'init') {
+        this.modelLessTurnEnded = false;
+      } else if (msg.type !== 'system' || msg.subtype === 'compact_boundary') {
+        this.errorTextBeforeModelLessTurns = undefined;
+        this.modelLessTurnEnded = false;
+      }
       if (
         (msg.type === 'assistant' || msg.type === 'stream_event') &&
         msg.parent_tool_use_id === null &&
@@ -435,8 +478,11 @@ export class QueryImpl implements Query {
         `Claude Code process terminated by signal ${this.exitInfo.signal}${this.formatStderrTail()}`
       );
     }
-    if (error && !(error instanceof AbortError) && this.lastErrorResultText !== undefined) {
-      error = new Error(`Claude Code returned an error result: ${this.lastErrorResultText}`);
+    const errorResultText =
+      this.lastErrorResultText ??
+      (this.modelLessTurnEnded ? this.errorTextBeforeModelLessTurns : undefined);
+    if (error && !(error instanceof AbortError) && errorResultText !== undefined) {
+      error = new Error(`Claude Code returned an error result: ${errorResultText}`);
     }
 
     this.messageQueue.complete(error);
@@ -479,6 +525,108 @@ export class QueryImpl implements Query {
     this.messageQueue.complete(error);
     this.controlManager.rejectAll(error);
     this.releaseResources();
+  }
+
+  /**
+   * End the query with `error`: iteration and pending control requests reject
+   * with it, stdin closes and the CLI is killed if it lingers (the official
+   * SDK's cleanup(error)). No-op once the query has already ended.
+   */
+  private fail(error: Error): void {
+    if (this.resourcesReleased) return;
+    this.shutdown();
+    if (!this.messageQueue.isDone()) this.messageQueue.complete(error);
+    this.controlManager.rejectAll(error);
+    this.releaseResources();
+  }
+
+  /**
+   * With a hook set to `onFailure: "block"`, refuse a CLI that would let the
+   * action run when the hook fails: one that predates the option, or (first
+   * initialize only) a session already running that ignored our hooks. The
+   * query fails with the returned error (official SDK, v0.3.317).
+   */
+  private checkHooksHonored(
+    response: SDKControlInitializeResponse,
+    first: boolean
+  ): SDKControlInitializeResponse {
+    if (!hasHookSetToBlock(this.options.hooks)) return response;
+    const error =
+      response.hook_on_failure_supported !== true
+        ? new Error(
+            'The process answering initialize does not honor onFailure on hook matchers, so a hook that fails would not block. Update Claude Code if it is old, or remove onFailure: "block" from your hooks.'
+          )
+        : first && response.hooks_applied === false
+          ? new Error(
+              'This session was already running and did not register your hooks, so a hook set to onFailure: "block" would never run. Start a new session, or remove onFailure: "block" from your hooks.'
+            )
+          : undefined;
+    if (error === undefined) return response;
+    this.fail(error);
+    throw error;
+  }
+
+  /** Hold prompts until `initialize` is answered and checkHooksHonored passed. */
+  private holdPromptUntilInitialized(): void {
+    const timer = setTimeout(() => {
+      this.fail(
+        new Error(
+          'Claude Code did not answer initialize, so a hook set to onFailure: "block" could not be confirmed and the prompt was not sent. Check the connection and start a new session.'
+        )
+      );
+    }, INITIALIZE_ANSWER_TIMEOUT_MS);
+    timer.unref?.();
+    const hold = this.initialization.then(
+      () => {
+        clearTimeout(timer);
+        return true;
+      },
+      (error) => {
+        clearTimeout(timer);
+        this.fail(error);
+        return false;
+      }
+    );
+    this.promptHold = hold;
+    void this.writeBehindPromptHold(hold, () => {});
+  }
+
+  /**
+   * Run `write` once `hold` lets prompts through (resolves whether it ran),
+   * and queue later writers behind it. The hold is dropped once the last
+   * queued write has gone out.
+   */
+  private writeBehindPromptHold(hold: Promise<boolean>, write: () => void): Promise<boolean> {
+    const written = hold.then((ok) => {
+      if (!ok || this.abortController?.signal.aborted) return false;
+      write();
+      return true;
+    });
+    const next: Promise<boolean> = written
+      .catch(() => true)
+      .then((ok) => {
+        if (ok && this.promptHold === next) this.promptHold = undefined;
+        return ok;
+      });
+    this.promptHold = next;
+    return written;
+  }
+
+  /** Write a prompt message; a new prompt starts a new run. */
+  private writeStreamMessage(msg: SDKUserMessage): void {
+    this.runEnded = false;
+    this.resultReceived = false;
+    this.clearRunEndCeiling();
+    this.controlManager.writeToStdin(msg);
+  }
+
+  /** Write the string prompt, behind the prompt hold when there is one. */
+  private writePrompt(msg: SDKUserMessage): void {
+    if (this.promptHold !== undefined) {
+      void this.writeBehindPromptHold(this.promptHold, () => this.writeStreamMessage(msg));
+    } else {
+      this.writeStreamMessage(msg);
+    }
   }
 
   /** End stdin, stop answering control requests, and kill the CLI if it lingers. */
@@ -667,9 +815,14 @@ export class QueryImpl implements Query {
   // ============================================================================
 
   async interrupt(): Promise<SDKControlInterruptResponse | undefined> {
+    // Behind a held prompt, so it cannot reach the CLI before the prompt does
+    const hold = this.promptHold;
     const response = await this.controlManager.sendControlRequestWithResponse<{
       still_queued?: string[];
-    }>(ControlRequests.interrupt());
+    }>(
+      ControlRequests.interrupt(),
+      hold && ((write) => void this.writeBehindPromptHold(hold, write).catch(() => {}))
+    );
     const stillQueued = response?.still_queued;
     return Array.isArray(stillQueued)
       ? { still_queued: stillQueued.filter((id): id is string => typeof id === 'string') }
@@ -728,16 +881,25 @@ export class QueryImpl implements Query {
   async streamInput(stream: AsyncIterable<SDKUserMessage>): Promise<void> {
     try {
       let count = 0;
+      const held: Promise<boolean>[] = [];
       for await (const msg of stream) {
         count++;
         if (this.aborted || this.closed) break;
-        this.runEnded = false;
-        this.resultReceived = false;
-        this.clearRunEndCeiling();
-        this.controlManager.writeToStdin(
-          this.options.verbatimPrompts ? { ...msg, client_composed: true } : msg
-        );
+        const out: SDKUserMessage = this.options.verbatimPrompts
+          ? { ...msg, client_composed: true }
+          : msg;
+        if (this.promptHold === undefined) {
+          this.writeStreamMessage(out);
+        } else {
+          held.push(
+            this.writeBehindPromptHold(this.promptHold, () => this.writeStreamMessage(out))
+          );
+        }
       }
+      // Held messages go out once `initialize` is answered; if the query
+      // failed instead there is nothing left to close (v0.3.317)
+      if (this.promptHold !== undefined) held.push(this.promptHold);
+      if ((await Promise.all(held)).includes(false)) return;
       if (count > 0 && this.hasBidirectionalNeeds()) await this.waitForRunEnd();
       this.endInput();
     } catch (error) {
@@ -795,7 +957,7 @@ export class QueryImpl implements Query {
   }
 
   async initializationResult(): Promise<SDKControlInitializeResponse> {
-    return this.controlManager.waitForInit();
+    return this.initialization;
   }
 
   async reinitialize(): Promise<SDKControlInitializeResponse> {
@@ -803,33 +965,35 @@ export class QueryImpl implements Query {
       return Promise.reject(new Error('Cannot send control request: query is closed'));
     }
     const request = buildInitRequest(this.options, this.sdkMcpServerNames, this.controlHandler);
-    return this.controlManager.sendControlRequestWithResponse<SDKControlInitializeResponse>(
-      request
-    );
+    const response =
+      await this.controlManager.sendControlRequestWithResponse<SDKControlInitializeResponse>(
+        request
+      );
+    return this.checkHooksHonored(response, false);
   }
 
   async supportedCommands(): Promise<SlashCommand[]> {
-    const init = await this.controlManager.waitForInit();
+    const init = await this.initialization;
     return this.latestCommands ?? init.commands;
   }
 
   async supportedAgents(): Promise<AgentInfo[]> {
-    const init = await this.controlManager.waitForInit();
+    const init = await this.initialization;
     return init.agents;
   }
 
   async supportedModels(): Promise<ModelInfo[]> {
-    const init = await this.controlManager.waitForInit();
+    const init = await this.initialization;
     return init.models;
   }
 
   async availableOutputStyles(): Promise<string[]> {
-    const init = await this.controlManager.waitForInit();
+    const init = await this.initialization;
     return init.available_output_styles;
   }
 
   async currentOutputStyle(): Promise<string> {
-    const init = await this.controlManager.waitForInit();
+    const init = await this.initialization;
     return init.output_style;
   }
 
@@ -841,7 +1005,7 @@ export class QueryImpl implements Query {
   }
 
   async accountInfo(): Promise<AccountInfo> {
-    const init = await this.controlManager.waitForInit();
+    const init = await this.initialization;
     return init.account;
   }
 
@@ -993,12 +1157,7 @@ export class QueryImpl implements Query {
       // The official SDK aborts the query when the prompt stream throws; do the
       // same teardown (close stdin, kill the CLI if it lingers, reject pending
       // control requests) but surface the generator's error, not an AbortError
-      this.shutdown();
-      if (!this.messageQueue.isDone()) {
-        this.messageQueue.complete(wrappedError);
-      }
-      this.controlManager.rejectAll(wrappedError);
-      this.releaseResources();
+      this.fail(wrappedError);
     }
   }
 }
