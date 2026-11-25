@@ -14,12 +14,16 @@ import {
   type ChainEnds,
   createDeliveryState,
   finishDeliveries,
+  type HostRow,
   isConversationMessage,
   normalizeChain,
   paginate,
   parseTranscript,
+  presentHostRunCalls,
   toSessionMessage,
   trailingQueuedCommands,
+  withHostRows,
+  withHostVirtualRows,
 } from './transcript.ts';
 
 export async function getSessionMessages(
@@ -39,16 +43,18 @@ export async function getSessionMessages(
   }
 
   const deliveries = createDeliveryState();
-  const entries = parseTranscript(content, deliveries);
+  const hostRows: HostRow[] = [];
+  const entries = parseTranscript(content, deliveries, hostRows);
   const ends: ChainEnds = {};
   const chain = buildConversationChain(entries, ends);
   // Messages sent while Claude was working that no reply followed
-  const trailing = trailingQueuedCommands(entries, chain, ends.leaf);
-  const messages = normalizeChain(chain.concat(trailing), {
-    trailingIds: new Set(trailing.map((e) => e.uuid)),
-    delivered: finishDeliveries(deliveries),
-  })
-    .filter((e) => isConversationMessage(e, options?.includeSystemMessages))
-    .map((e) => toSessionMessage(e));
+  const trailing = trailingQueuedCommands(entries, chain, ends);
+  const withHost = withHostRows(withHostVirtualRows(chain, entries), entries, hostRows);
+  const messages = presentHostRunCalls(
+    normalizeChain(withHost.concat(trailing), {
+      trailingIds: new Set(trailing.map((e) => e.uuid)),
+      delivered: finishDeliveries(deliveries),
+    }).filter((e) => isConversationMessage(e, options?.includeSystemMessages))
+  ).map((e) => toSessionMessage(e));
   return paginate(messages, options);
 }

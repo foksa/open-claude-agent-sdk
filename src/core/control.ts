@@ -12,6 +12,7 @@
 import {
   type ApplyFlagSettingsRequest,
   type BackgroundTasksRequest,
+  type CancelAsyncMessageRequest,
   type ControlRequest,
   type ControlResponse,
   type GetContextUsageRequest,
@@ -74,6 +75,7 @@ export type OutboundControlRequest =
   | SetMcpPermissionModeOverrideRequest
   | McpSetServersRequest
   | StopTaskRequest
+  | CancelAsyncMessageRequest
   | ApplyFlagSettingsRequest
   | UpdateSettingsRequest
   | ReloadPluginsRequest
@@ -102,9 +104,13 @@ export const ControlRequests = {
     subtype: RequestSubtype.INTERRUPT,
   }),
 
-  setPermissionMode: (mode: PermissionMode): SetPermissionModeRequest => ({
+  setPermissionMode: (
+    mode: PermissionMode,
+    answersBypassSwitchBack?: boolean
+  ): SetPermissionModeRequest => ({
     subtype: RequestSubtype.SET_PERMISSION_MODE,
     mode,
+    answers_bypass_switch_back: answersBypassSwitchBack,
   }),
 
   setModel: (model?: string): SetModelRequest => ({
@@ -156,6 +162,11 @@ export const ControlRequests = {
     servers,
   }),
 
+  cancelAsyncMessage: (messageUuid: string): CancelAsyncMessageRequest => ({
+    subtype: RequestSubtype.CANCEL_ASYNC_MESSAGE,
+    message_uuid: messageUuid,
+  }),
+
   stopTask: (taskId: string): StopTaskRequest => ({
     subtype: RequestSubtype.STOP_TASK,
     task_id: taskId,
@@ -178,11 +189,13 @@ export const ControlRequests = {
   reloadPlugins: (opts?: {
     holdOnCacheImpact?: boolean;
     addPlugins?: SdkPluginConfig[];
+    refuseIfBusy?: boolean;
   }): ReloadPluginsRequest => ({
     subtype: RequestSubtype.RELOAD_PLUGINS,
     ...(opts?.holdOnCacheImpact && { hold_on_cache_impact: true }),
     // v0.3.301: sent only when non-empty (official SDK)
     ...(opts?.addPlugins && opts.addPlugins.length > 0 && { add_plugins: opts.addPlugins }),
+    ...(opts?.refuseIfBusy && { refuse_if_busy: true }),
   }),
 
   reloadSkills: (): ReloadSkillsRequest => ({
@@ -258,8 +271,22 @@ export class ControlProtocolHandler {
   /** In-flight inbound requests, cancellable by `control_cancel_request` */
   private inflight = new Map<string, AbortController>();
   private closed = false;
+  private _initializeWritten = false;
+  private resolveInitializeWritten!: () => void;
+  /** Settles once `initialize` has been written (or the handler closed). */
+  private readonly initializeWrittenSignal = new Promise<void>((resolve) => {
+    this.resolveInitializeWritten = resolve;
+  });
+
   /** Set once the `initialize` request has been written to stdin. */
-  initializeWritten = false;
+  get initializeWritten(): boolean {
+    return this._initializeWritten;
+  }
+
+  set initializeWritten(value: boolean) {
+    this._initializeWritten = value;
+    if (value) this.resolveInitializeWritten();
+  }
   /** In-process servers that sent `tools/list_changed` before `initialize`. */
   readonly toolsChangedBeforeInitialize = new Set<string>();
 
@@ -332,6 +359,7 @@ export class ControlProtocolHandler {
   /** Stop answering: pending callbacks are aborted and their late results dropped. */
   close(): void {
     this.closed = true;
+    this.resolveInitializeWritten();
     for (const controller of this.inflight.values()) controller.abort();
     this.inflight.clear();
   }
@@ -470,8 +498,15 @@ export class ControlProtocolHandler {
   private async handleHookCallback(
     req: ControlRequest,
     signal: AbortSignal
-  ): Promise<Record<string, unknown>> {
+  ): Promise<Record<string, unknown> | typeof SUPPRESS_RESPONSE> {
     if (req.request.subtype !== RequestSubtype.HOOK_CALLBACK) return {};
+    // v0.3.326: a hook request that arrives while we are still starting up
+    // (initialize not yet written, e.g. during manifest capture) waits for it
+    // instead of being refused for a callback not yet registered
+    if (!this._initializeWritten) {
+      await this.initializeWrittenSignal;
+      if (this.closed || signal.aborted) return SUPPRESS_RESPONSE;
+    }
     const { callback_id, input, tool_use_id } = req.request;
     const hookFn = this.callbackMap.get(callback_id);
     if (!hookFn) throw new Error(`No hook callback found for ID: ${callback_id}`);

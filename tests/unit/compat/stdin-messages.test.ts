@@ -926,6 +926,105 @@ describe('stdin message compatibility', () => {
     { timeout: 60000 }
   );
 
+  /** Capture with `call` on both SDKs; return the normalized stdin messages. */
+  const stdinOfBoth = async (
+    call: (q: Query) => Promise<unknown>,
+    options: Record<string, unknown> = {}
+  ) => {
+    const [open, official] = await Promise.all([
+      captureWithQuery(openQuery, 'test', async (q) => void (await call(q)), options),
+      captureWithQuery(
+        officialQuery as unknown as typeof openQuery,
+        'test',
+        async (q) => void (await call(q)),
+        options
+      ),
+    ]);
+    return {
+      open: open.stdin.map(normalizeMessage),
+      official: official.stdin.map(normalizeMessage),
+    };
+  };
+
+  test.concurrent(
+    'reloadPlugins({ refuseIfBusy: true }) sends refuse_if_busy matching official SDK (v0.3.325)',
+    async () => {
+      const { open, official } = await stdinOfBoth((q) => q.reloadPlugins({ refuseIfBusy: true }));
+      const openReq = open.find((m) => m.request?.subtype === 'reload_plugins');
+      expect(openReq?.request?.refuse_if_busy).toBe(true);
+      expect(openReq).toEqual(official.find((m) => m.request?.subtype === 'reload_plugins'));
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'cancelAsyncMessage (runtime-only) stdin message matches official SDK',
+    async () => {
+      const { open, official } = await stdinOfBoth((q) =>
+        (q as unknown as { cancelAsyncMessage(uuid: string): Promise<boolean> }).cancelAsyncMessage(
+          '00000000-0000-4000-8000-000000000001'
+        )
+      );
+      const pick = (msgs: typeof open) =>
+        msgs.find((m) => m.request?.subtype === 'cancel_async_message');
+      expect(pick(open)?.request?.message_uuid).toBe('00000000-0000-4000-8000-000000000001');
+      expect(pick(open)).toEqual(pick(official));
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    "setPermissionMode's runtime-only second argument matches official SDK (v0.3.332)",
+    async () => {
+      type WithSwitchBack = (
+        mode: string,
+        options?: { answersBypassSwitchBack?: boolean }
+      ) => Promise<unknown>;
+      const { open, official } = await stdinOfBoth(async (q) => {
+        const set = q.setPermissionMode.bind(q) as unknown as WithSwitchBack;
+        await set('plan', { answersBypassSwitchBack: true });
+        await set('default');
+      });
+      const pick = (msgs: typeof open) =>
+        msgs.filter((m) => m.request?.subtype === 'set_permission_mode');
+      expect(pick(open).map((m) => m.request.answers_bypass_switch_back)).toEqual([
+        true,
+        undefined,
+      ]);
+      expect(pick(open)).toEqual(pick(official));
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    "mcpServersDelivery: 'initialize' sends the servers in initialize and holds the prompt (v0.3.326)",
+    async () => {
+      const mcpServers = {
+        remote: { type: 'http', url: 'https://example.com/mcp', headers: { Authorization: 'x' } },
+        local: { command: 'node', args: ['server.js'], env: { TOKEN: 'secret' } },
+        inproc: createSdkMcpServer({ name: 'inproc', version: '1.0.0', tools: [] }),
+      };
+      const { open, official } = await stdinOfBoth(
+        async (q) => {
+          // Held behind the prompt with it (never answered: the query fails first)
+          q.setModel('claude-sonnet-4-5').catch(() => {});
+        },
+        { mcpServers, mcpServersDelivery: 'initialize' }
+      );
+      const init = open.find((m) => m.request?.subtype === 'initialize');
+      expect(init?.request?.mcpServers).toEqual({
+        remote: mcpServers.remote,
+        local: mcpServers.local,
+      });
+      expect(init?.request?.sdkMcpServers).toEqual(['inproc']);
+      // The capture CLI's answer has no mcp_servers_applied, so the query ends
+      // before the prompt or the held set_model goes out
+      expect(open.map((m) => m.request?.subtype ?? m.type)).toEqual(['initialize']);
+      expect(open).toEqual(official);
+    },
+    { timeout: 60000 }
+  );
+
   test.concurrent(
     'reloadPlugins sends reload_plugins control request matching official SDK',
     async () => {

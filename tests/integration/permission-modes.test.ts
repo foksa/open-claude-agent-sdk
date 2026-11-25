@@ -228,7 +228,8 @@ testWithBothSDKs(
 
     for await (const msg of q) {
       if (msg.type === 'assistant' && !modeChanged && permissionCallsBeforeChange > 0) {
-        await q.setPermissionMode('acceptEdits');
+        // v0.3.332: resolves with the mode now in effect
+        expect(await q.setPermissionMode('acceptEdits')).toEqual({ mode: 'acceptEdits' });
         modeChanged = true;
       }
       if (msg.type === 'result') break;

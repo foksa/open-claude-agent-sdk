@@ -74,6 +74,9 @@ export function runEndCeilingMs(options: Options): number {
   return Number.isFinite(ms) && ms >= 0 ? ms : DEFAULT_RUN_END_CEILING_MS;
 }
 
+/** Env that configures Bun's crash reporting in the CLI. */
+const BUN_CRASH_ENV = ['BUN_ENABLE_CRASH_REPORTING', 'BUN_CRASH_REPORT_URL'];
+
 /**
  * Default implementation that spawns real Claude CLI
  */
@@ -100,6 +103,17 @@ export class DefaultProcessFactory implements ProcessFactory {
     delete env.NODE_OPTIONS;
     if (isEnvTruthy(env.DEBUG_CLAUDE_AGENT_SDK)) env.DEBUG = '1';
     else delete env.DEBUG;
+    // v0.3.332: Bun's crash reporting stays off in the CLI unless the caller
+    // configured it (names compared case-insensitively on Windows)
+    const crashKeys = Object.keys(env).filter((k) =>
+      BUN_CRASH_ENV.includes(process.platform === 'win32' ? k.toUpperCase() : k)
+    );
+    if (!crashKeys.some((k) => env[k])) {
+      for (const k of crashKeys) {
+        if (k.toUpperCase() === 'BUN_ENABLE_CRASH_REPORTING') delete env[k];
+      }
+      env.BUN_ENABLE_CRASH_REPORTING = '0';
+    }
 
     // A native binary runs directly (`executable` is ignored); a JS entrypoint
     // runs under `executable` (default: the current runtime)

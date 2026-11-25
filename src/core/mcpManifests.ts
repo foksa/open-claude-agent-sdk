@@ -15,13 +15,10 @@ import { COMPATIBLE_SDK_VERSION } from '../constants.ts';
 import type { SdkMcpServerManifest } from '../types/control.ts';
 import { isEnvTruthy } from './argBuilder.ts';
 import type { ControlProtocolHandler } from './control.ts';
-import type { McpServerBridge } from './mcpBridge.ts';
+import { CAPTURE_ID_PREFIX, type McpServerBridge } from './mcpBridge.ts';
 
 /** How long `initialize` may wait for the capture (official SDK). */
 export const MANIFEST_CAPTURE_DEADLINE_MS = 250;
-
-/** Request ids of capture messages (official SDK prefix). */
-const CAPTURE_ID_PREFIX = 'sdk-manifest-capture:';
 
 /** MCP protocol version the CLI's client requests (official SDK). */
 const MCP_PROTOCOL_VERSION = '2025-11-25';
@@ -98,10 +95,12 @@ export async function captureSdkMcpManifests(
   let stopped = false;
   const captured = new Map<string, { bridge: McpServerBridge; manifest: SdkMcpServerManifest }>();
   const names = controlHandler.mcpServerBridgeNames();
+  const bridges = names.flatMap((name) => {
+    const bridge = controlHandler.getMcpServerBridge(name);
+    return bridge ? [[name, bridge] as const] : [];
+  });
   const all = Promise.all(
-    names.map(async (name) => {
-      const bridge = controlHandler.getMcpServerBridge(name);
-      if (!bridge) return;
+    bridges.map(async ([name, bridge]) => {
       try {
         const manifest = await captureOne(bridge, () => stopped);
         if (manifest && !stopped) captured.set(name, { bridge, manifest });
@@ -121,6 +120,8 @@ export async function captureSdkMcpManifests(
   ]);
   clearTimeout(timer);
   stopped = true;
+  // v0.3.329: a server that did not answer in time keeps no capture request
+  for (const [, bridge] of bridges) bridge.dropPendingCaptures();
   if (outcome === 'closed' || captured.size === 0) return undefined;
 
   const manifests: Record<string, SdkMcpServerManifest> = {};

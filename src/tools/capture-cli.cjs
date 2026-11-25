@@ -164,7 +164,12 @@ console.log(
 function saveCapture() {
   // Capture selected env vars that the SDK sets
   const envVars = {};
-  const envPrefixes = ['CLAUDE_CODE_', 'CLAUDECODE'];
+  const envPrefixes = [
+    'CLAUDE_CODE_',
+    'CLAUDECODE',
+    'BUN_ENABLE_CRASH_REPORTING',
+    'BUN_CRASH_REPORT_URL',
+  ];
   for (const [key, value] of Object.entries(process.env)) {
     if (envPrefixes.some((prefix) => key.startsWith(prefix))) {
       envVars[key] = value;

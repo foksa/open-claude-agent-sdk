@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { getConfigDir } from '../sessions/paths.ts';
-import type { Options } from '../types/index.ts';
+import type { McpServerConfig, Options } from '../types/index.ts';
 
 // ============================================================================
 // Defaults — match official SDK behavior (discovered via proxy analysis)
@@ -170,6 +170,37 @@ function getSdkDebugFile(): string | undefined {
     process.stderr.write(`SDK debug logs: ${sdkDebugFile}\n`);
   }
   return sdkDebugFile;
+}
+
+/** MCP servers Claude Code runs or connects to itself (not in-process SDK servers). */
+export function processMcpServers(options: Options): Record<string, McpServerConfig> {
+  const servers: Record<string, McpServerConfig> = {};
+  for (const [name, config] of Object.entries(options.mcpServers ?? {})) {
+    if (!('instance' in config)) servers[name] = config;
+  }
+  return servers;
+}
+
+/** v0.3.326: a launch given `--sdk-url` can't read the initialize request at launch. */
+export function launchesWithSdkUrl(options: Options): boolean {
+  const extra = options.extraArgs ?? {};
+  return (
+    extra['sdk-url'] !== undefined ||
+    Object.keys(extra).some((k) => k.startsWith('sdk-url=')) ||
+    (options.executableArgs ?? []).some((a) => /^--sdk-url(=|$)/.test(a))
+  );
+}
+
+/**
+ * v0.3.326: `mcpServersDelivery: 'initialize'` sends the process MCP servers
+ * in the initialize request instead of `--mcp-config` (not with `--sdk-url`).
+ */
+export function mcpServersViaInitialize(options: Options): boolean {
+  return (
+    options.mcpServersDelivery === 'initialize' &&
+    Object.keys(processMcpServers(options)).length > 0 &&
+    !launchesWithSdkUrl(options)
+  );
 }
 
 function isJsonObjectString(value: string): boolean {
@@ -453,9 +484,12 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
     let base: Record<string, unknown> = {};
     if (settings) {
+      // v0.3.330: a JSON string that doesn't parse fails the query
       try {
-        base = JSON.parse(settings);
-      } catch {}
+        base = JSON.parse(settings.trim());
+      } catch {
+        throw new Error('Invalid JSON provided to the settings option.');
+      }
     }
     settings = JSON.stringify({
       ...base,
@@ -476,29 +510,24 @@ export function buildCliArgs(options: Options & { prompt?: string }): string[] {
     }
   }
 
-  // MCP servers → --mcp-config (only process-based servers; SDK servers are handled in-process)
-  if (options.mcpServers) {
-    const serializedServers: Record<string, unknown> = {};
-    for (const [name, config] of Object.entries(options.mcpServers)) {
-      if ('instance' in config) {
-        // SDK (in-process) servers — skip from --mcp-config, handled via sdkMcpServers in init
-        continue;
-      }
-      serializedServers[name] = config;
-    }
-    if (Object.keys(serializedServers).length > 0) {
-      pushFlagValue(args, '--mcp-config', JSON.stringify({ mcpServers: serializedServers }));
-    }
+  // MCP servers → --mcp-config (only process-based servers; SDK servers are handled
+  // in-process). v0.3.326: with mcpServersDelivery: 'initialize' they go in the
+  // initialize request instead (protocolInit.ts)
+  const mcpServers = processMcpServers(options);
+  if (Object.keys(mcpServers).length > 0 && !mcpServersViaInitialize(options)) {
+    pushFlagValue(args, '--mcp-config', JSON.stringify({ mcpServers }));
   }
 
   // Plugins → --plugin-dir (one per plugin), or --plugin-dir-no-mcp with skipMcpDiscovery.
   // With pluginDelivery: 'initialize', the list is sent over stdin in the initialize
-  // request instead (see sendProtocolInit), and the CLI is started with --await-initialize
-  // so the command line doesn't grow with the plugin count.
+  // request instead (see sendProtocolInit), so the command line doesn't grow with
+  // the plugin count.
+  const pluginsViaInitialize =
+    options.pluginDelivery === 'initialize' && !!options.plugins && options.plugins.length > 0;
+  // Official SDK: --await-initialize whenever a launch field goes in initialize
+  if (pluginsViaInitialize || mcpServersViaInitialize(options)) args.push('--await-initialize');
   if (options.plugins && options.plugins.length > 0) {
-    if (options.pluginDelivery === 'initialize') {
-      args.push('--await-initialize');
-    } else {
+    if (!pluginsViaInitialize) {
       for (const plugin of options.plugins) {
         if (plugin.type === 'local') {
           args.push(

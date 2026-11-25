@@ -213,6 +213,41 @@ describe('Stdio MCP Servers', () => {
   );
 
   testWithBothSDKs(
+    "stdio MCP server sent with mcpServersDelivery: 'initialize' is connected and called (v0.3.326)",
+    async (sdk) => {
+      const messages = await runWithSDK(
+        sdk,
+        'Use the ping tool from the test-server MCP server. Reply with exactly what it returns, nothing else.',
+        {
+          permissionMode: 'default',
+          canUseTool: async () => ({ behavior: 'allow' as const }),
+          mcpServers: {
+            'test-server': { command: 'node', args: [MCP_SERVER] } as McpStdioServerConfig,
+          },
+          mcpServersDelivery: 'initialize',
+          allowedTools: ['mcp__test-server__*'],
+          maxTurns: 5,
+        }
+      );
+
+      const initMsg = messages.find(
+        (m) => m.type === 'system' && 'subtype' in m && m.subtype === 'init'
+      );
+      const servers = (initMsg as { mcp_servers?: Array<{ name: string; status: string }> })
+        ?.mcp_servers;
+      expect(servers?.find((s) => s.name === 'test-server')?.status).toBe('connected');
+
+      const result = messages.find((m) => m.type === 'result');
+      expect(result?.type === 'result' && result.subtype).toBe('success');
+      if (result?.type === 'result' && result.subtype === 'success') {
+        expect(result.result.toLowerCase()).toContain('pong');
+      }
+      console.log(`   [${sdk}] MCP servers via initialize: connected, ping → pong`);
+    },
+    120000
+  );
+
+  testWithBothSDKs(
     'init message includes mcp_servers status for stdio server',
     async (sdk) => {
       const messages = await runWithSDK(sdk, 'Say hello', {

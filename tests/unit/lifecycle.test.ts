@@ -612,6 +612,13 @@ describe('error result text survives what follows it', () => {
       ['result', 'system'],
     ],
     [
+      'plugin_install after the last result (v0.3.332)',
+      fakeCli(
+        `echo '${errorResult}'\necho '${JSON.stringify({ type: 'system', subtype: 'plugin_install', status: 'installed', session_id: 's' })}'\nexit 1\n`
+      ),
+      ['result', 'system'],
+    ],
+    [
       'a model-less turn after an error result (v0.3.316)',
       fakeCli(`echo '${errorResult}'\necho '${modelLessResult}'\nexit 1\n`),
       ['result', 'result'],
@@ -749,5 +756,292 @@ cat > /dev/null
         'This session was already running and did not register your hooks, so a hook set to onFailure: "block" would never run. Start a new session, or remove onFailure: "block" from your hooks.';
       expect(out).toEqual({ types: [], error: message, init: message, cli: 'held:nothing' });
     }, 15000);
+  }
+});
+
+/**
+ * A fake CLI in JS: answers `initialize` (after INIT_DELAY_MS) with the base
+ * fields plus INIT_EXTRA, answers other control requests from REPLIES
+ * (subtype → reply, or a list used in turn), answers a prompt with a result,
+ * and logs its argv and every stdin message — noting whether it came before
+ * or after the initialize answer — to FAKE_LOG.
+ */
+const JS_FAKE_CLI = (() => {
+  const js = `${'/tmp'}/fake-cli-js-${Date.now()}-${Math.random().toString(36).slice(2)}.cjs`;
+  writeFileSync(
+    js,
+    `const fs = require('fs');
+const log = (o) => fs.appendFileSync(process.env.FAKE_LOG, JSON.stringify(o) + '\\n');
+const out = (o) => process.stdout.write(JSON.stringify(o) + '\\n');
+log({ args: process.argv.slice(2) });
+const replies = JSON.parse(process.env.REPLIES || '{}');
+let answered = false;
+require('readline').createInterface({ input: process.stdin }).on('line', (line) => {
+  const m = JSON.parse(line);
+  log({ at: answered ? 'after' : 'before', kind: m.request?.subtype ?? m.type, msg: m });
+  if (m.type === 'user') return out(${JSON.stringify(JSON.parse(RESULT))});
+  if (m.type !== 'control_request') return;
+  const reply = (response) =>
+    out({ type: 'control_response', response: { subtype: 'success', request_id: m.request_id, response } });
+  if (m.request.subtype === 'initialize') {
+    return setTimeout(() => {
+      answered = true;
+      reply({ commands: [], agents: [], models: [], output_style: 'default',
+        available_output_styles: [], account: {}, ...JSON.parse(process.env.INIT_EXTRA || '{}') });
+    }, Number(process.env.INIT_DELAY_MS || 0));
+  }
+  let r = replies[m.request.subtype];
+  if (Array.isArray(r)) r = r.shift();
+  if (!r) return;
+  if (r.error) {
+    out({ type: 'control_response', response: { subtype: 'error', request_id: m.request_id,
+      error: r.error, error_code: r.error_code } });
+  } else reply(r.response);
+});
+`
+  );
+  scripts.push(js);
+  return fakeCli(`exec node ${js} "$@"\n`);
+})();
+
+type FakeLogEntry = { args?: string[]; at?: 'before' | 'after'; kind?: string; msg?: unknown };
+
+/** Run `prompt` through the JS fake CLI; `during` runs on the live query. */
+async function runFake(
+  query: QueryFn,
+  fake: { initExtra?: object; initDelayMs?: number; replies?: object },
+  options: Record<string, unknown> = {},
+  during?: (q: ReturnType<QueryFn>) => Promise<unknown> | void
+) {
+  const log = `/tmp/fake-log-${Date.now()}-${Math.random().toString(36).slice(2)}.ndjson`;
+  scripts.push(log);
+  writeFileSync(log, '');
+  const warnings: string[] = [];
+  const onWarning = (w: Error & { code?: string }) => {
+    if (w.code) warnings.push(w.code);
+  };
+  process.on('warning', onWarning);
+  // A streamed prompt that stays open until `during` is done, so its control
+  // requests are answered before the query ends
+  let release = () => {};
+  const done = new Promise<void>((r) => {
+    release = r;
+  });
+  async function* prompt(): AsyncGenerator<SDKUserMessage> {
+    yield* oneMessage();
+    await done;
+  }
+  const q = query({
+    prompt: prompt(),
+    options: {
+      pathToClaudeCodeExecutable: JS_FAKE_CLI,
+      settingSources: [],
+      env: {
+        ...process.env,
+        FAKE_LOG: log,
+        INIT_EXTRA: JSON.stringify(fake.initExtra ?? {}),
+        INIT_DELAY_MS: String(fake.initDelayMs ?? 0),
+        REPLIES: JSON.stringify(fake.replies ?? {}),
+      },
+      ...options,
+    },
+  });
+  const duringResult = Promise.resolve(during?.(q)).finally(release);
+  const types: string[] = [];
+  let error: string | undefined;
+  // Read up to the result without ending the query (no `break`, which
+  // would close it under control requests still in flight)
+  const it = q[Symbol.asyncIterator]();
+  try {
+    for (;;) {
+      const next = await it.next();
+      if (next.done) break;
+      types.push(next.value.type);
+      if (next.value.type === 'result') break;
+    }
+  } catch (e) {
+    error = (e as Error).message;
+  }
+  const value = await duringResult;
+  q.close();
+  await new Promise((r) => setTimeout(r, 100));
+  process.off('warning', onWarning);
+  const entries = readFileSync(log, 'utf8')
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => JSON.parse(l) as FakeLogEntry);
+  return {
+    types,
+    error,
+    warnings,
+    value,
+    args: entries[0]?.args ?? [],
+    stdin: entries.slice(1).map((e) => `${e.kind}:${e.at}`),
+    messages: entries.slice(1).map((e) => e.msg as { request?: Record<string, unknown> }),
+  };
+}
+
+describe("mcpServersDelivery: 'initialize' (v0.3.326)", () => {
+  const mcpOptions = {
+    mcpServers: { remote: { type: 'http', url: 'https://example.com/mcp' } },
+    mcpServersDelivery: 'initialize',
+  };
+
+  for (const [name, query] of both) {
+    test(`${name}: the prompt and later control requests wait for the answer`, async () => {
+      const out = await runFake(
+        query,
+        { initExtra: { mcp_servers_applied: true }, initDelayMs: 500, replies: { set_model: {} } },
+        mcpOptions,
+        (q) => q.setModel('claude-sonnet-4-5')
+      );
+      expect(out.error).toBeUndefined();
+      expect(out.types).toEqual(['result']);
+      expect(out.args).toContain('--await-initialize');
+      expect(out.args.some((a) => a.startsWith('--mcp-config'))).toBe(false);
+      expect(out.stdin[0]).toBe('initialize:before');
+      expect(out.stdin.slice(1).sort()).toEqual(['set_model:after', 'user:after']);
+      expect(out.messages[0]?.request?.mcpServers).toEqual(mcpOptions.mcpServers);
+      expect(out.warnings).not.toContain('CLAUDE_SDK_MCP_SERVERS_NOT_APPLIED');
+    }, 15000);
+
+    test(`${name}: a CLI that can't read them fails the query, prompt unsent`, async () => {
+      const out = await runFake(
+        query,
+        { initExtra: { claude_code_version: '2.1.200' } },
+        mcpOptions
+      );
+      expect(out.error).toStartWith(
+        'This Claude Code (version 2.1.200) is too old to read MCP servers from the initialize request'
+      );
+      expect(out.stdin).toEqual(['initialize:before']);
+    }, 15000);
+
+    test(`${name}: servers the CLI did not load raise a warning`, async () => {
+      const out = await runFake(query, { initExtra: { mcp_servers_applied: false } }, mcpOptions);
+      expect(out.types).toEqual(['result']);
+      expect(out.warnings).toContain('CLAUDE_SDK_MCP_SERVERS_NOT_APPLIED');
+    }, 15000);
+  }
+});
+
+describe('control request answers', () => {
+  for (const [name, query] of both) {
+    test(`${name}: setPermissionMode resolves with the mode in effect (v0.3.332)`, async () => {
+      const out = await runFake(
+        query,
+        {
+          replies: {
+            set_permission_mode: [
+              { response: { mode: 'manual' } },
+              { response: { mode: 'acceptEdits' } },
+              { response: { mode: 'bogus' } },
+              { response: {} },
+            ],
+          },
+        },
+        {},
+        async (q) => [
+          await q.setPermissionMode('default'),
+          await q.setPermissionMode('acceptEdits'),
+          await q.setPermissionMode('plan'),
+          await q.setPermissionMode('plan'),
+        ]
+      );
+      expect(out.value).toEqual([
+        { mode: 'default' },
+        { mode: 'acceptEdits' },
+        undefined,
+        undefined,
+      ]);
+    }, 15000);
+
+    test(`${name}: a busy reloadPlugins rejects with errorCode reload_plugins_busy (v0.3.325)`, async () => {
+      const out = await runFake(
+        query,
+        {
+          replies: {
+            reload_plugins: [
+              { error: 'Session is busy', error_code: 'reload_plugins_busy' },
+              { error: 'Bad', error_code: 'Not A Code' },
+            ],
+          },
+        },
+        {},
+        async (q) => {
+          const codes: unknown[] = [];
+          for (let i = 0; i < 2; i++) {
+            await q.reloadPlugins({ refuseIfBusy: true }).catch((e: { errorCode?: string }) => {
+              codes.push(e.errorCode);
+            });
+          }
+          return codes;
+        }
+      );
+      expect(out.value).toEqual(['reload_plugins_busy', undefined]);
+    }, 15000);
+
+    test(`${name}: cancelAsyncMessage waits behind a held prompt`, async () => {
+      const out = await runFake(
+        query,
+        {
+          initExtra: { hook_on_failure_supported: true },
+          initDelayMs: 500,
+          replies: { cancel_async_message: { response: { cancelled: true } } },
+        },
+        { hooks: { PreToolUse: [{ hooks: [async () => ({})], onFailure: 'block' }] } },
+        // Runtime-only upstream (not on the public Query type)
+        (q) =>
+          (
+            q as unknown as { cancelAsyncMessage(uuid: string): Promise<boolean> }
+          ).cancelAsyncMessage('00000000-0000-4000-8000-000000000000')
+      );
+      expect(out.value).toBe(true);
+      expect(out.stdin[0]).toBe('initialize:before');
+      expect(out.stdin.slice(1).sort()).toEqual(['cancel_async_message:after', 'user:after']);
+    }, 15000);
+  }
+});
+
+describe('process warnings (once per process)', () => {
+  const sdks = [
+    ['open', `${process.cwd()}/src/index.ts`],
+    ['official', '@anthropic-ai/claude-agent-sdk'],
+  ] as const;
+
+  for (const [name, entry] of sdks) {
+    test(`${name}: argv MCP deprecation (v0.3.326) and agent in-process server (v0.3.327)`, async () => {
+      const script = `
+const { query, createSdkMcpServer } = await import(${JSON.stringify(entry)});
+const codes = [];
+process.on('warning', (w) => codes.push([w.name, w.code]));
+const run = async (options) => {
+  try {
+    for await (const m of query({ prompt: 'hi', options: { pathToClaudeCodeExecutable: ${JSON.stringify(JS_FAKE_CLI)}, settingSources: [], env: { ...process.env, FAKE_LOG: '/dev/null' }, ...options } })) {
+      if (m.type === 'result') break;
+    }
+  } catch {}
+};
+const remote = { remote: { type: 'http', url: 'https://example.com/mcp' } };
+await run({ mcpServers: remote });
+await run({ mcpServers: remote });
+await run({ mcpServers: remote, mcpServersDelivery: 'argv' });
+await run({ agents: { a: { description: 'd', prompt: 'p', mcpServers: [{ s: createSdkMcpServer({ name: 's', tools: [] }) }] } } });
+await new Promise((r) => setTimeout(r, 50));
+console.log(JSON.stringify(codes));
+process.exit(0);
+`;
+      const child = spawn(process.execPath, ['-e', script], { stdio: ['ignore', 'pipe', 'pipe'] });
+      let stdout = '';
+      child.stdout.on('data', (d) => {
+        stdout += d;
+      });
+      await new Promise((r) => child.on('close', r));
+      expect(JSON.parse(stdout.trim().split('\n').at(-1) ?? '[]')).toEqual([
+        ['DeprecationWarning', 'CLAUDE_SDK_MCP_SERVERS_ARGV_DEPRECATED'],
+        ['Warning', 'CLAUDE_SDK_AGENT_IN_PROCESS_SERVER'],
+      ]);
+    }, 30000);
   }
 });

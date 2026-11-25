@@ -134,20 +134,34 @@ export async function readHeadTail(filePath: string): Promise<HeadTail | null> {
     ? constants.O_RDONLY
     : constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK;
   try {
+    // Without O_NOFOLLOW (Windows), check the path is a regular file first
+    if (isWindows() && !(await stat(filePath)).isFile()) return null;
     const fh = await open(filePath, flags);
     try {
       const st = await fh.stat();
       if (!st.isFile()) return null;
       const buf = Buffer.allocUnsafe(HEAD_TAIL_BYTES);
-      const first = await fh.read(buf, 0, HEAD_TAIL_BYTES, 0);
-      if (first.bytesRead === 0) return null;
-      const head = buf.toString('utf8', 0, first.bytesRead);
+      // v0.3.323+: keep reading until the window is full (short reads)
+      const fill = async (position: number): Promise<number> => {
+        let filled = 0;
+        while (filled < HEAD_TAIL_BYTES) {
+          const { bytesRead } = await fh.read(
+            buf,
+            filled,
+            HEAD_TAIL_BYTES - filled,
+            position + filled
+          );
+          if (bytesRead <= 0) break;
+          filled += bytesRead;
+        }
+        return filled;
+      };
+      const firstBytes = await fill(0);
+      if (firstBytes === 0) return null;
+      const head = buf.toString('utf8', 0, firstBytes);
       const tailStart = Math.max(0, st.size - HEAD_TAIL_BYTES);
       let tail = head;
-      if (tailStart > 0) {
-        const last = await fh.read(buf, 0, HEAD_TAIL_BYTES, tailStart);
-        tail = buf.toString('utf8', 0, last.bytesRead);
-      }
+      if (tailStart > 0) tail = buf.toString('utf8', 0, await fill(tailStart));
       return { head, tail, mtime: st.mtime.getTime(), size: st.size };
     } finally {
       await fh.close();
@@ -325,14 +339,15 @@ export function pathVariants(original: string, canonical: string): string[] {
 export type SessionFile = { filePath: string; projectPath: string | undefined; fileSize: number };
 
 /**
- * Find a session's non-empty transcript. With `dir`, searches that project
- * and its git worktrees; otherwise every project directory.
+ * Every non-empty transcript of a session, in search order (official `kR`).
+ * With `dir`, that project and its git worktrees; otherwise every project
+ * directory.
  */
-export async function findSessionFile(
+export async function* sessionFiles(
   sessionId: string,
   dir?: string,
   base: string = getProjectsBaseDir()
-): Promise<SessionFile | undefined> {
+): AsyncGenerator<SessionFile> {
   const fileName = `${sessionId}.jsonl`;
 
   async function tryDir(projectDir: string, projectPath: string | undefined) {
@@ -353,29 +368,38 @@ export async function findSessionFile(
         if (seen.has(key)) continue;
         seen.add(key);
         const found = await tryDir(projectDir, variant);
-        if (found) return found;
+        if (found) yield found;
       }
     }
     for (const worktree of await getWorktreePaths(canonical)) {
       if (worktree === canonical) continue;
       for (const projectDir of await findProjectDirs(worktree, base)) {
         const found = await tryDir(projectDir, worktree);
-        if (found) return found;
+        if (found) yield found;
       }
     }
-    return undefined;
+    return;
   }
 
   let names: string[];
   try {
     names = await readdir(base);
   } catch {
-    return undefined;
+    return;
   }
   for (const name of names) {
     const found = await tryDir(join(base, name), undefined);
-    if (found) return found;
+    if (found) yield found;
   }
+}
+
+/** A session's first non-empty transcript (see `sessionFiles`). */
+export async function findSessionFile(
+  sessionId: string,
+  dir?: string,
+  base: string = getProjectsBaseDir()
+): Promise<SessionFile | undefined> {
+  for await (const file of sessionFiles(sessionId, dir, base)) return file;
   return undefined;
 }
 

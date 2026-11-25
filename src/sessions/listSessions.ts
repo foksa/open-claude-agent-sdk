@@ -6,6 +6,7 @@
 import { readdir, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import type { ListSessionsOptions, SDKSessionInfo } from '../types/index.ts';
+import { readArchiveMark } from './archive.ts';
 import {
   canonicalizePath,
   dirHoldsProject,
@@ -29,7 +30,7 @@ import {
   parseSessionInfo,
   readSidecarTitle,
 } from './sessionInfo.ts';
-import { lastStringField } from './text.ts';
+import { lastTypedField } from './text.ts';
 
 type Candidate = {
   sessionId: string;
@@ -85,11 +86,19 @@ async function loadCandidate(
     return null;
   }
 
-  const sidecarTitle =
-    lastStringField(ht.tail, 'customTitle') === undefined
-      ? await readSidecarTitle(candidate.filePath, candidate.sessionId)
-      : undefined;
-  const info = parseSessionInfo(candidate.sessionId, ht, candidate.projectPath, sidecarTitle);
+  const [sidecarTitle, archiveMark] = await Promise.all([
+    lastTypedField(ht.tail, 'custom-title') === undefined
+      ? readSidecarTitle(candidate.filePath, candidate.sessionId)
+      : undefined,
+    readArchiveMark(candidate.filePath, candidate.sessionId),
+  ]);
+  const info = parseSessionInfo(
+    candidate.sessionId,
+    ht,
+    candidate.projectPath,
+    sidecarTitle,
+    archiveMark
+  );
   if (!info) return null;
 
   const cwd = recordedCwd(ht);
@@ -115,12 +124,33 @@ function byRecencyDesc(
   return b.sessionId < a.sessionId ? -1 : b.sessionId > a.sessionId ? 1 : 0;
 }
 
+/** Run at most `max` calls of `fn` at once (official `Uz`). */
+function limitConcurrency<A, R>(max: number, fn: (arg: A) => Promise<R>): (arg: A) => Promise<R> {
+  let active = 0;
+  const waiting: (() => void)[] = [];
+  return async (arg: A) => {
+    if (active >= max) await new Promise<void>((resolve) => waiting.push(resolve));
+    else active++;
+    try {
+      return await fn(arg);
+    } finally {
+      const next = waiting.shift();
+      if (next) next();
+      else active--;
+    }
+  };
+}
+
 /** Unpaginated: load everything, keep the newest copy of each session. */
 async function loadAll(
   candidates: Candidate[],
   includeProgrammatic: boolean
 ): Promise<SDKSessionInfo[]> {
-  const infos = await Promise.all(candidates.map((c) => loadCandidate(c, includeProgrammatic)));
+  // v0.3.331: at most BATCH_SIZE transcripts open at once
+  const load = limitConcurrency(BATCH_SIZE, (c: Candidate) =>
+    loadCandidate(c, includeProgrammatic)
+  );
+  const infos = await Promise.all(candidates.map((c) => load(c)));
   const byId = new Map<string, SDKSessionInfo>();
   for (const info of infos) {
     if (!info) continue;

@@ -13,7 +13,7 @@ type Official = typeof import('@anthropic-ai/claude-agent-sdk');
  * an SDK host of the protocol version we implement. Kept equal to the pinned
  * devDependency (tests/unit/index.test.ts).
  */
-export const COMPATIBLE_SDK_VERSION = '0.3.322';
+export const COMPATIBLE_SDK_VERSION = '0.3.332';
 
 /** Thrown when a query is aborted via its AbortController. */
 export class AbortError extends Error {}
@@ -60,6 +60,7 @@ export const HOOK_EVENTS: Official['HOOK_EVENTS'] = [
   'FileChanged',
   'DirectoryAdded',
   'MessageDisplay',
+  'PreSkillShellCommand',
 ];
 
 export const SYSTEM_PROMPT_DYNAMIC_BOUNDARY: Official['SYSTEM_PROMPT_DYNAMIC_BOUNDARY'] =
@@ -126,7 +127,6 @@ export const BUILTIN_TOOL_NAMES: Official['BUILTIN_TOOL_NAMES'] = [
   'PowerShell',
   'Projects',
   'propose_skills',
-  'ProposeGoal',
   'PushNotification',
   'Read',
   'ReadMcpResourceDirTool',
@@ -139,6 +139,7 @@ export const BUILTIN_TOOL_NAMES: Official['BUILTIN_TOOL_NAMES'] = [
   'SendMessage',
   'SendUserFile',
   'SendUserMessage',
+  'SetGoal',
   'ShareOnboardingGuide',
   'ShowOnboardingRolePicker',
   'Skill',
@@ -167,4 +168,5 @@ export const LEGACY_TOOL_NAME_ALIASES: Official['LEGACY_TOOL_NAME_ALIASES'] = {
   ListMcpResources: 'ListMcpResourcesTool',
   ReadMcpResource: 'ReadMcpResourceTool',
   ReadMcpResourceDir: 'ReadMcpResourceDirTool',
+  ProposeGoal: 'SetGoal',
 };

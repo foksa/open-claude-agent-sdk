@@ -72,6 +72,12 @@ export class ControlRequestManager {
   }
 
   /**
+   * Where a request without an explicit `deferWrite` should wait (the
+   * query's prompt hold), if anywhere. Set by QueryImpl.
+   */
+  deferFor?: (request: OutboundControlRequest) => ((write: () => void) => void) | undefined;
+
+  /**
    * Send a control request and return a Promise that resolves when the CLI responds.
    * `deferWrite` receives the write to run later (a request held behind the
    * prompt); the response handler is registered right away either way.
@@ -85,6 +91,7 @@ export class ControlRequestManager {
       return Promise.reject(new Error('Cannot send control request: query is closed'));
     }
     const envelope = this.buildControlRequest(request);
+    deferWrite ??= this.deferFor?.(request);
     if (request.subtype === RequestSubtype.INITIALIZE) {
       this.reinitRequestIds.add(envelope.request_id);
     }
@@ -124,7 +131,7 @@ export class ControlRequestManager {
       if (response.subtype === ResponseSubtype.SUCCESS) {
         resolve(response.response);
       } else {
-        reject(new Error(`Control request failed: ${response.error || 'unknown error'}`));
+        reject(controlRequestError(response));
       }
       // Only an `initialize` response re-delivers prompts; on any other
       // response the official SDK ignores these fields
@@ -178,4 +185,21 @@ export class ControlRequestManager {
   private generateRequestId(): string {
     return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
+}
+
+/** Error codes the official SDK passes through on a failed control request. */
+const ERROR_CODE_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
+
+/**
+ * The error a failed control request rejects with. Like the official SDK it
+ * carries the CLI's `error_code` as `errorCode` when well-formed (e.g.
+ * `reload_plugins_busy` for `reloadPlugins({ refuseIfBusy: true })`).
+ */
+function controlRequestError(response: ControlResponsePayload): Error {
+  const error = new Error(`Control request failed: ${response.error || 'unknown error'}`);
+  const code = response.error_code;
+  if (typeof code === 'string' && ERROR_CODE_PATTERN.test(code)) {
+    Object.assign(error, { errorCode: code });
+  }
+  return error;
 }

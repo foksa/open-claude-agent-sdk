@@ -7,6 +7,7 @@
  * @internal
  */
 
+import { mcpServersViaInitialize, processMcpServers } from '../core/argBuilder.ts';
 import type { ControlProtocolHandler } from '../core/control.ts';
 import { buildHookConfig } from '../core/hookConfig.ts';
 import { type SdkMcpServerSettings, sdkMcpServerSettings } from '../core/mcpBridge.ts';
@@ -31,6 +32,49 @@ function buildSdkMcpServerConfigs(
     return Object.keys(settings).length > 0 ? [[name, settings] as const] : [];
   });
   return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+/** An in-process server left in an agent's `mcpServers` (ignored, with a warning). */
+export type IgnoredAgentServer = { agentName: string; serverName: string };
+
+/**
+ * v0.3.327: `createSdkMcpServer()` servers in an agent's `mcpServers` are
+ * ignored — sent as a bare `{ type: 'sdk', name }` — and listed so the query
+ * can warn (official `nD`). Agents without one are passed through as is.
+ */
+export function stripAgentSdkServers(agents: Options['agents']): {
+  agents: Options['agents'];
+  ignored: IgnoredAgentServer[];
+} {
+  const replaced: [string, unknown][] = [];
+  const ignored: IgnoredAgentServer[] = [];
+  for (const [agentName, agent] of Object.entries(agents ?? {})) {
+    const specs = (agent as { mcpServers?: unknown } | undefined)?.mcpServers;
+    if (!Array.isArray(specs)) continue;
+    const before = ignored.length;
+    const mcpServers = specs.map((spec) => {
+      if (typeof spec !== 'object' || spec === null) return spec;
+      const entries: [string, unknown][] = [];
+      for (const [serverName, config] of Object.entries(spec as Record<string, unknown>)) {
+        const c = config as { type?: unknown; name?: unknown } | null;
+        if (c?.type === 'sdk' && typeof c === 'object' && 'instance' in c) {
+          ignored.push({ agentName, serverName });
+          entries.push([serverName, { type: 'sdk', name: c.name ?? serverName }]);
+        } else {
+          entries.push([serverName, config]);
+        }
+      }
+      return Object.fromEntries(entries);
+    });
+    if (ignored.length > before) replaced.push([agentName, { ...agent, mcpServers }]);
+  }
+  return {
+    agents:
+      replaced.length > 0
+        ? ({ ...agents, ...Object.fromEntries(replaced) } as Options['agents'])
+        : agents,
+    ignored,
+  };
 }
 
 /**
@@ -102,7 +146,7 @@ export function buildInitRequest(
       planModeInstructions: options.planModeInstructions,
     }),
     ...(options.toolAliases !== undefined && { toolAliases: options.toolAliases }),
-    ...(options.agents && { agents: options.agents }),
+    ...(options.agents && { agents: stripAgentSdkServers(options.agents).agents }),
     ...(options.promptSuggestions !== undefined && {
       promptSuggestions: options.promptSuggestions,
     }),
@@ -125,6 +169,7 @@ export function buildInitRequest(
       options.plugins.length > 0 && {
         plugins: options.plugins,
       }),
+    ...(mcpServersViaInitialize(options) && { mcpServers: processMcpServers(options) }),
   };
 
   if (options.hooks) {

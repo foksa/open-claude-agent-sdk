@@ -36,6 +36,8 @@ export interface TranscriptEntry {
   isCompletedLocalCommand?: boolean;
   toolDenialUnanswered?: unknown;
   teamName?: string;
+  /** v0.3.323+: host-run tool calls (`hostHiddenToolUseIds`, `ranByToolUseId`, …) */
+  [key: string]: unknown;
 }
 
 export type Origin = {
@@ -45,11 +47,61 @@ export type Origin = {
   [key: string]: unknown;
 };
 
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/**
+ * A voice call's spoken turn (`system`/`voice_call_talk`) read as the user
+ * message it stands for, or as the queued command it folded into (official
+ * `gu`, v0.3.323+). Anything else comes back unchanged.
+ */
+export function voiceCallTalkAsMessage(entry: unknown): unknown {
+  if (!isPlainObject(entry) || entry.type !== 'system' || entry.subtype !== 'voice_call_talk')
+    return entry;
+  const { subtype: _s, level: _l, msgV: _m, content, blocks, fold, ...rest } = entry;
+  if (
+    typeof content !== 'string' ||
+    !isPlainObject(rest.origin) ||
+    rest.origin.kind !== 'voice-call'
+  )
+    return entry;
+  const spoken = Array.isArray(blocks) ? blocks : content;
+  if (fold === undefined)
+    return { ...rest, type: 'user', message: { role: 'user', content: spoken } };
+  if (!isPlainObject(fold) || !isPlainObject(fold.command)) return entry;
+  const { isMeta: _meta, origin, ...fields } = rest;
+  const { command, ...foldRest } = fold;
+  return {
+    ...foldRest,
+    ...fields,
+    type: 'attachment',
+    attachment: { ...command, type: 'queued_command', prompt: spoken, origin },
+  };
+}
+
+/**
+ * A row the host wrote for a tool call it ran on Claude's behalf
+ * (official `qu`, v0.3.323+).
+ */
+export type HostRow = Record<string, unknown> & { type: 'host-row'; ranByToolUseId: string };
+
+export function isHostRow(entry: unknown): entry is HostRow {
+  return (
+    isPlainObject(entry) && entry.type === 'host-row' && typeof entry.ranByToolUseId === 'string'
+  );
+}
+
 /**
  * Parse JSONL content into transcript entries.
- * Only keeps entries that have a uuid and a relevant type.
+ * Only keeps entries that have a uuid and a relevant type; host rows go to
+ * `hostRows` when given.
  */
-export function parseTranscript(content: string, deliveries?: DeliveryState): TranscriptEntry[] {
+export function parseTranscript(
+  content: string,
+  deliveries?: DeliveryState,
+  hostRows?: HostRow[]
+): TranscriptEntry[] {
   const entries: TranscriptEntry[] = [];
   let offset = 0;
   const len = content.length;
@@ -63,20 +115,18 @@ export function parseTranscript(content: string, deliveries?: DeliveryState): Tr
     if (!line) continue;
 
     try {
-      const entry = JSON.parse(line);
-      if (deliveries && typeof entry === 'object' && entry !== null) {
-        trackDelivery(entry, deliveries);
-      }
-      const type = entry.type;
+      const entry = voiceCallTalkAsMessage(JSON.parse(line)) as Record<string, unknown>;
       if (
-        (type === 'user' ||
-          type === 'assistant' ||
-          type === 'progress' ||
-          type === 'system' ||
-          type === 'attachment') &&
+        typeof entry.type === 'string' &&
+        MAIN_TYPES.has(entry.type) &&
         typeof entry.uuid === 'string'
       ) {
-        entries.push(entry);
+        entries.push(entry as TranscriptEntry);
+      } else if (hostRows && isHostRow(entry)) {
+        hostRows.push(entry);
+      }
+      if (deliveries && typeof entry === 'object' && entry !== null) {
+        trackDelivery(entry, deliveries);
       }
     } catch {
       // skip malformed lines
@@ -84,6 +134,14 @@ export function parseTranscript(content: string, deliveries?: DeliveryState): Tr
   }
   return entries;
 }
+
+const MAIN_TYPES: ReadonlySet<string> = new Set([
+  'user',
+  'assistant',
+  'progress',
+  'system',
+  'attachment',
+]);
 
 // ============================================================================
 // Mid-turn deliveries (v0.3.285)
@@ -462,6 +520,7 @@ export function buildConversationChain(
   if (found) {
     found.terminal = best === fromMainLeaf ? bestLeaf : undefined;
     found.leaf = best;
+    found.relinked = byUuid;
   }
 
   return mergeParallelToolUses(byUuid, chain, inChain);
@@ -471,7 +530,12 @@ export function buildConversationChain(
  * Where a chain ended: `leaf` is its last message, `terminal` the main-thread
  * leaf row that led to it (unset when the fallback picked the message).
  */
-export type ChainEnds = { terminal?: TranscriptEntry; leaf?: TranscriptEntry };
+export type ChainEnds = {
+  terminal?: TranscriptEntry;
+  leaf?: TranscriptEntry;
+  /** v0.3.323: entries by uuid after compaction re-linking */
+  relinked?: Map<string, TranscriptEntry>;
+};
 
 function isQueuedCommandAttachment(entry: TranscriptEntry): boolean {
   const att = entry.attachment;
@@ -491,15 +555,20 @@ function isQueuedCommandAttachment(entry: TranscriptEntry): boolean {
 export function trailingQueuedCommands(
   entries: TranscriptEntry[],
   chain: TranscriptEntry[],
-  leaf: TranscriptEntry | undefined
+  ends: ChainEnds
 ): TranscriptEntry[] {
-  if (leaf === undefined) return [];
+  const { leaf, relinked } = ends;
+  if (relinked === undefined || leaf === undefined) return [];
+  // v0.3.323: a row also hangs under the parent compaction re-linked it to
+  // (a prompt queued right after a compaction summary)
   const childrenByParent = new Map<string, TranscriptEntry[]>();
   for (const entry of entries) {
-    if (entry.parentUuid && entry.type !== 'user' && entry.type !== 'assistant') {
-      const children = childrenByParent.get(entry.parentUuid);
+    if (entry.type === 'user' || entry.type === 'assistant') continue;
+    for (const parent of new Set([entry.parentUuid, relinked.get(entry.uuid)?.parentUuid])) {
+      if (!parent) continue;
+      const children = childrenByParent.get(parent);
       if (children) children.push(entry);
-      else childrenByParent.set(entry.parentUuid, [entry]);
+      else childrenByParent.set(parent, [entry]);
     }
   }
   const byTimestamp = (a: TranscriptEntry, b: TranscriptEntry) =>
@@ -659,13 +728,23 @@ function findReadByClaude(chain: TranscriptEntry[], localCommands: Set<number>):
   return read;
 }
 
+const RUN_ID_RE = /^[A-Za-z0-9_.:-]{1,128}$/;
+
+function validRunId(v: unknown): string | undefined {
+  return typeof v === 'string' && RUN_ID_RE.test(v) ? v : undefined;
+}
+
+/** Official `yR`: a task notification's origin keeps only its known fields. */
 export function normalizeOrigin(origin: Origin | undefined): Origin | undefined {
   if (origin?.kind !== 'task-notification') return origin;
+  const runId = validRunId(origin.runId);
   return {
     kind: 'task-notification',
     ...(origin.subkind !== undefined && { subkind: origin.subkind }),
     ...(origin.fireReason !== undefined && { fireReason: origin.fireReason }),
     ...(origin.producer !== undefined && { producer: origin.producer }),
+    ...(runId !== undefined && { runId }),
+    ...(origin.taskKind === 'mcp-task' && { taskKind: origin.taskKind }),
   };
 }
 
@@ -681,6 +760,7 @@ function isShownMetaOrigin(origin: Origin | undefined): boolean {
     kind === 'observer' ||
     kind === 'observer-activity' ||
     kind === 'slack-ping' ||
+    kind === 'voice-call' ||
     kind === 'peer'
   );
 }
@@ -725,9 +805,17 @@ function queuedCommandToUser(
   if (uuid !== entry.uuid && seenUuids.has(uuid)) return entry;
   seenUuids.add(uuid);
 
-  const origin =
+  // Official `AU`: a task notification's `runId` may sit on the attachment
+  const baseOrigin =
     normalizeOrigin(rawOrigin) ??
     (att.commandMode === 'task-notification' ? { kind: 'task-notification' } : undefined);
+  const attRunId = validRunId(att.runId);
+  const origin =
+    attRunId !== undefined &&
+    baseOrigin?.kind === 'task-notification' &&
+    baseOrigin.runId === undefined
+      ? { ...baseOrigin, runId: attRunId }
+      : baseOrigin;
 
   return {
     type: 'user',
@@ -742,6 +830,234 @@ function queuedCommandToUser(
     isSidechain: entry.isSidechain,
     teamName: entry.teamName,
   };
+}
+
+// ============================================================================
+// Host-run tool calls (v0.3.323+)
+// ============================================================================
+
+/** An assistant row with tool calls the host ran itself (official `Zl`). */
+function isHostRunAssistant(entry: TranscriptEntry | undefined): boolean {
+  return (
+    entry?.type === 'assistant' &&
+    (Array.isArray(entry.hostHiddenToolUseIds) || typeof entry.ranByToolUseId === 'string')
+  );
+}
+
+function isBlock(v: unknown, type: string): v is Record<string, unknown> {
+  return isPlainObject(v) && v.type === type;
+}
+
+function contentBlocks(message: Record<string, unknown>): unknown[] {
+  return Array.isArray(message.content) ? message.content : [];
+}
+
+/**
+ * After each host-run assistant row, keep the virtual rows the host wrote
+ * under it, off the chain (official `uh`).
+ */
+export function withHostVirtualRows(
+  chain: TranscriptEntry[],
+  entries: TranscriptEntry[]
+): TranscriptEntry[] {
+  if (!chain.some(isHostRunAssistant)) return chain;
+  const taken = new Set(chain.map((e) => e.uuid));
+  const chainParents = new Set(chain.map((e) => e.parentUuid));
+  const childOf = new Map<string | undefined, TranscriptEntry>();
+  for (const e of entries) if (!taken.has(e.uuid)) childOf.set(e.parentUuid, e);
+  const out: TranscriptEntry[] = [];
+  for (const entry of chain) {
+    out.push(entry);
+    let next = childOf.get(entry.uuid);
+    if (entry.isVirtual === true || next === undefined) continue;
+    if (isHostRunAssistant(entry) && next.type === 'user') {
+      taken.add(next.uuid);
+      next = childOf.get(next.uuid);
+    } else if (
+      next.type === 'attachment' &&
+      (entry.type !== 'user' || chainParents.has(entry.uuid))
+    ) {
+      continue;
+    }
+    while (next !== undefined && !taken.has(next.uuid)) {
+      taken.add(next.uuid);
+      if (
+        next.isVirtual === true &&
+        (isHostRunAssistant(next) || (next.type === 'user' && isHostRunAssistant(out.at(-1))))
+      ) {
+        out.push(next);
+      } else if (next.type !== 'attachment') {
+        break;
+      }
+      next = childOf.get(next.uuid);
+    }
+  }
+  return out;
+}
+
+/**
+ * Insert, after each assistant row that hid host-run calls, the calls and
+ * results the host recorded as `host-row`s (official `ph`).
+ */
+export function withHostRows(
+  chain: TranscriptEntry[],
+  entries: TranscriptEntry[],
+  hostRows: HostRow[]
+): TranscriptEntry[] {
+  if (hostRows.length === 0) return chain;
+  const known = new Set(entries.map((e) => e.uuid));
+  const withheld = new Set<unknown>();
+  const results = new Map<unknown, HostRow>();
+  const calls = new Map<unknown, HostRow[]>();
+  for (const row of hostRows) {
+    if (row.withheld === true) withheld.add(row.ranByToolUseId);
+    else if (typeof row.rowUuid !== 'string' || known.has(row.rowUuid)) continue;
+    else if (isBlock(row.block, 'tool_result')) results.set(row.block.tool_use_id, row);
+    else if (isBlock(row.block, 'tool_use')) {
+      known.add(row.rowUuid);
+      const list = calls.get(row.ranByToolUseId) ?? [];
+      list.push(row);
+      calls.set(row.ranByToolUseId, list);
+    }
+  }
+  return chain.flatMap((entry) => {
+    const hidden =
+      entry.isVirtual !== true && Array.isArray(entry.hostHiddenToolUseIds)
+        ? entry.hostHiddenToolUseIds
+        : [];
+    const virtual = (row: HostRow, type: 'assistant' | 'user'): TranscriptEntry => ({
+      type,
+      uuid: row.rowUuid as string,
+      parentUuid: null as unknown as undefined,
+      sessionId: entry.sessionId,
+      timestamp: typeof row.timestamp === 'string' ? row.timestamp : undefined,
+      isVirtual: true,
+      ranByToolUseId: row.ranByToolUseId,
+      message: { role: type, content: [row.block] },
+    });
+    const inserted = hidden.flatMap((id) => {
+      const rows = withheld.has(id) ? [] : (calls.get(id) ?? []);
+      calls.delete(id);
+      return rows.flatMap((call) => {
+        const result = results.get((call.block as Record<string, unknown>).id);
+        return result === undefined
+          ? [virtual(call, 'assistant')]
+          : [virtual(call, 'assistant'), virtual(result, 'user')];
+      });
+    });
+    return [entry, ...inserted];
+  });
+}
+
+/** The host's own content for `block`, when it matches it one-to-one (official `I$`). */
+function hostContentFor(
+  entry: TranscriptEntry,
+  block: Record<string, unknown>,
+  key: string
+): unknown[] | undefined {
+  const hostContent = Array.isArray(entry.hostContent) ? entry.hostContent : [];
+  const same = hostContent.filter((b) => isBlock(b, String(block.type)));
+  return same.length === 1 && same[0]?.[key] === block[key] && same[0]?.name === block.name
+    ? hostContent
+    : undefined;
+}
+
+/**
+ * Show host-run calls as the host ran them: drop the hidden tool_use blocks
+ * and their results from Claude's rows, and show the virtual rows with the
+ * host's content (official `fh`).
+ */
+export function presentHostRunCalls(messages: TranscriptEntry[]): TranscriptEntry[] {
+  const hiddenIn = new Map<unknown, Record<string, unknown>>();
+  const pendingCall = new Map<unknown, TranscriptEntry>();
+  const virtualCalls = new Set<unknown>();
+  if (!messages.some(isHostRunAssistant)) return [...messages];
+  const seenIds = new Set<unknown>();
+  const repeatedIds = new Set<unknown>();
+  for (const { type, message } of messages) {
+    if (type === 'assistant' && isPlainObject(message)) {
+      for (const b of contentBlocks(message)) {
+        if (isBlock(b, 'tool_use')) (seenIds.has(b.id) ? repeatedIds : seenIds).add(b.id);
+      }
+    }
+  }
+  return messages.flatMap((entry) => {
+    const { message } = entry;
+    if (!isPlainObject(message)) return [entry];
+    const blocks = contentBlocks(message);
+    if (isHostRunAssistant(entry)) {
+      const hidden = Array.isArray(entry.hostHiddenToolUseIds) ? entry.hostHiddenToolUseIds : [];
+      const kept = blocks.filter((b) => {
+        const hide =
+          isBlock(b, 'tool_use') &&
+          typeof b.id === 'string' &&
+          hidden.includes(b.id) &&
+          !repeatedIds.has(b.id);
+        if (hide) hiddenIn.set((b as Record<string, unknown>).id, message);
+        return !hide;
+      });
+      const [first] = blocks;
+      if (kept.length < blocks.length) {
+        const [hostFirst] = Array.isArray(entry.hostContent) ? entry.hostContent : [];
+        if (
+          blocks.length === 1 &&
+          isBlock(first, 'tool_use') &&
+          isBlock(hostFirst, 'tool_use') &&
+          hostFirst.id === first.id
+        ) {
+          pendingCall.set(first.id, { ...entry, message: { ...message, content: [hostFirst] } });
+        }
+        return kept.length === 0 ? [] : [{ ...entry, message: { ...message, content: kept } }];
+      }
+      if (
+        typeof entry.ranByToolUseId !== 'string' ||
+        entry.isVirtual !== true ||
+        blocks.length !== 1 ||
+        !isBlock(first, 'tool_use')
+      )
+        return [entry];
+      virtualCalls.add(first.id);
+      return [
+        {
+          ...entry,
+          message: {
+            ...(hiddenIn.get(entry.ranByToolUseId) ?? message),
+            content: hostContentFor(entry, first, 'id') ?? blocks,
+          },
+        },
+      ];
+    }
+    if (entry.type !== 'user') return [entry];
+    const results = blocks.filter((b) => isBlock(b, 'tool_result')) as Record<string, unknown>[];
+    const only = results.length === 1 ? results[0] : undefined;
+    const call = pendingCall.get(only?.tool_use_id);
+    const hostContent =
+      only !== undefined &&
+      (call !== undefined
+        ? only.is_error === true
+        : entry.isVirtual === true && virtualCalls.has(only.tool_use_id))
+        ? hostContentFor(entry, only, 'tool_use_id')
+        : undefined;
+    if (hostContent !== undefined) {
+      const shown = { ...entry, message: { ...message, content: hostContent } };
+      pendingCall.delete(only?.tool_use_id);
+      return call === undefined ? [shown] : [call, shown];
+    }
+    const dropped = new Set(results.filter((r) => hiddenIn.has(r.tool_use_id)));
+    if (dropped.size > 0) {
+      return dropped.size === results.length
+        ? []
+        : [
+            {
+              ...entry,
+              toolDenialKind: undefined,
+              toolDenialUnanswered: undefined,
+              message: { ...message, content: blocks.filter((b) => !dropped.has(b as never)) },
+            },
+          ];
+    }
+    return [entry];
+  });
 }
 
 /**
@@ -783,10 +1099,80 @@ export function isConversationMessage(
 ): boolean {
   const isMessage = entry.type === 'user' || entry.type === 'assistant';
   if (!isMessage && !(entry.type === 'system' && includeSystemMessages)) return false;
+  if (closesQuietTurn(entry)) return false;
   if (entry.isMeta && !isShownMetaOrigin(entry.origin)) return false;
   if (entry.isSidechain) return false;
   if (entry.teamName) return false;
   return true;
+}
+
+const NO_RESPONSE_REQUESTED = 'No response requested.';
+
+/**
+ * The CLI's empty / "No response requested." reply that only closes a turn
+ * nobody waits on (official `L$`, v0.3.323+). Not a conversation message.
+ */
+function closesQuietTurn(entry: TranscriptEntry): boolean {
+  const message = entry.message;
+  if (
+    entry.type !== 'assistant' ||
+    entry.closesQuietTurn !== true ||
+    !isPlainObject(message) ||
+    !Array.isArray(message.content)
+  )
+    return false;
+  const content = message.content;
+  const text =
+    content.length === 1 && content[0]?.type === 'text' ? (content[0].text as unknown) : undefined;
+  return text === '' || text === NO_RESPONSE_REQUESTED;
+}
+
+/** Tool-denial kinds `tool_result_meta` reports (official `f0`). */
+const TOOL_DENIAL_KINDS = [
+  'user-rejected',
+  'permission-rule',
+  'automode-blocked',
+  'automode-unavailable',
+  'automode-parsing-error',
+  'interrupted',
+  'cancelled',
+];
+/** `toolCallEnded` values `tool_result_meta` reports (official `m0`). */
+const TOOL_CALL_ENDINGS = ['not_started'];
+
+/**
+ * `tool_result_meta` of a tool-result message: why the call didn't run, how
+ * it ended, and whether a mod rewrote the result (v0.3.332).
+ */
+function toolResultMeta(entry: TranscriptEntry): Record<string, unknown>[] {
+  const kind = TOOL_DENIAL_KINDS.find((k) => k === entry.toolDenialKind);
+  const ended = TOOL_CALL_ENDINGS.find((k) => k === entry.toolCallEnded);
+  const message = entry.message;
+  const content =
+    typeof message === 'object' && message !== null && 'content' in message
+      ? (message as { content?: unknown }).content
+      : undefined;
+  const ids = (Array.isArray(content) ? content : []).flatMap((b) =>
+    typeof b === 'object' && b !== null && 'type' in b && b.type === 'tool_result'
+      ? ['tool_use_id' in b ? (b.tool_use_id as unknown) : undefined]
+      : []
+  );
+  const nonExecution = ids.length === 1 ? kind : undefined;
+  const callEnded = ids.length === 1 ? ended : undefined;
+  const rewritten = Boolean(entry.toolResultRewritten);
+  if (nonExecution === undefined && callEnded === undefined && !rewritten) return [];
+  return ids.flatMap((id) =>
+    typeof id === 'string'
+      ? [
+          {
+            id,
+            ...(nonExecution !== undefined && { non_execution_kind: nonExecution }),
+            ...(callEnded !== undefined && { call_ended: callEnded }),
+            ...(rewritten && { rewritten_by_plugin: true }),
+          },
+        ]
+      : []
+  );
 }
 
 /**
@@ -798,6 +1184,7 @@ export function toSessionMessage(
   parentAgentId?: string
 ): SessionMessage {
   const origin = entry.origin != null ? normalizeOrigin(entry.origin) : undefined;
+  const meta = toolResultMeta(entry);
   return {
     type: entry.type as 'user' | 'assistant',
     uuid: entry.uuid,
@@ -810,6 +1197,7 @@ export function toSessionMessage(
     ...(entry.toolDenialUnanswered === 'stream-closed' && {
       toolDenialUnanswered: entry.toolDenialUnanswered,
     }),
+    ...(meta.length > 0 && { tool_result_meta: meta }),
     ...(entry.isCompactSummary === true && { isCompactSummary: true }),
     ...((entry.isMeta === true ||
       entry.isCompactSummary === true ||

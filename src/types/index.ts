@@ -148,6 +148,8 @@ export type {
   PreCompactHookInput,
   PreModelSwitchHookInput,
   PreModelSwitchHookSpecificOutput,
+  PreSkillShellCommandHookInput,
+  PreSkillShellCommandHookSpecificOutput,
   PreToolUseHookInput,
   PreToolUseHookSpecificOutput,
   SessionCronSummary,
@@ -234,6 +236,7 @@ export type {
 
 export type {
   ConfigScope,
+  DeniedModelsMatch,
   PolicySettingsOrigin,
   ProvenanceEntry,
   ResolvedSettingSource,
@@ -306,6 +309,7 @@ export type {
   SDKControlReloadOutputStylesResponse,
   SDKControlReloadPluginsResponse,
   SDKControlReloadSkillsResponse,
+  SDKControlSetPermissionModeResponse,
   SDKPermissionDenial,
   SDKPermissionRuleDescription,
   SDKPermissionRuleEntry,

@@ -115,6 +115,47 @@ describe('CLI arguments compatibility', () => {
   );
 
   test.concurrent(
+    'BUN_ENABLE_CRASH_REPORTING env matches official SDK (v0.3.332)',
+    async () => {
+      const withEnv = (extra: Record<string, string>) => {
+        const env: Record<string, string | undefined> = { ...process.env, ...extra };
+        if (!('BUN_ENABLE_CRASH_REPORTING' in extra)) delete env.BUN_ENABLE_CRASH_REPORTING;
+        if (!('BUN_CRASH_REPORT_URL' in extra)) delete env.BUN_CRASH_REPORT_URL;
+        return { env };
+      };
+      const cases = [
+        withEnv({}),
+        withEnv({ BUN_ENABLE_CRASH_REPORTING: '' }),
+        withEnv({ BUN_ENABLE_CRASH_REPORTING: '1' }),
+        withEnv({ BUN_CRASH_REPORT_URL: 'https://example.com/crash' }),
+      ];
+      const results = await Promise.all(
+        cases.flatMap((opts) => [
+          capture(openQuery, 'test', opts),
+          capture(officialQuery, 'test', opts),
+        ])
+      );
+      const crashEnv = (env: Record<string, string> | undefined) => ({
+        enable: env?.BUN_ENABLE_CRASH_REPORTING,
+        url: env?.BUN_CRASH_REPORT_URL,
+      });
+      const pairs = cases.map((_, i) => [
+        crashEnv(results[2 * i]?.env),
+        crashEnv(results[2 * i + 1]?.env),
+      ]);
+      for (const [open, official] of pairs) expect(open).toEqual(official);
+      // Off unless the caller configured crash reporting
+      expect(pairs.map(([open]) => open)).toEqual([
+        { enable: '0', url: undefined },
+        { enable: '0', url: undefined },
+        { enable: '1', url: undefined },
+        { enable: undefined, url: 'https://example.com/crash' },
+      ]);
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
     'permissionMode option args match official SDK',
     async () => {
       const [open, official] = await Promise.all([
@@ -905,6 +946,60 @@ describe('CLI arguments compatibility', () => {
         mcpServers: { remote: { type: 'http', url: 'https://example.com/mcp' } },
         managedSettings: { model: 'claude-sonnet-4-5' },
       },
+    ],
+    // v0.3.326: mcpServersDelivery
+    [
+      "mcpServersDelivery 'argv' keeps --mcp-config",
+      {
+        mcpServers: { remote: { type: 'http', url: 'https://example.com/mcp' } },
+        mcpServersDelivery: 'argv',
+      },
+    ],
+    [
+      "mcpServersDelivery 'initialize' with --sdk-url keeps --mcp-config",
+      {
+        mcpServers: { remote: { type: 'http', url: 'https://example.com/mcp' } },
+        mcpServersDelivery: 'initialize',
+        extraArgs: { 'sdk-url': 'wss://example.com/session' },
+      },
+    ],
+    [
+      "mcpServersDelivery 'initialize' with only in-process servers changes nothing",
+      { mcpServers: {}, mcpServersDelivery: 'initialize' },
+    ],
+    [
+      "mcpServersDelivery 'initialize' rejected by a CLI that predates it",
+      {
+        mcpServers: { remote: { type: 'http', url: 'https://example.com/mcp' } },
+        mcpServersDelivery: 'initialize',
+      },
+    ],
+    ['mcpServersDelivery with an unknown value rejected', { mcpServersDelivery: 'stdin' }],
+    // v0.3.330
+    [
+      'settings JSON that does not parse + sandbox rejected',
+      { settings: '{not json}', sandbox: { enabled: true } },
+    ],
+    // v0.3.327: options the initialize request can't carry
+    [
+      'hook event that is not an array rejected',
+      { hooks: { PreToolUse: new Set([{ hooks: [async () => ({})] }]) } },
+    ],
+    [
+      "hook matcher whose hooks aren't an array rejected",
+      { hooks: { PostToolUse: [{ matcher: 'Bash', hooks: async () => ({}) }] } },
+    ],
+    [
+      'agent with a BigInt field rejected',
+      { agents: { a: { description: 'd', prompt: 'p', maxTurns: 1n } } },
+    ],
+    [
+      'circular outputFormat schema rejected',
+      (() => {
+        const schema: Record<string, unknown> = { type: 'object' };
+        schema.self = schema;
+        return { outputFormat: { type: 'json_schema', schema } };
+      })(),
     ],
   ];
 

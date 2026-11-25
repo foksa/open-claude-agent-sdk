@@ -12,6 +12,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -368,6 +369,185 @@ describe('renameSession / tagSession / deleteSession parity', () => {
       await sdk.deleteSession(id, { dir: project });
       expect(existsSync(file)).toBe(false);
       expect(existsSync(join(projectDir(project), id))).toBe(false);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// archiveSession / unarchiveSession (v0.3.325)
+// ---------------------------------------------------------------------------
+
+describe('archiveSession / unarchiveSession parity (v0.3.325)', () => {
+  const markOf = (project: string, id: string) =>
+    readFileSync(join(projectDir(project), id, 'archived.json'), 'utf8').replace(
+      /"at":"[^"]+"/,
+      '"at":"<now>"'
+    );
+
+  async function infoBoth(project: string, id: string) {
+    const [ours, theirs] = [
+      await open.listSessions({ dir: project }),
+      await official.listSessions({ dir: project }),
+    ];
+    expect(ours).toEqual(theirs);
+    const [oi, ti] = [
+      await open.getSessionInfo(id, { dir: project }),
+      await official.getSessionInfo(id, { dir: project }),
+    ];
+    expect(oi).toEqual(ti);
+    return ti?.archived;
+  }
+
+  for (const by of ['open', 'official'] as const) {
+    test(`archive, prompt, unarchive written by ${by} read the same through both`, async () => {
+      const sdk = by === 'open' ? open : official;
+      const project = makeProject(`archive-${by}-${uuid()}`);
+      const id = uuid();
+      const file = writeSession(project, id, conversation(id, project, 'Archive me'));
+      expect(await infoBoth(project, id)).toBeUndefined();
+
+      for (const dir of [project, undefined]) {
+        await sdk.archiveSession(id, dir ? { dir } : undefined);
+        expect(markOf(project, id)).toBe('{"archived":true,"at":"<now>","by":"sdk"}');
+        expect(await infoBoth(project, id)).toBe(true);
+      }
+
+      // A prompt sent after archiving unarchives it; a tool result or meta row doesn't
+      const later = '2099-01-01T00:00:00.000Z';
+      const original = readFileSync(file, 'utf8');
+      for (const [line, archived] of [
+        [
+          {
+            type: 'user',
+            uuid: uuid(),
+            parentUuid: null,
+            sessionId: id,
+            timestamp: later,
+            message: {
+              role: 'user',
+              content: [{ type: 'tool_result', tool_use_id: 't', content: 'x' }],
+            },
+          },
+          true,
+        ],
+        [
+          {
+            type: 'user',
+            uuid: uuid(),
+            parentUuid: null,
+            sessionId: id,
+            timestamp: later,
+            isMeta: true,
+            message: { role: 'user', content: 'meta' },
+          },
+          true,
+        ],
+        [
+          {
+            type: 'user',
+            uuid: uuid(),
+            parentUuid: null,
+            sessionId: id,
+            timestamp: later,
+            origin: { kind: 'peer' },
+            message: { role: 'user', content: 'peer' },
+          },
+          true,
+        ],
+        [
+          {
+            type: 'user',
+            uuid: uuid(),
+            parentUuid: null,
+            sessionId: id,
+            timestamp: later,
+            message: { role: 'user', content: '<command-message>x</command-message>' },
+          },
+          false,
+        ],
+        [
+          {
+            type: 'attachment',
+            uuid: uuid(),
+            parentUuid: null,
+            sessionId: id,
+            timestamp: later,
+            attachment: { type: 'queued_command', prompt: 'queued' },
+          },
+          false,
+        ],
+        [
+          {
+            type: 'user',
+            uuid: uuid(),
+            parentUuid: null,
+            sessionId: id,
+            timestamp: later,
+            message: { role: 'user', content: 'typed later' },
+          },
+          false,
+        ],
+        [
+          {
+            type: 'user',
+            uuid: uuid(),
+            parentUuid: null,
+            sessionId: id,
+            timestamp: '2001-01-01T00:00:00.000Z',
+            message: { role: 'user', content: 'typed before' },
+          },
+          true,
+        ],
+      ] as const) {
+        writeFileSync(file, `${original}${JSON.stringify(line)}\n`);
+        expect({ line, archived: await infoBoth(project, id) }).toEqual({ line, archived });
+      }
+      writeFileSync(file, original);
+
+      await sdk.unarchiveSession(id, { dir: project });
+      expect(markOf(project, id)).toBe('{"archived":false,"at":"<now>","by":"sdk"}');
+      expect(await infoBoth(project, id)).toBe(false);
+    });
+  }
+
+  test('a hand-written or malformed mark reads the same', async () => {
+    const project = makeProject(`archive-marks-${uuid()}`);
+    const id = uuid();
+    writeSession(project, id, conversation(id, project, 'Marks'));
+    const markDir = join(projectDir(project), id);
+    mkdirSync(markDir, { recursive: true });
+    for (const mark of [
+      '{"archived":true,"at":"2030-01-01T00:00:00+02:00"}',
+      '{"archived":true,"at":"2030-01-01T00:00:00"}',
+      '{"archived":true,"at":"2030-02-30T00:00:00Z"}',
+      '{"archived":"yes","at":"2030-01-01T00:00:00Z"}',
+      '{"archived":true}',
+      `{"archived":true,"at":"2030-01-01T00:00:00Z","pad":"${'x'.repeat(5000)}"}`,
+      'not json',
+    ]) {
+      writeFileSync(join(markDir, 'archived.json'), mark);
+      const theirs = await official.getSessionInfo(id, { dir: project });
+      expect({ mark, ours: await open.getSessionInfo(id, { dir: project }) }).toEqual({
+        mark,
+        ours: theirs,
+      });
+    }
+  });
+
+  test('errors match official', async () => {
+    const project = makeProject(`archive-errors-${uuid()}`);
+    const missing = uuid();
+    const store = {} as official.SessionStore;
+    const cases: [string, (sdk: typeof open | typeof official) => Promise<unknown>][] = [
+      ['invalid', (sdk) => sdk.archiveSession('nope')],
+      ['missing dir', (sdk) => sdk.archiveSession(missing, { dir: project })],
+      ['missing all', (sdk) => sdk.unarchiveSession(missing)],
+      ['store', (sdk) => sdk.archiveSession(missing, { sessionStore: store })],
+      ['store + invalid', (sdk) => sdk.unarchiveSession('nope', { sessionStore: store })],
+    ];
+    for (const [name, run] of cases) {
+      const [ours, theirs] = [await settle(() => run(open)), await settle(() => run(official))];
+      expect({ name, ours }).toEqual({ name, ours: theirs });
     }
   });
 });
@@ -880,6 +1060,309 @@ describe('session reader parity (v0.3.284–v0.3.287)', () => {
     expect(
       JSON.stringify(await official.getSubagentMessages(id, 'r1', { dir: project }))
     ).toContain('message sent to the agent');
+  });
+
+  // -------------------------------------------------------------------------
+  // v0.3.323–v0.3.332
+  // -------------------------------------------------------------------------
+
+  test('v0.3.323: a prompt queued right after a compaction summary is returned', async () => {
+    const { project, id, at, prompt, reply, queued } = session('queued-after-summary');
+    const [u1, a1, b, sum, q] = Array.from({ length: 5 }, uuid);
+    writeSession(project, id, [
+      prompt(u1, null, 'Kept prompt'),
+      reply(a1, u1, 'kept reply'),
+      {
+        ...at(),
+        type: 'system',
+        subtype: 'compact_boundary',
+        uuid: b,
+        parentUuid: null,
+        logicalParentUuid: a1,
+        compactMetadata: { preservedSegment: { headUuid: u1, anchorUuid: sum, tailUuid: a1 } },
+      },
+      prompt(sum, b, 'Summary', { isCompactSummary: true }),
+      queued(q, sum, { prompt: 'queued after the summary' }),
+    ]);
+    const theirs = JSON.stringify(await expectMessagesMatch(project, id));
+    expect(theirs).toContain('queued after the summary');
+  });
+
+  function compactedFork(name: string) {
+    const ids = Array.from({ length: 6 }, uuid);
+    const [u1, a1, b, sum, u2, a2] = ids;
+    const fixture = forkFixture(name, ({ at, prompt, reply }) => [
+      prompt(u1, null, 'Old'),
+      reply(a1, u1, 'old reply'),
+      {
+        ...at(),
+        type: 'system',
+        subtype: 'compact_boundary',
+        uuid: b,
+        parentUuid: null,
+        logicalParentUuid: a1,
+        compactMetadata: {
+          trigger: 'auto',
+          durationMs: 1200,
+          postTokens: 900,
+          runningTurnSends: [u2],
+          preservedMessages: { uuids: [u1, a1], anchorUuid: sum, allUuids: [u1, a1] },
+        },
+      },
+      prompt(sum, b, 'Summary', { isCompactSummary: true }),
+      prompt(u2, a1, 'After compaction'),
+      reply(a2, u2, 'new reply'),
+    ]);
+    return { fixture, b, sum };
+  }
+
+  test('v0.3.323: forkSession at a compaction summary leaves out the messages kept after it', async () => {
+    const { fixture, sum } = compactedFork('fork-at-summary');
+    const history = JSON.stringify(await expectForkMatches(fixture, { upToMessageId: sum }));
+    expect(history).toContain('Summary');
+    expect(history).not.toContain('old reply');
+  });
+
+  test('v0.3.323: forkSession at a compaction boundary keeps the conversation before it', async () => {
+    const { fixture, b } = compactedFork('fork-at-boundary');
+    const history = JSON.stringify(await expectForkMatches(fixture, { upToMessageId: b }));
+    expect(history).toContain('old reply');
+  });
+
+  test('v0.3.323: forkSession drops runningTurnSends and carries the request session', async () => {
+    const { fixture } = compactedFork('fork-running-sends');
+    await expectForkMatches(fixture);
+    const forks = readdirSync(projectDir(fixture.project)).filter(
+      (n) => n !== `${fixture.id}.jsonl`
+    );
+    for (const name of forks) {
+      const text = readFileSync(join(projectDir(fixture.project), name), 'utf8');
+      expect(text).not.toContain('runningTurnSends');
+      expect(text).toContain(`"requestSessionId":"${fixture.id}"`);
+    }
+  });
+
+  test('v0.3.323+: forkSession carries data flow, lineage, owner and organization rows', async () => {
+    const [u1, a1, u2, a2, b] = Array.from({ length: 5 }, uuid);
+    const fixture = forkFixture('fork-data-flow', ({ id, at, prompt, reply }) => {
+      const other = uuid();
+      return [
+        {
+          type: 'hybrid-organization',
+          sessionId: id,
+          organizationUuid: 'ABCDEF00-0000-4000-8000-000000000001',
+        },
+        { type: 'hybrid-organization', sessionId: id, organizationUuid: 'not-a-uuid' },
+        {
+          type: 'session-owner',
+          sessionId: id,
+          accountUuid: 'acct-1',
+          organizationUuid: 'org-1',
+          restricted: ['ldr', 'x'],
+        },
+        { type: 'session-owner', sessionId: id, accountUuid: 'acct-2', restricted: ['ldr'] },
+        { ...prompt(u1, null, 'Start'), dataFlowOn: true },
+        { ...reply(a1, u1, 'ok'), forkedFrom: { sessionId: other, messageUuid: uuid() } },
+        {
+          type: 'data-flow-records',
+          v: 1,
+          sessionId: id,
+          records: [
+            { tool_name: 'Read', tool_use_id: 'toolu_1', source: { type: 'file', id: null } },
+            {
+              tool_name: 'Read',
+              tool_use_id: 'toolu_1',
+              source: { type: 'file', id: null },
+              no_message: true,
+            },
+            { tool_name: 'WebFetch', event_id: 'event_1', web: [[0], [1, 0, 2]] },
+            {
+              tool_name: 'mcp__x__y',
+              tool_use_id: 'toolu_2',
+              inner_call_index: 3,
+              server: {
+                type: 'claude_ai_connector',
+                id: 'mcpsrv_01ABCDEFGHJKLMNPQRSTUVWX',
+                directory_id: null,
+              },
+              plugin_id: 'bad plugin',
+              touched: { kind: 'memory', id: 'm1', action: 'write', to: 'm2' },
+            },
+            { response_id: 'msg_01abc', mark_sent_by: id },
+            { response_id: 'msg_02def', listed: ['msg_01abc'] },
+            { tool_name: 'Bad' },
+            'garbage',
+          ],
+        },
+        { type: 'data-flow-incomplete', sessionId: id, codes: [7, 300, 'x'] },
+        {
+          type: 'data-flow-records',
+          v: 1,
+          sessionId: other,
+          records: [{ tool_name: 'Grep', tool_use_id: 'toolu_9' }],
+        },
+        { type: 'data-flow-records', v: 2, sessionId: id, records: [] },
+        {
+          type: 'derived-from',
+          v: 1,
+          sessionId: id,
+          sessions: [
+            { type: 'claude_code_session', id: other, via: 'clear', started: '2020-01-01' },
+            { type: 'unknown', id: null, via: 'import' },
+            { type: 'nope', id: 'x', via: 'fork' },
+          ],
+        },
+        { type: 'tools-used', sessionId: id, tools: ['Read', '', 3, 'Grep'] },
+        {
+          ...at(),
+          type: 'system',
+          subtype: 'compact_boundary',
+          uuid: b,
+          parentUuid: a1,
+          compactMetadata: { trigger: 'auto' },
+        },
+        prompt(u2, b, 'Continue'),
+        reply(a2, u2, 'done'),
+      ];
+    });
+    await expectForkMatches(fixture);
+    await expectForkMatches(fixture, { upToMessageId: a1 });
+  });
+
+  test('v0.3.323+: reader shows host-run tool calls, voice-call turns and drops quiet-turn replies', async () => {
+    const { project, id, base, at, prompt, reply } = session('host-rows');
+    const [u1, a1, r1, a2, r2, v1, a3, a4] = Array.from({ length: 8 }, uuid);
+    const [h1, h2] = [uuid(), uuid()];
+    writeSession(project, id, [
+      prompt(u1, null, 'Start'),
+      {
+        ...at(),
+        type: 'assistant',
+        uuid: a1,
+        parentUuid: u1,
+        hostHiddenToolUseIds: ['toolu_A'],
+        message: {
+          id: 'msg_a1',
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'running' },
+            { type: 'tool_use', id: 'toolu_A', name: 'Workflow', input: {} },
+          ],
+        },
+      },
+      {
+        ...base,
+        type: 'host-row',
+        ranByToolUseId: 'toolu_A',
+        rowUuid: h1,
+        timestamp: '2020-01-01T00:00:30.000Z',
+        block: { type: 'tool_use', id: 'toolu_H', name: 'Bash', input: { command: 'ls' } },
+      },
+      {
+        ...base,
+        type: 'host-row',
+        ranByToolUseId: 'toolu_A',
+        rowUuid: h2,
+        block: { type: 'tool_result', tool_use_id: 'toolu_H', content: 'files' },
+      },
+      prompt(r1, a1, [{ type: 'tool_result', tool_use_id: 'toolu_A', content: 'done' }]),
+      {
+        ...at(),
+        type: 'assistant',
+        uuid: a2,
+        parentUuid: r1,
+        message: {
+          id: 'msg_a2',
+          role: 'assistant',
+          content: [{ type: 'tool_use', id: 'toolu_B', name: 'Edit', input: {} }],
+        },
+      },
+      prompt(r2, a2, [{ type: 'tool_result', tool_use_id: 'toolu_B', content: 'no' }], {
+        toolDenialKind: 'user-rejected',
+        toolResultRewritten: true,
+      }),
+      {
+        ...at(),
+        type: 'system',
+        subtype: 'voice_call_talk',
+        uuid: v1,
+        parentUuid: r2,
+        level: 'info',
+        content: 'spoken words',
+        origin: { kind: 'voice-call' },
+      },
+      {
+        ...at(),
+        type: 'assistant',
+        uuid: a3,
+        parentUuid: v1,
+        closesQuietTurn: true,
+        message: {
+          id: 'msg_a3',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'No response requested.' }],
+        },
+      },
+      reply(a4, a3, 'fin'),
+    ]);
+    const theirs = JSON.stringify(await expectMessagesMatch(project, id));
+    expect(theirs).toContain('toolu_H');
+    expect(theirs).toContain('spoken words');
+    expect(theirs).toContain('"rewritten_by_plugin":true');
+    expect(theirs).not.toContain('No response requested.');
+  });
+
+  test('task notification origins keep a valid runId and mcp-task kind', async () => {
+    const { project, id, prompt, reply, queued } = session('run-id');
+    const [u1, a1, q1, a2, q2, a3] = Array.from({ length: 6 }, uuid);
+    writeSession(project, id, [
+      prompt(u1, null, 'Start'),
+      reply(a1, u1, 'ok'),
+      queued(q1, a1, {
+        prompt: 'task done',
+        origin: { kind: 'task-notification', runId: 'run-1', taskKind: 'mcp-task' },
+      }),
+      reply(a2, q1, 'noted'),
+      queued(q2, a2, { prompt: 'other task', commandMode: 'task-notification', runId: 'run:2' }),
+      reply(a3, q2, 'noted again'),
+    ]);
+    const theirs = JSON.stringify(await expectMessagesMatch(project, id));
+    expect(theirs).toContain('"runId":"run-1"');
+    expect(theirs).toContain('"runId":"run:2"');
+  });
+
+  test('v0.3.323: titles, tag and last prompt come from entries of their own type', async () => {
+    const project = makeProject(`typed-fields-${uuid()}`);
+    const id = uuid();
+    writeSession(project, id, [
+      ...conversation(id, project, 'Typed fields'),
+      { type: 'custom-title', customTitle: 'Real title', sessionId: id },
+      { type: 'summary', customTitle: 'Not a title', tag: 'not-a-tag', sessionId: id },
+      { type: 'tag', tag: 'real-tag', sessionId: id },
+      { type: 'other', aiTitle: 'Stray', sessionId: id },
+      { type: 'last-prompt', lastPrompt: 'Last prompt', sessionId: id },
+      { type: 'x', gitBranch: 'feature', sessionId: id },
+    ]);
+    const id2 = uuid();
+    writeSession(project, id2, [
+      ...conversation(id2, project, 'No title'),
+      { type: 'summary', customTitle: 'Not a title', sessionId: id2 },
+      { type: 'last-prompt', lastPrompt: 'Only prompt', sessionId: id2 },
+    ]);
+    const [ours, theirs] = [
+      await open.listSessions({ dir: project }),
+      await official.listSessions({ dir: project }),
+    ];
+    expect(theirs.find((s) => s.sessionId === id)?.tag).toBe('real-tag');
+    expect(theirs.find((s) => s.sessionId === id2)?.customTitle).toBeUndefined();
+    expect(ours).toEqual(theirs);
+    for (const sid of [id, id2]) {
+      expect(await open.getSessionInfo(sid, { dir: project })).toEqual(
+        await official.getSessionInfo(sid, { dir: project })
+      );
+    }
+    const fixture = { project, id, known: new Set([id]) };
+    await expectForkMatches(fixture);
   });
 });
 

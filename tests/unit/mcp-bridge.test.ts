@@ -265,6 +265,44 @@ describe('in-process MCP manifest capture', () => {
     expect(handler.toolsChangedBeforeInitialize.size).toBe(0);
   });
 
+  // v0.3.329: "Fixed retained memory when an in-process MCP server does not
+  // answer its start-up handshake"
+  test('a server that never answers its handshake keeps no capture request; a late reply is dropped', async () => {
+    const { stream, writes } = capturingStdin();
+    const handler = new ControlProtocolHandler(stream, {});
+    handler.initializeWritten = true;
+    const received: Record<string, unknown>[] = [];
+    let serverTransport: { send: (m: unknown) => Promise<void> } | undefined;
+    // A server that takes requests and never answers them
+    const silent = {
+      async close() {},
+      async connect(transport: {
+        onmessage?: (m: Record<string, unknown>) => void;
+        send: (m: unknown) => Promise<void>;
+      }) {
+        serverTransport = transport;
+        transport.onmessage = (m) => received.push(m);
+      },
+    };
+    connectMcpBridges(
+      { mcpServers: { silent: { type: 'sdk', name: 'silent', instance: silent } as never } },
+      handler
+    );
+    const bridge = handler.getMcpServerBridge('silent');
+
+    expect(await captureSdkMcpManifests(handler, new Promise(() => {}))).toBeUndefined();
+    expect(received.map((m) => m.id)).toEqual(['sdk-manifest-capture:initialize']);
+    // biome-ignore lint/suspicious/noExplicitAny: inspecting a private map
+    expect((bridge as any).pendingRequests.size).toBe(0);
+
+    await serverTransport?.send({
+      jsonrpc: '2.0',
+      id: 'sdk-manifest-capture:initialize',
+      result: { capabilities: {} },
+    });
+    expect(writes).toEqual([]);
+  });
+
   test('CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS turns capture off', () => {
     const saved = process.env.CLAUDE_AGENT_SDK_DISABLE_MCP_MANIFESTS;
     try {

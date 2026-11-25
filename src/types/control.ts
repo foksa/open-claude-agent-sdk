@@ -47,6 +47,7 @@ export const RequestSubtype = {
   MCP_MESSAGE: 'mcp_message',
   REWIND_FILES: 'rewind_files',
   STOP_TASK: 'stop_task',
+  CANCEL_ASYNC_MESSAGE: 'cancel_async_message',
   MCP_SET_SERVERS: 'mcp_set_servers',
   MCP_RECONNECT: 'mcp_reconnect',
   MCP_TOGGLE: 'mcp_toggle',
@@ -120,6 +121,7 @@ export type ControlRequestInner =
   | McpMessageRequest
   | RewindFilesRequest
   | StopTaskRequest
+  | CancelAsyncMessageRequest
   | McpSetServersRequest
   | McpReconnectRequest
   | McpToggleRequest
@@ -212,6 +214,8 @@ export type InitializeRequest = {
   supportedDialogKinds?: string[];
   perTaskStopAffordance?: boolean;
   plugins?: SdkPluginConfig[];
+  /** v0.3.326: process MCP servers, with `mcpServersDelivery: 'initialize'` */
+  mcpServers?: Record<string, unknown>;
 };
 
 export type InterruptRequest = {
@@ -221,6 +225,8 @@ export type InterruptRequest = {
 export type SetPermissionModeRequest = {
   subtype: typeof RequestSubtype.SET_PERMISSION_MODE;
   mode: PermissionMode;
+  /** v0.3.332: runtime-only second argument of `setPermissionMode` (not in `sdk.d.ts`). */
+  answers_bypass_switch_back?: boolean;
 };
 
 export type SetModelRequest = {
@@ -248,6 +254,12 @@ export type RewindFilesRequest = {
   subtype: typeof RequestSubtype.REWIND_FILES;
   user_message_id: string;
   dry_run?: boolean;
+};
+
+/** Withdraw a queued async user message by uuid (runtime-only upstream, not in `sdk.d.ts`). */
+export type CancelAsyncMessageRequest = {
+  subtype: typeof RequestSubtype.CANCEL_ASYNC_MESSAGE;
+  message_uuid: string;
 };
 
 export type StopTaskRequest = {
@@ -299,6 +311,8 @@ export type ReloadPluginsRequest = {
   hold_on_cache_impact?: boolean;
   /** v0.3.301: more plugin folders to load into the running session */
   add_plugins?: SdkPluginConfig[];
+  /** v0.3.325: refuse (error code `reload_plugins_busy`) while the session is busy */
+  refuse_if_busy?: boolean;
 };
 
 export type ReloadSkillsRequest = {

@@ -3,12 +3,18 @@
  * the official SDK so summaries, prompts and titles come out identical.
  */
 
+/** Replace lone surrogates with U+FFFD (official `Zd`). */
+function wellFormed(s: string): string {
+  return Buffer.from(s, 'utf16le').toString('utf16le');
+}
+
+/** v0.3.323+: raw (unparsed) values come back well-formed (official `JU`). */
 function unescapeJson(s: string): string {
-  if (!s.includes('\\')) return s;
+  if (!s.includes('\\')) return wellFormed(s);
   try {
     return JSON.parse(`"${s}"`);
   } catch {
-    return s;
+    return wellFormed(s);
   }
 }
 
@@ -32,11 +38,11 @@ export function firstStringField(text: string, key: string): string | undefined 
 }
 
 /** Value of the last `"key":"..."` occurrence in raw text (no JSON parse). */
-export function lastStringField(text: string, key: string): string | undefined {
-  let result: string | undefined;
+export function lastStringField(text: string, key: string, startAt = 0): string | undefined {
+  let raw: string | undefined;
   let resultAt = -1;
   for (const pattern of [`"${key}":"`, `"${key}": "`]) {
-    let from = 0;
+    let from = startAt;
     while (true) {
       const idx = text.indexOf(pattern, from);
       if (idx < 0) break;
@@ -49,7 +55,7 @@ export function lastStringField(text: string, key: string): string | undefined {
         }
         if (text[i] === '"') {
           if (idx > resultAt) {
-            result = unescapeJson(text.slice(start, i));
+            raw = text.slice(start, i);
             resultAt = idx;
           }
           break;
@@ -59,7 +65,101 @@ export function lastStringField(text: string, key: string): string | undefined {
       from = i + 1;
     }
   }
-  return result;
+  return raw === undefined ? undefined : unescapeJson(raw);
+}
+
+/** Bytes of a tail the `", "key":"` shortcut looks in (official `bke`). */
+const RECENT_FIELD_WINDOW = 8192;
+
+/**
+ * `lastStringField` that first looks for the field as a later key of an entry
+ * near the end, scanning from there (official `ER`, v0.3.323+).
+ */
+export function recentStringField(text: string, key: string): string | undefined {
+  const pattern = `"${key}":"`;
+  const at = text.indexOf(`",${pattern}`, text.length - RECENT_FIELD_WINDOW);
+  return (
+    (at > 0 && text[at - 1] !== '\\' && !text.endsWith(pattern, at + 1)
+      ? lastStringField(text, key, at + 2)
+      : undefined) ?? lastStringField(text, key)
+  );
+}
+
+/** `key` of a parsed line (of `type`); null when the line doesn't parse. */
+function parsedLineField(
+  line: string,
+  key: string,
+  type: string | undefined
+): string | undefined | null {
+  try {
+    const entry = JSON.parse(line);
+    if (
+      typeof entry === 'object' &&
+      entry !== null &&
+      (type === undefined || entry.type === type)
+    ) {
+      const value = entry[key];
+      if (typeof value === 'string') return value;
+    }
+    return undefined;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * String `key` of the last JSONL line (of `type`) that has it, parsing each
+ * candidate line (official `bR`). With `mode`, a line that doesn't parse is
+ * retried from its last `{"type":"<type>"` (a row glued to a torn one);
+ * `'none'` gives up on the first line of that type that still doesn't parse.
+ */
+export function lastLineField(
+  text: string,
+  key: string,
+  type?: string,
+  mode?: 'older' | 'none'
+): string | undefined {
+  const typeNeedles =
+    type === undefined
+      ? undefined
+      : mode === undefined
+        ? [`"type":"${type}"`]
+        : [`"type":"${type}"`, `"type": "${type}"`];
+  const keyNeedle = `"${key}":`;
+  let end = text.length;
+  while (end > 0) {
+    const nl = text.lastIndexOf('\n', end - 1);
+    const line = text.slice(nl + 1, end);
+    end = nl;
+    if (
+      (line.includes(keyNeedle) || mode === 'none') &&
+      (typeNeedles === undefined || typeNeedles.some((n) => line.includes(n)))
+    ) {
+      let value = parsedLineField(line, key, type);
+      if (value === null && mode !== undefined) {
+        const glued = line.lastIndexOf(`{${typeNeedles?.[0]}`);
+        value =
+          glued > 0 && !':,['.includes(line.charAt(glued - 1))
+            ? parsedLineField(line.slice(glued), key, type)
+            : null;
+        if (value === null && mode === 'none') return undefined;
+      }
+      if (typeof value === 'string') return value;
+    }
+    if (nl < 0) break;
+  }
+  return undefined;
+}
+
+const TYPED_FIELD = { 'custom-title': 'customTitle', 'ai-title': 'aiTitle', tag: 'tag' } as const;
+
+/** Field of the last `custom-title` / `ai-title` / `tag` entry (official `Yn`). */
+export function lastTypedField(
+  text: string,
+  type: keyof typeof TYPED_FIELD,
+  mode: 'older' | 'none' = 'older'
+): string | undefined {
+  return lastLineField(text, TYPED_FIELD[type], type, mode);
 }
 
 // ---------------------------------------------------------------------------

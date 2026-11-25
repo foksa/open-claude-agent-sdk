@@ -12,7 +12,18 @@ import type {
   SessionMessage,
 } from '../types/index.ts';
 import { findSessionFile, validateUuid } from './paths.ts';
-import { normalizeChain, paginate, type TranscriptEntry, toSessionMessage } from './transcript.ts';
+import {
+  type HostRow,
+  isHostRow,
+  normalizeChain,
+  paginate,
+  presentHostRunCalls,
+  type TranscriptEntry,
+  toSessionMessage,
+  voiceCallTalkAsMessage,
+  withHostRows,
+  withHostVirtualRows,
+} from './transcript.ts';
 
 const TOOL_USE_ID_RE = /^[A-Za-z0-9_.:-]{1,128}$/;
 const AGENT_ID_RE = /^[\w-]{1,128}$/;
@@ -57,7 +68,8 @@ export async function listSubagents(
 
 const SUBAGENT_TYPES = new Set(['user', 'assistant', 'attachment']);
 
-function parseSubagentTranscript(buf: Buffer): TranscriptEntry[] {
+/** Official `bMe`: v0.3.323+ reads voice-call turns as messages and keeps host rows. */
+function parseSubagentTranscript(buf: Buffer, hostRows: HostRow[]): TranscriptEntry[] {
   const entries: TranscriptEntry[] = [];
   let pos = 0;
   while (pos < buf.length) {
@@ -68,8 +80,15 @@ function parseSubagentTranscript(buf: Buffer): TranscriptEntry[] {
     pos = nl + 1;
     if (start >= nl) continue;
     try {
-      const entry = JSON.parse(buf.toString('utf-8', start, nl));
-      if (SUBAGENT_TYPES.has(entry.type) && typeof entry.uuid === 'string') entries.push(entry);
+      const entry = voiceCallTalkAsMessage(JSON.parse(buf.toString('utf-8', start, nl))) as Record<
+        string,
+        unknown
+      > | null;
+      if (entry && SUBAGENT_TYPES.has(entry.type as string) && typeof entry.uuid === 'string') {
+        entries.push(entry as TranscriptEntry);
+      } else if (isHostRow(entry)) {
+        hostRows.push(entry);
+      }
     } catch {}
   }
   return entries;
@@ -130,8 +149,17 @@ export async function getSubagentMessages(
       ? parentAgentId
       : undefined;
   // keepMeta: messages the subagent read (e.g. one sent to it) show up too (v0.3.285)
-  const messages = normalizeChain(subagentChain(parseSubagentTranscript(buf)), { keepMeta: true })
-    .filter((e) => e.type === 'user' || e.type === 'assistant')
-    .map((e) => toSessionMessage(e, parentToolUseId, parentAgent));
+  const hostRows: HostRow[] = [];
+  const entries = parseSubagentTranscript(buf, hostRows);
+  const chain = withHostRows(
+    withHostVirtualRows(subagentChain(entries), entries),
+    entries,
+    hostRows
+  );
+  const messages = presentHostRunCalls(
+    normalizeChain(chain, { keepMeta: true }).filter(
+      (e) => e.type === 'user' || e.type === 'assistant'
+    )
+  ).map((e) => toSessionMessage(e, parentToolUseId, parentAgent));
   return paginate(messages, options);
 }

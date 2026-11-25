@@ -24,6 +24,8 @@ export type ControlResponsePayload = PromptRedelivery & {
   request_id: string;
   response?: Record<string, unknown>;
   error?: string;
+  /** Machine-readable reason for an error response, e.g. `reload_plugins_busy` */
+  error_code?: unknown;
 };
 export type ControlResponseCallback = (response: ControlResponsePayload) => void;
 

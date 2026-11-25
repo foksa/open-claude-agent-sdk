@@ -342,6 +342,7 @@ describe('ControlProtocolHandler', () => {
     test('errors when the hook callback id is unknown', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {});
+      handler.initializeWritten = true;
 
       const req: ControlRequest = {
         type: 'control_request',
@@ -364,6 +365,7 @@ describe('ControlProtocolHandler', () => {
     test('executes registered hook and returns result', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {});
+      handler.initializeWritten = true;
 
       const hookFn = mock(async (input: Record<string, unknown>) => {
         return { modified: true, original: input };
@@ -398,6 +400,7 @@ describe('ControlProtocolHandler', () => {
     test('sends error when hook throws', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {});
+      handler.initializeWritten = true;
 
       handler.registerCallback('error_hook', async () => {
         throw new Error('Hook failed');
@@ -650,6 +653,7 @@ describe('ControlProtocolHandler', () => {
     test('hook callbacks receive a live, cancellable signal', async () => {
       const { stream } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {});
+      handler.initializeWritten = true;
       let seenSignal: AbortSignal | undefined;
       handler.registerCallback('hook_0', async (_input, _id, { signal }) => {
         seenSignal = signal;
@@ -668,6 +672,7 @@ describe('ControlProtocolHandler', () => {
     test('registers callback that can be invoked later', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {});
+      handler.initializeWritten = true;
 
       const callback = mock(async () => ({ result: 'success' }));
       handler.registerCallback('test_callback', callback);
@@ -692,6 +697,7 @@ describe('ControlProtocolHandler', () => {
     test('overwrites existing callback with same id', async () => {
       const { stream, writes } = createMockStdin();
       const handler = new ControlProtocolHandler(stream, {});
+      handler.initializeWritten = true;
 
       const callback1 = mock(async () => ({ from: 'first' }));
       const callback2 = mock(async () => ({ from: 'second' }));
@@ -738,6 +744,43 @@ describe('ControlRequests builders', () => {
     expect(req).toEqual({
       subtype: 'set_permission_mode',
       mode: 'delegate',
+    });
+  });
+});
+
+describe('ControlProtocolHandler startup', () => {
+  describe('hook requests during startup (v0.3.326)', () => {
+    const hookRequest: ControlRequest = {
+      type: 'control_request',
+      request_id: 'hook-early',
+      request: { subtype: 'hook_callback', callback_id: 'hook_0', input: {} as never },
+    };
+
+    test('a hook request before initialize is written waits for it, then is answered', async () => {
+      const { stream, writes } = createMockStdin();
+      const handler = new ControlProtocolHandler(stream, {});
+      const handled = handler.handleControlRequest(hookRequest);
+      await new Promise((r) => setTimeout(r, 20));
+      expect(writes).toEqual([]);
+      // Registered while initialize is built, as buildHookConfig does
+      handler.registerCallback('hook_0', async () => ({ continue: true }));
+      handler.initializeWritten = true;
+      await handled;
+      const response = JSON.parse(writes[0] ?? '{}');
+      expect(response.response).toEqual({
+        subtype: 'success',
+        request_id: 'hook-early',
+        response: { continue: true },
+      });
+    });
+
+    test('closing before initialize is written leaves it unanswered', async () => {
+      const { stream, writes } = createMockStdin();
+      const handler = new ControlProtocolHandler(stream, {});
+      const handled = handler.handleControlRequest(hookRequest);
+      handler.close();
+      await handled;
+      expect(writes).toEqual([]);
     });
   });
 });

@@ -12,6 +12,11 @@
 import type { ChildProcess } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
 import { AbortError } from '../constants.ts';
+import {
+  launchesWithSdkUrl,
+  mcpServersViaInitialize,
+  processMcpServers,
+} from '../core/argBuilder.ts';
 import { ControlProtocolHandler, ControlRequests } from '../core/control.ts';
 import { hasHookSetToBlock } from '../core/hookConfig.ts';
 import { connectMcpBridges, setSdkMcpServers } from '../core/mcpBridge.ts';
@@ -40,6 +45,7 @@ import type {
   SDKControlReloadOutputStylesResponse,
   SDKControlReloadPluginsResponse,
   SDKControlReloadSkillsResponse,
+  SDKControlSetPermissionModeResponse,
   SDKMessage,
   SDKUserMessage,
   SdkPluginConfig,
@@ -50,7 +56,22 @@ import { ControlRequestManager } from './ControlRequestManager.ts';
 import { MessageQueue } from './MessageQueue.ts';
 import { MessageRouter } from './MessageRouter.ts';
 import { DefaultProcessFactory, type ProcessFactory, runEndCeilingMs } from './ProcessFactory.ts';
-import { buildInitialPrompt, buildInitRequest, sendProtocolInit } from './protocolInit.ts';
+import {
+  buildInitialPrompt,
+  buildInitRequest,
+  sendProtocolInit,
+  stripAgentSdkServers,
+} from './protocolInit.ts';
+
+/** v0.3.332: permission modes `setPermissionMode` reports back (official `DJe`). */
+const PERMISSION_MODES: Record<PermissionMode, true> = {
+  default: true,
+  acceptEdits: true,
+  bypassPermissions: true,
+  plan: true,
+  dontAsk: true,
+  auto: true,
+};
 
 /** Option checks the official SDK makes before spawning the CLI. */
 function validateOptions(options: Options): void {
@@ -70,12 +91,101 @@ function validateOptions(options: Options): void {
   ) {
     throw new Error("Invalid pluginDelivery. Expected 'argv' or 'initialize'.");
   }
+  if (
+    options.mcpServersDelivery !== undefined &&
+    options.mcpServersDelivery !== 'argv' &&
+    options.mcpServersDelivery !== 'initialize'
+  ) {
+    throw new Error("Invalid mcpServersDelivery. Expected 'argv' or 'initialize'.");
+  }
   if (options.canUseTool) {
     const warning = canUseToolShadowWarning(
       options.permissionMode ?? 'default',
       options.allowedTools ?? []
     );
     if (warning) process.emitWarning(warning, { code: 'CLAUDE_SDK_CAN_USE_TOOL_SHADOWED' });
+  }
+  assertInitializeSendable(options);
+  // v0.3.327: in-process servers in an agent's mcpServers are ignored
+  for (const { agentName, serverName } of stripAgentSdkServers(options.agents).ignored) {
+    process.emitWarning(
+      `Agent "${agentName}": MCP server "${serverName}" in its mcpServers was ignored, because a createSdkMcpServer() server works only in the top-level mcpServers option. Move it there and, if the agent has a tools list, add mcp__${serverName} to it. This will be an error in a later release.`,
+      { code: 'CLAUDE_SDK_AGENT_IN_PROCESS_SERVER' }
+    );
+  }
+  // v0.3.326: MCP servers on the command line are deprecated for a Claude Code
+  // the app starts itself (once per process, as the official SDK)
+  if (
+    options.mcpServersDelivery === undefined &&
+    Object.keys(processMcpServers(options)).length > 0 &&
+    !launchesWithSdkUrl(options) &&
+    (options.pathToClaudeCodeExecutable || options.spawnClaudeCodeProcess) &&
+    !mcpArgvDeprecationWarned
+  ) {
+    mcpArgvDeprecationWarned = true;
+    process.emitWarning(MCP_SERVERS_ARGV_DEPRECATED, {
+      type: 'DeprecationWarning',
+      code: 'CLAUDE_SDK_MCP_SERVERS_ARGV_DEPRECATED',
+    });
+  }
+}
+
+let mcpArgvDeprecationWarned = false;
+const MCP_SERVERS_ARGV_DEPRECATED =
+  "This app starts its own Claude Code (pathToClaudeCodeExecutable or spawnClaudeCodeProcess) and sets no mcpServersDelivery, so its MCP servers go on Claude Code's command line, where other users of the machine can read their env and headers. That default is deprecated: a future SDK release sends them over stdin instead ('initialize'), which a Claude Code older than the one bundled with this SDK cannot read, so those sessions would then fail to start. Set mcpServersDelivery: 'initialize' once that Claude Code is at least the bundled version, or mcpServersDelivery: 'argv' to stay on the command line. Either setting stops this warning.";
+
+/**
+ * v0.3.327: refuse, before spawning, options the initialize request can't
+ * carry — a hook event or matcher `hooks` that isn't an array, or a value
+ * JSON can't serialize, such as a circular or BigInt field (official `k5`).
+ * Fields are checked in the official order; the first failure is named.
+ */
+function assertInitializeSendable(options: Options): void {
+  const { systemPrompt } = options;
+  const preset =
+    typeof systemPrompt === 'object' && !Array.isArray(systemPrompt) ? systemPrompt : undefined;
+  let field = 'hooks';
+  try {
+    const fields: Record<string, unknown> = {
+      hooks: Object.entries(options.hooks ?? {}).map(([event, matchers]) => {
+        if (!matchers) return [];
+        if (!Array.isArray(matchers)) {
+          throw new Error(`hooks.${event} must be an array of matchers`);
+        }
+        return matchers.map((m, i) => {
+          if (!Array.isArray(m?.hooks)) {
+            throw new Error(`hooks.${event}[${i}].hooks must be an array of callbacks`);
+          }
+          return { matcher: m.matcher, timeout: m.timeout, onFailure: m.onFailure };
+        });
+      }),
+      'outputFormat or jsonSchema':
+        options.outputFormat?.type === 'json_schema' ? options.outputFormat.schema : undefined,
+      systemPrompt:
+        preset?.type === 'custom' ? preset.prompt : preset === undefined ? systemPrompt : undefined,
+      appendSystemPrompt: preset?.type === 'preset' ? preset.append : undefined,
+      planModeInstructions: options.planModeInstructions,
+      toolAliases: options.toolAliases,
+      agents: stripAgentSdkServers(options.agents).agents,
+      title: options.title,
+      skills: options.skills,
+      promptSuggestions: options.promptSuggestions,
+      agentProgressSummaries: options.agentProgressSummaries,
+      forwardSubagentText: options.forwardSubagentText,
+      supportedDialogKinds: options.supportedDialogKinds,
+      perTaskStopAffordance: options.perTaskStopAffordance,
+      plugins: options.pluginDelivery === 'initialize' ? options.plugins : undefined,
+      mcpServers: mcpServersViaInitialize(options) ? processMcpServers(options) : undefined,
+    };
+    for (const [key, value] of Object.entries(fields)) {
+      field = key;
+      JSON.stringify(value);
+    }
+  } catch (error) {
+    const [first] = (error instanceof Error ? error.message : String(error)).split('\n');
+    throw new Error(
+      `The session was not started, because the ${field} option can't be sent to Claude Code: ${first?.replace(/\.$/, '')}. Fix that value and try again.`
+    );
   }
 }
 
@@ -88,6 +198,11 @@ function canUseToolShadowWarning(mode: string, allowedTools: string[]): string |
   if (bare.length === 0) return undefined;
   return `canUseTool will not be invoked for: ${bare.join(', ')}. Bare allowedTools entries auto-approve the whole tool before the callback is consulted. To gate every tool call, use a PreToolUse hook; or remove the bare names from allowedTools so they fall through to canUseTool. Allow rules from settings files can also shadow the callback but are not visible here.`;
 }
+
+/** Control requests that always wait behind a held prompt (official `vJe`). */
+const ALWAYS_HELD_REQUESTS = new Set(['interrupt', 'cancel_async_message']);
+/** Control requests that never wait behind it (official `kJe`). */
+const NEVER_HELD_REQUESTS = new Set(['initialize', 'get_binary_version']);
 
 /** Largest delay setTimeout accepts. */
 const MAX_TIMEOUT_MS = 2_147_483_647;
@@ -242,6 +357,7 @@ export class QueryImpl implements Query {
       controlHandler
     );
     instance.forwardedAbort = forwardedAbort;
+    controlManager.deferFor = (request) => instance.controlRequestHold(request.subtype);
     instance.runEndCeilingMs = runEndCeilingMs(options);
     instance.stdinGate = gate;
 
@@ -266,9 +382,12 @@ export class QueryImpl implements Query {
     }
     instance.initialization = controlManager
       .waitForInit()
-      .then((response) => instance.checkHooksHonored(response, true));
+      .then((response) => instance.checkInitializeResponse(response, true));
     instance.initialization.catch(() => {});
-    if (hasHookSetToBlock(options.hooks)) instance.holdPromptUntilInitialized();
+    // v0.3.326: also while MCP servers sent in initialize await confirmation
+    if (hasHookSetToBlock(options.hooks) || mcpServersViaInitialize(options)) {
+      instance.holdPromptUntilInitialized();
+    }
 
     // 8. Handle input
     if (typeof prompt === 'string') {
@@ -394,9 +513,14 @@ export class QueryImpl implements Query {
       }
       // Meant for the SDK only, not the caller (official SDK drops these)
       if ('sdk_host_only' in msg && msg.sdk_host_only === true) return;
-    } else if (!(msg.type === 'system' && msg.subtype === 'session_writes_lost')) {
+    } else if (
+      !(
+        msg.type === 'system' &&
+        (msg.subtype === 'session_writes_lost' || (msg.subtype as string) === 'plugin_install')
+      )
+    ) {
       // `session_writes_lost` follows the last result and leaves the error
-      // text alone (v0.3.317)
+      // text alone (v0.3.317); so does `plugin_install` (v0.3.332)
       if (
         msg.type === 'system' &&
         msg.subtype === 'commands_changed' &&
@@ -541,26 +665,48 @@ export class QueryImpl implements Query {
   }
 
   /**
-   * With a hook set to `onFailure: "block"`, refuse a CLI that would let the
-   * action run when the hook fails: one that predates the option, or (first
-   * initialize only) a session already running that ignored our hooks. The
-   * query fails with the returned error (official SDK, v0.3.317).
+   * Check the answer to `initialize` (official SDK, same order). With a hook
+   * set to `onFailure: "block"`, refuse a CLI that would let the action run
+   * when the hook fails: one that predates the option, or (first initialize
+   * only) a session already running that ignored our hooks (v0.3.317). With
+   * MCP servers sent in initialize, refuse a CLI that can't read them, and
+   * warn (first only) when it didn't load them (v0.3.326). The query fails
+   * with the error.
    */
-  private checkHooksHonored(
+  private checkInitializeResponse(
     response: SDKControlInitializeResponse,
     first: boolean
   ): SDKControlInitializeResponse {
-    if (!hasHookSetToBlock(this.options.hooks)) return response;
-    const error =
-      response.hook_on_failure_supported !== true
-        ? new Error(
-            'The process answering initialize does not honor onFailure on hook matchers, so a hook that fails would not block. Update Claude Code if it is old, or remove onFailure: "block" from your hooks.'
-          )
-        : first && response.hooks_applied === false
+    let error: Error | undefined;
+    if (hasHookSetToBlock(this.options.hooks)) {
+      error =
+        response.hook_on_failure_supported !== true
           ? new Error(
-              'This session was already running and did not register your hooks, so a hook set to onFailure: "block" would never run. Start a new session, or remove onFailure: "block" from your hooks.'
+              'The process answering initialize does not honor onFailure on hook matchers, so a hook that fails would not block. Update Claude Code if it is old, or remove onFailure: "block" from your hooks.'
             )
-          : undefined;
+          : first && response.hooks_applied === false
+            ? new Error(
+                'This session was already running and did not register your hooks, so a hook set to onFailure: "block" would never run. Start a new session, or remove onFailure: "block" from your hooks.'
+              )
+            : undefined;
+    }
+    if (error === undefined && mcpServersViaInitialize(this.options)) {
+      const applied = response.mcp_servers_applied;
+      if (typeof applied !== 'boolean') {
+        const version =
+          typeof response.claude_code_version === 'string'
+            ? ` (version ${response.claude_code_version})`
+            : '';
+        error = new Error(
+          `This Claude Code${version} is too old to read MCP servers from the initialize request, so it started without them. The session was ended and no further prompt was sent. Use the Claude Code bundled with this SDK, update the one you start (pathToClaudeCodeExecutable or spawnClaudeCodeProcess) to at least the bundled version, or set mcpServersDelivery: 'argv', which puts the servers' env and headers on Claude Code's command line, where other users of the machine can read them.`
+        );
+      } else if (!applied && first) {
+        process.emitWarning(
+          'Claude Code reported that it did not load the MCP servers sent in the initialize request, so this session may be running without them. A cloud session never starts them; otherwise check that no wrapper removes --await-initialize from the launch.',
+          { code: 'CLAUDE_SDK_MCP_SERVERS_NOT_APPLIED' }
+        );
+      }
+    }
     if (error === undefined) return response;
     this.fail(error);
     throw error;
@@ -568,14 +714,18 @@ export class QueryImpl implements Query {
 
   /** Hold prompts until `initialize` is answered and checkHooksHonored passed. */
   private holdPromptUntilInitialized(): void {
-    const timer = setTimeout(() => {
-      this.fail(
-        new Error(
-          'Claude Code did not answer initialize, so a hook set to onFailure: "block" could not be confirmed and the prompt was not sent. Check the connection and start a new session.'
-        )
-      );
-    }, INITIALIZE_ANSWER_TIMEOUT_MS);
-    timer.unref?.();
+    // Only a hook set to block times out; MCP servers sent in initialize wait
+    // for the answer however long it takes (official SDK)
+    const timer = hasHookSetToBlock(this.options.hooks)
+      ? setTimeout(() => {
+          this.fail(
+            new Error(
+              'Claude Code did not answer initialize, so a hook set to onFailure: "block" could not be confirmed and the prompt was not sent. Check the connection and start a new session.'
+            )
+          );
+        }, INITIALIZE_ANSWER_TIMEOUT_MS)
+      : undefined;
+    timer?.unref?.();
     const hold = this.initialization.then(
       () => {
         clearTimeout(timer);
@@ -589,6 +739,24 @@ export class QueryImpl implements Query {
     );
     this.promptHold = hold;
     void this.writeBehindPromptHold(hold, () => {});
+  }
+
+  /**
+   * Whether a control request waits behind the prompt hold, and how (official
+   * SDK `request`): `interrupt` and `cancel_async_message` always do, so they
+   * can't reach the CLI before the prompt; while launch fields (MCP servers,
+   * v0.3.326) await confirmation, so does every request but `initialize` and
+   * `get_binary_version`.
+   */
+  private controlRequestHold(subtype: string): ((write: () => void) => void) | undefined {
+    const hold = this.promptHold;
+    if (hold === undefined) return undefined;
+    const held =
+      ALWAYS_HELD_REQUESTS.has(subtype) ||
+      (mcpServersViaInitialize(this.options) && !NEVER_HELD_REQUESTS.has(subtype));
+    return held
+      ? (write) => void this.writeBehindPromptHold(hold, write).catch(() => {})
+      : undefined;
   }
 
   /**
@@ -816,13 +984,10 @@ export class QueryImpl implements Query {
 
   async interrupt(): Promise<SDKControlInterruptResponse | undefined> {
     // Behind a held prompt, so it cannot reach the CLI before the prompt does
-    const hold = this.promptHold;
+    // (controlRequestHold)
     const response = await this.controlManager.sendControlRequestWithResponse<{
       still_queued?: string[];
-    }>(
-      ControlRequests.interrupt(),
-      hold && ((write) => void this.writeBehindPromptHold(hold, write).catch(() => {}))
-    );
+    }>(ControlRequests.interrupt());
     const stillQueued = response?.still_queued;
     return Array.isArray(stillQueued)
       ? { still_queued: stillQueued.filter((id): id is string => typeof id === 'string') }
@@ -836,14 +1001,40 @@ export class QueryImpl implements Query {
     return response.backgrounded ?? true;
   }
 
+  /**
+   * Withdraw a queued async user message by its uuid; resolves with whether
+   * it was cancelled. Runtime-only in the official SDK (not in `sdk.d.ts`);
+   * waits behind a held prompt (controlRequestHold).
+   */
+  async cancelAsyncMessage(messageUuid: string): Promise<boolean> {
+    const response = await this.controlManager.sendControlRequestWithResponse<{
+      cancelled: boolean;
+    }>(ControlRequests.cancelAsyncMessage(messageUuid));
+    return response.cancelled;
+  }
+
   async stopTask(taskId: string): Promise<void> {
     await this.controlManager.sendControlRequestWithResponse(ControlRequests.stopTask(taskId));
   }
 
-  async setPermissionMode(mode: PermissionMode): Promise<void> {
-    await this.controlManager.sendControlRequestWithResponse(
-      ControlRequests.setPermissionMode(mode)
-    );
+  /**
+   * v0.3.332: resolves with the mode now in effect (`{ mode }`), or undefined
+   * when the CLI answers without a known mode. The CLI's internal `manual`
+   * reads as `default`, as in the official SDK. The second argument is
+   * runtime-only upstream (not in `sdk.d.ts`).
+   */
+  async setPermissionMode(
+    mode: PermissionMode,
+    options?: { answersBypassSwitchBack?: boolean }
+  ): Promise<SDKControlSetPermissionModeResponse | undefined> {
+    const response = await this.controlManager.sendControlRequestWithResponse<
+      { mode?: unknown } | undefined
+    >(ControlRequests.setPermissionMode(mode, options?.answersBypassSwitchBack));
+    const raw = response?.mode;
+    const effective = raw === 'manual' ? 'default' : raw;
+    return typeof effective === 'string' && Object.hasOwn(PERMISSION_MODES, effective)
+      ? { mode: effective as PermissionMode }
+      : undefined;
   }
 
   async setModel(model?: string): Promise<void> {
@@ -969,7 +1160,7 @@ export class QueryImpl implements Query {
       await this.controlManager.sendControlRequestWithResponse<SDKControlInitializeResponse>(
         request
       );
-    return this.checkHooksHonored(response, false);
+    return this.checkInitializeResponse(response, false);
   }
 
   async supportedCommands(): Promise<SlashCommand[]> {
@@ -1065,6 +1256,7 @@ export class QueryImpl implements Query {
   async reloadPlugins(options?: {
     holdOnCacheImpact?: boolean;
     addPlugins?: SdkPluginConfig[];
+    refuseIfBusy?: boolean;
   }): Promise<SDKControlReloadPluginsResponse> {
     return this.controlManager.sendControlRequestWithResponse<SDKControlReloadPluginsResponse>(
       ControlRequests.reloadPlugins(options)

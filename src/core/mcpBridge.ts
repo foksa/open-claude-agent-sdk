@@ -34,6 +34,9 @@ export type SdkMcpServerSettings = {
   autoModeVerdictTools?: string[];
 };
 
+/** Request ids of manifest-capture messages (official SDK prefix). */
+export const CAPTURE_ID_PREFIX = 'sdk-manifest-capture:';
+
 /** Limits on `autoModeVerdictTools` (official SDK). */
 const VERDICT_TOOLS_MAX = 64;
 const VERDICT_TOOL_NAME_MAX = 128;
@@ -237,6 +240,9 @@ export class McpServerBridge {
             self.pendingRequests.delete(message.id as number | string);
             return;
           }
+          // A capture reply after the capture gave up on it is dropped, not
+          // sent to the CLI, which never asked for it (official SDK)
+          if (typeof message.id === 'string' && message.id.startsWith(CAPTURE_ID_PREFIX)) return;
         }
         // Server-initiated: notifications (tools/list_changed, progress,
         // logging) and server→client requests go to the CLI
@@ -253,6 +259,20 @@ export class McpServerBridge {
     this.serverOnMessage = transport.onmessage
       ? (msg: unknown) => transport.onmessage?.(msg as never)
       : null;
+  }
+
+  /**
+   * Forget manifest-capture requests the server has not answered, once the
+   * capture is over, so a server that never answers its handshake is not
+   * held by them (official SDK, v0.3.329). Their promises are left unsettled,
+   * as upstream; a late reply is dropped in `send`.
+   */
+  dropPendingCaptures(): void {
+    for (const id of this.pendingRequests.keys()) {
+      if (typeof id === 'string' && id.startsWith(CAPTURE_ID_PREFIX)) {
+        this.pendingRequests.delete(id);
+      }
+    }
   }
 
   /** Disconnect the server (setMcpServers removal or query close). */

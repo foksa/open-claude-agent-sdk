@@ -6,6 +6,7 @@
 import { open, readFile, realpath } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import type { SDKSessionInfo } from '../types/index.ts';
+import { type ArchiveMark, archivedState } from './archive.ts';
 import {
   canonicalizePath,
   HEAD_TAIL_BYTES,
@@ -21,16 +22,23 @@ import {
   cleanTitle,
   firstPromptFromHead,
   firstStringField,
-  lastStringField,
+  lastLineField,
+  lastTypedField,
   promptText,
+  recentStringField,
 } from './text.ts';
 
-/** Build session info from a transcript's head/tail; null for sidechains or empty sessions. */
+/**
+ * Build session info from a transcript's head/tail; null for sidechains or
+ * empty sessions (official `Ca`). v0.3.323+: titles, tag, last prompt and
+ * summary come from parsed entries of their type, not a raw text match.
+ */
 export function parseSessionInfo(
   sessionId: string,
   ht: HeadTail,
   projectPath: string | undefined,
-  sidecarTitle: string | undefined
+  sidecarTitle: string | undefined,
+  archiveMark?: ArchiveMark
 ): SDKSessionInfo | null {
   const { head, tail, mtime, size } = ht;
   const nl = head.indexOf('\n');
@@ -40,11 +48,11 @@ export function parseSessionInfo(
   }
 
   const customTitle =
-    lastStringField(tail, 'customTitle') ||
+    lastTypedField(tail, 'custom-title') ||
     sidecarTitle ||
-    lastStringField(head, 'customTitle') ||
-    lastStringField(tail, 'aiTitle') ||
-    lastStringField(head, 'aiTitle') ||
+    lastTypedField(head, 'custom-title') ||
+    lastTypedField(tail, 'ai-title') ||
+    lastTypedField(head, 'ai-title') ||
     undefined;
   const firstPrompt = firstPromptFromHead(head) || undefined;
 
@@ -57,23 +65,20 @@ export function parseSessionInfo(
 
   const summary =
     customTitle ||
-    lastStringField(tail, 'lastPrompt') ||
-    lastStringField(tail, 'summary') ||
+    lastLineField(tail, 'lastPrompt') ||
+    lastLineField(tail, 'summary') ||
     firstPrompt ||
     attachmentOnlyPrompt(head);
   if (!summary) return null;
 
   const gitBranch =
-    lastStringField(tail, 'gitBranch') || firstStringField(head, 'gitBranch') || undefined;
+    recentStringField(tail, 'gitBranch') || firstStringField(head, 'gitBranch') || undefined;
   const cwd =
     lastParsedStringField(tail, 'relocated', 'relocatedCwd') ||
     firstStringField(head, 'cwd') ||
     projectPath ||
     undefined;
-  const tagLine = tail
-    .split('\n')
-    .findLast((line) => line.includes('"type":"tag"') && line.includes('"tag":"'));
-  const tag = tagLine ? lastStringField(tagLine, 'tag') || undefined : undefined;
+  const tag = lastTypedField(tail, 'tag') || undefined;
 
   return {
     sessionId,
@@ -86,6 +91,7 @@ export function parseSessionInfo(
     cwd,
     tag,
     createdAt,
+    archived: archivedState(archiveMark, ht),
   };
 }
 
@@ -115,7 +121,7 @@ const PROGRAMMATIC_ENTRYPOINTS = new Set(['sdk-cli', 'sdk-ts', 'sdk-py']);
 
 /** Sessions started by an SDK or a daemon rather than interactively. */
 export function isProgrammaticSession(head: string, tail: string): boolean {
-  const entrypoint = firstStringField(head, 'entrypoint') ?? lastStringField(tail, 'entrypoint');
+  const entrypoint = firstStringField(head, 'entrypoint') ?? recentStringField(tail, 'entrypoint');
   if (entrypoint && PROGRAMMATIC_ENTRYPOINTS.has(entrypoint)) return true;
   const firstMessageLine = head.split('\n').find((line) => line.includes('"parentUuid":')) ?? head;
   const kind = firstStringField(firstMessageLine, 'sessionKind');

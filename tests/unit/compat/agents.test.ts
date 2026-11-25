@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
+import { createSdkMcpServer } from '../../../src/types/index.ts';
 import { capture, officialQuery, openQuery } from './capture-utils.ts';
 
 describe('agents init message compatibility', () => {
@@ -94,6 +95,40 @@ describe('agents init message compatibility', () => {
       expect(officialInit?.request?.agents).toEqual(agents);
 
       console.log('   multiple agents in init message match');
+    },
+    { timeout: 60000 }
+  );
+
+  test.concurrent(
+    'an in-process MCP server in an agent is sent as a bare reference (v0.3.327)',
+    async () => {
+      const server = createSdkMcpServer({ name: 'helper', version: '1.0.0', tools: [] });
+      const agents = {
+        plain: { description: 'd', prompt: 'p', mcpServers: ['github'] },
+        withSdk: {
+          description: 'd',
+          prompt: 'p',
+          mcpServers: [{ helper: server, stdio: { command: 'node' } }, 'github'],
+        },
+      };
+      const [open, official] = await Promise.all([
+        capture(openQuery, 'test', { agents }),
+        capture(officialQuery, 'test', { agents }),
+      ]);
+      const initOf = (c: typeof open) =>
+        c.stdin.find((m) => m.request?.subtype === 'initialize')?.request?.agents;
+      expect(initOf(open)).toEqual({
+        plain: agents.plain,
+        withSdk: {
+          description: 'd',
+          prompt: 'p',
+          mcpServers: [
+            { helper: { type: 'sdk', name: 'helper' }, stdio: { command: 'node' } },
+            'github',
+          ],
+        },
+      });
+      expect(initOf(open)).toEqual(initOf(official));
     },
     { timeout: 60000 }
   );

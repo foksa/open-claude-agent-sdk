@@ -2249,3 +2249,58 @@ describe('v0.3.322 type re-exports', () => {
     expect(result.credential_expires_at).toBe('2030-01-01T00:00:00Z');
   });
 });
+
+describe('v0.3.332 type re-exports', () => {
+  test('PreSkillShellCommandHookInput and HookSpecificOutput are importable', () => {
+    const input: import('../../src/types/index.ts').PreSkillShellCommandHookInput = {
+      hook_event_name: 'PreSkillShellCommand',
+      session_id: 's',
+      transcript_path: '/t',
+      cwd: '/',
+      tool_name: 'Bash',
+      tool_input: { command: 'ls' },
+      tool_use_id: 'skill-1',
+      command_name: 'deploy',
+      invoked_by: 'user',
+    };
+    const output: import('../../src/types/index.ts').PreSkillShellCommandHookSpecificOutput = {
+      hookEventName: 'PreSkillShellCommand',
+      permissionDecision: 'deny',
+    };
+    expect(input.command_name).toBe('deploy');
+    expect(output.permissionDecision).toBe('deny');
+  });
+
+  test('SDKControlSetPermissionModeResponse is importable', () => {
+    const r: import('../../src/types/index.ts').SDKControlSetPermissionModeResponse = {
+      mode: 'plan',
+    };
+    expect(r.mode).toBe('plan');
+  });
+
+  test('setPermissionMode resolves with the mode in effect', () => {
+    type Q = import('../../src/types/index.ts').Query;
+    type R = Awaited<ReturnType<Q['setPermissionMode']>>;
+    const r: R = { mode: 'default' };
+    expect(r?.mode).toBe('default');
+  });
+
+  test('DeniedModelsMatch is importable', () => {
+    const m: import('../../src/types/index.ts').DeniedModelsMatch = {
+      denied: [true],
+      warnings: [],
+    };
+    expect(m.denied).toEqual([true]);
+  });
+
+  test('reloadPlugins accepts refuseIfBusy', () => {
+    type Opts = Parameters<import('../../src/types/index.ts').Query['reloadPlugins']>[0];
+    const o: Opts = { refuseIfBusy: true };
+    expect(o?.refuseIfBusy).toBe(true);
+  });
+
+  test("mcpServersDelivery is an option ('argv' | 'initialize')", () => {
+    const o: import('../../src/types/index.ts').Options = { mcpServersDelivery: 'initialize' };
+    expect(o.mcpServersDelivery).toBe('initialize');
+  });
+});

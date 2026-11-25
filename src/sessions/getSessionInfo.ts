@@ -3,9 +3,10 @@
  */
 
 import type { GetSessionInfoOptions, SDKSessionInfo } from '../types/index.ts';
+import { readArchiveMark } from './archive.ts';
 import { findSessionFile, readHeadTail, validateUuid } from './paths.ts';
 import { parseSessionInfo, readSidecarTitle } from './sessionInfo.ts';
-import { lastStringField } from './text.ts';
+import { lastTypedField } from './text.ts';
 
 export async function getSessionInfo(
   sessionId: string,
@@ -17,9 +18,11 @@ export async function getSessionInfo(
   if (!file) return undefined;
   const ht = await readHeadTail(file.filePath);
   if (!ht) return undefined;
-  const sidecarTitle =
-    lastStringField(ht.tail, 'customTitle') === undefined
-      ? await readSidecarTitle(file.filePath, id)
-      : undefined;
-  return parseSessionInfo(id, ht, file.projectPath, sidecarTitle) ?? undefined;
+  const [sidecarTitle, archiveMark] = await Promise.all([
+    lastTypedField(ht.tail, 'custom-title') === undefined
+      ? readSidecarTitle(file.filePath, id)
+      : undefined,
+    readArchiveMark(file.filePath, id),
+  ]);
+  return parseSessionInfo(id, ht, file.projectPath, sidecarTitle, archiveMark) ?? undefined;
 }

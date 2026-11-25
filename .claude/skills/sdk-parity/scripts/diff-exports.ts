@@ -33,6 +33,8 @@ const UNSUPPORTED = new Set([
   'startup',
   'prewarm',
   'resolveSettings',
+  // v0.3.323 (alpha): pairs with resolveSettings; reimplements the CLI's model-name parser
+  'matchDeniedModels',
   'filterEscalatingDefaultMode',
   'InMemorySessionStore',
   'importSessionToStore',
